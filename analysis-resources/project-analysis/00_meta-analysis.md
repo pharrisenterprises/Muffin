@@ -1,668 +1,927 @@
-# META-ANALYSIS: Muffin (Test Recorder & Automation Tool)
+# Muffin - Complete Project Meta-Analysis
 
-**Analysis Date:** December 1, 2025  
+**Generated:** December 1, 2025  
 **Repository:** pharrisenterprises/Muffin  
 **Branch:** main
 
 ---
 
-## 1. PROJECT OVERVIEW
+## Project Overview
 
-### What This Project Does
+### What is Muffin?
 
-Muffin is a **Chrome browser extension** designed for web automation testing. It functions as a comprehensive test automation platform that:
+Muffin is a Chrome browser extension (Manifest V3) designed for **automated web testing and data-driven form filling**. It enables users to record interactions on web pages, map CSV data columns to form fields, and replay those interactions with batch data processing capabilities.
 
-- **Records** user interactions on any website (clicks, inputs, form fills, navigation)
-- **Maps** recorded actions to CSV data fields for bulk data entry automation
-- **Replays** recorded test scripts with CSV data injection
-- **Reports** test execution results with pass/fail metrics
-
-The tool is essentially a "record-and-playback" automation framework that allows non-technical users to create browser automation workflows without writing code.
-
-### High-Level Behavior
-
-1. **Project Dashboard**: Users create automation "projects" (stored in IndexedDB)
-2. **Recording Mode**: Opens target URL in new tab, injects content script, captures DOM interactions
-3. **Field Mapping**: Matches recorded steps to CSV column headers using string similarity algorithms
-4. **Test Execution**: Replays steps with CSV data, handling dynamic selectors, iframes, and shadow DOM
-5. **Results Tracking**: Stores test run history with step-level pass/fail status
-
-### Project Type
-
-This is a **Manifest V3 Chrome Extension** with:
-- Background service worker (persistent storage + tab management)
-- Content scripts (DOM interaction recording/replay)
-- Extension pages (React-based UI for dashboard, recorder, mapper, runner)
-- Web-accessible resources (injected scripts for special cases like Google Autocomplete)
-
-### Interaction Domains
-
-- **Browser APIs**: Chrome extension APIs (tabs, scripting, storage, webNavigation, runtime messaging)
-- **DOM**: Direct manipulation of target website DOMs (main frame, iframes, shadow DOM)
-- **Network**: Minimal (Firebase mentioned but not heavily used, no API calls observed)
-- **Local Storage**: IndexedDB via Dexie.js for project/test run persistence
-
----
-
-## 2. TECH STACK SUMMARY
-
-### Languages
-- **TypeScript** (95%+): All application logic, types defined throughout
-- **JavaScript**: Build scripts, postbuild processing
-- **CSS**: Tailwind CSS for styling, custom CSS for content script overlays
-- **JSON**: Configuration (tsconfig, manifest, package.json)
-
-### Core Frameworks & Libraries
-
-**Frontend UI:**
-- **React 18** with React Router DOM (SPA navigation)
-- **Vite 6** (build tool + dev server)
-- **Tailwind CSS** + multiple UI component libraries:
-  - Radix UI (accessible primitives)
-  - Material-UI (@mui/material)
-  - Material-Tailwind
-  - Flowbite React
-  - Custom shadcn/ui-style components in `src/components/Ui/`
-
-**State Management:**
-- **Redux Toolkit** (@reduxjs/toolkit) with React-Redux
-- **IndexedDB** via **Dexie.js** (primary data persistence)
-
-**Chrome Extension:**
-- **Manifest V3** architecture
-- **@crxjs/vite-plugin** (for HMR and extension bundling)
-- **@types/chrome** + webextension-polyfill types
-
-**Automation & Utilities:**
-- **XPath** (`get-xpath`, `xpath` libs) for DOM element identification
-- **string-similarity** for fuzzy field matching
-- **PapaParse** for CSV parsing
-- **XLSX** for Excel/CSV export
-- **@hello-pangea/dnd** (drag-and-drop for step reordering)
-- **date-fns** (date formatting)
-
-**Styling & Icons:**
-- **Lucide React** + **React Icons** + **FontAwesome React**
-- **Emotion** for styled components
-- **Autoprefixer** + **PostCSS**
-
-### Build Tools & Bundlers
-
-- **Vite 6** with two separate configs:
-  - `vite.config.ts`: Main extension pages (popup, pages, content scripts)
-  - `vite.config.bg.ts`: Background service worker
-- **TypeScript 5** with strict mode enabled
-- **ESLint** + **@typescript-eslint** for linting
-- **SWC** (@vitejs/plugin-react-swc) for fast React compilation
-- **Terser** for minification (with class/function names preserved)
+**Core Use Case:** A user needs to fill out the same web form hundreds of times with different data (e.g., customer registrations, order submissions, data entry tasks). Instead of manually entering data, users:
+1. **Record** their actions once on the target website
+2. **Map** CSV spreadsheet columns to form field labels
+3. **Execute** tests that automatically fill and submit forms for each row in the CSV
 
 ### Key Capabilities
 
-1. **DOM Introspection**: Deep traversal of HTML/iframes/shadow DOM with fallback strategies
-2. **Smart Selectors**: Multi-strategy element finding (XPath, ID, name, aria, data attrs, bounding boxes, text similarity)
-3. **Label Detection**: Complex heuristics to extract human-readable labels from form fields (handles Google Forms, Bootstrap layouts, Select2, contenteditable)
-4. **Iframe/Shadow DOM Support**: Recursive injection and traversal with chain serialization
-5. **React-Safe Replay**: Uses property setters to bypass React's controlled input protection
-6. **CSV Bulk Processing**: Field mapping + row-by-row test execution
-7. **Real-Time Notifications**: In-page overlay for test execution feedback
+- **Intelligent Recording:** Captures clicks, inputs, and keyboard events with rich element metadata (XPath, ARIA labels, data attributes, bounding boxes)
+- **Advanced Element Location:** Multi-strategy element finding with 7+ fallback methods (XPath, ID, name, ARIA, placeholder, text similarity, position-based)
+- **Shadow DOM Support:** Handles closed shadow roots (critical for Google Maps Autocomplete and modern web components)
+- **Cross-Frame Recording:** Traverses nested iframes for recording and playback
+- **Smart Label Extraction:** Uses 16+ heuristics to extract human-readable labels for form fields (Google Forms, Bootstrap, Select2, ARIA patterns)
+- **CSV-Driven Testing:** Maps spreadsheet data to recorded steps for batch execution
+- **Auto-Mapping:** Fuzzy string matching to automatically map CSV headers to form field labels
+- **Project Management:** Store, organize, and manage multiple test projects with execution history
+- **Real-Time Feedback:** Visual overlays during playback showing success/failure status
+
+### Architecture Type
+
+**Chrome Extension (Manifest V3) with React UI**
+
+- **Service Worker Background Script:** Central message hub, tab management, IndexedDB operations
+- **Content Scripts:** Injected into web pages for recording and playback
+- **React UI Pages:** Dashboard, recorder, field mapper, test runner (rendered in extension pages)
+- **IndexedDB Persistence:** Dexie.js wrapper for storing projects and test runs
 
 ---
 
-## 3. ARCHITECTURE & SUBSYSTEMS
+## Tech Stack Summary
 
-### Major Subsystems
+### Core Technologies (from package.json)
 
-#### A. **Extension Infrastructure** (Chrome APIs Layer)
-**Location:** `src/background/`, `public/manifest.json`
+**Language & Runtime:**
+- **TypeScript:** 5.0.2
+- **Node.js:** Required for build tooling
+- **ECMAScript:** ES2020 target
 
-- **Background Service Worker** (`background.ts`): Central message hub
-  - Manages project CRUD operations via IndexedDB
-  - Handles tab lifecycle (create, inject, track, close)
-  - Persists storage across sessions
-  - Routes messages between content scripts and extension pages
+**UI Framework:**
+- **React:** 18.2.0
+- **React DOM:** 18.2.0
+- **React Router DOM:** 6.24.0 (hash-based routing for extension pages)
 
-- **Manifest V3 Configuration**: Permissions for tabs, storage, scripting, webNavigation, all_urls
+**Build System:**
+- **Vite:** 6.3.5 (dual build config for UI and background script)
+- **@vitejs/plugin-react-swc:** 3.3.2 (fast React transforms)
+- **TypeScript Compiler:** 5.0.2
+- **PostCSS:** 8.5.3
+- **Autoprefixer:** 10.4.20
 
-#### B. **UI Layer** (React SPA)
-**Location:** `src/pages/`, `src/components/`, `src/routes/`
+**Styling:**
+- **Tailwind CSS:** 3.4.17
+- **tailwindcss-animate:** 1.0.7
+- **class-variance-authority:** 0.7.1 (CVA for component variants)
+- **tailwind-merge:** 2.0.0
+- **clsx:** 2.0.0
 
-- **Dashboard** (`Dashboard.tsx`): Project management (create, edit, delete, search)
-- **Recorder** (`Recorder.tsx`): Live step capture UI with drag-and-drop reordering
-- **FieldMapper** (`FieldMapper.tsx`): CSV upload + auto/manual field mapping
-- **TestRunner** (`TestRunner.tsx`): Execution controls, progress tracking, test history
-- **Layout** (`Layout.tsx`): Wrapper for routing + content script initialization
-- **Router** (`Router.tsx`): React Router configuration
+**State Management:**
+- **Redux Toolkit:** 2.2.5 (minimal usage - theme and header state only)
+- **React Redux:** 9.1.2
 
-**Component Structure:**
-- `src/components/Ui/`: Reusable UI primitives (buttons, cards, inputs, dialogs, etc.)
-- `src/components/{Dashboard,Recorder,Mapper,Runner}/`: Feature-specific components
+**Data Persistence:**
+- **Dexie.js:** 4.0.11 (IndexedDB wrapper)
 
-#### C. **Content Script Layer** (DOM Interaction)
-**Location:** `src/contentScript/`, injected via `chrome.scripting.executeScript`
+**Chrome Extension APIs:**
+- **@types/chrome:** 0.0.263
+- **@types/webextension-polyfill:** 0.12.1
 
-- **Main Content Script** (`content.tsx`): 
-  - Attaches event listeners (click, input, keydown) to document and all iframes
-  - Extracts labels using 12+ heuristic strategies
-  - Computes XPath and bundles element metadata (id, name, aria, data-attrs, bounding box, iframe chain)
-  - Sends events to background script via `chrome.runtime.sendMessage`
-  - Handles replay execution with human-like interactions
-  - Manages in-page notification overlay
+**UI Component Libraries:**
+- **Radix UI:** Multiple packages (@radix-ui/react-*)
+  - Dialog, Select, Dropdown, Tabs, Switch, Progress, Tooltip, Avatar, etc.
+- **Lucide React:** 0.533.0 (icon library)
+- **React Icons:** 5.3.0
 
-- **Page Interceptor** (`page-interceptor.tsx`): Injected into page context (not extension isolated world)
-  - Intercepts Google Maps autocomplete events
-  - Bypasses same-origin restrictions for certain web components
-  - Posts messages to content script via `window.postMessage`
+**Utilities & Helpers:**
+- **PapaParse:** 5.5.3 (CSV parsing)
+- **string-similarity:** 4.0.4 (Dice coefficient for field mapping)
+- **date-fns:** 4.1.0 (date formatting)
+- **XLSX:** 0.18.5 (Excel file handling)
+- **xpath:** 0.0.34 (XPath evaluation)
+- **get-xpath:** 3.3.0 (XPath generation)
 
-- **Replay Script** (`replay.ts`): Specialized script for replaying complex interactions
+**Drag & Drop:**
+- **@hello-pangea/dnd:** 18.0.1 (react-beautiful-dnd fork)
 
-#### D. **Data Persistence Layer**
-**Location:** `src/common/services/indexedDB.ts`
+**Notifications:**
+- **Sonner:** 2.0.7 (toast notifications)
 
-- **Dexie.js Wrapper**: Schema for `projects` and `testRuns` tables
-- **Project Schema**: Stores name, description, target_url, status, recorded_steps, parsed_fields, csv_data, timestamps
-- **TestRun Schema**: Links to project, stores status, timestamps, step counts, results, logs
+**Development Tools:**
+- **ESLint:** 8.45.0 with TypeScript plugin
+- **Nodemon:** 3.1.7 (watch mode for builds)
 
-#### E. **State Management**
-**Location:** `src/redux/`
-
-- **Redux Store**: Minimal usage (theme, header, users slices)
-- **Primary State**: Local React state + IndexedDB (not centralized in Redux)
-
-#### F. **Utilities & Helpers**
-**Location:** `src/common/`, `src/helpers/`, `src/utils/`
-
-- `apiService.ts`: Placeholder for future API integrations
-- `storageHelper.ts`: Chrome storage abstractions
-- `commonHelpers.ts`: Shared utility functions
-- `fontsUtils.ts`: Font loading
-- `types.ts`: Shared TypeScript interfaces
-
-### Communication Flows
-
-#### Recording Flow:
-```
-User clicks Dashboard "Open Recorder" 
-  → Recorder.tsx loads project from IndexedDB
-  → User clicks "Start Recording"
-  → background.ts opens target URL in new tab
-  → background.ts injects content.tsx via chrome.scripting.executeScript
-  → content.tsx attaches listeners to DOM + iframes
-  → User interacts with page
-  → content.tsx captures event, computes XPath, extracts label
-  → content.tsx sends { type: "logEvent", data } to background
-  → background.ts forwards to Recorder.tsx
-  → Recorder.tsx appends step to recordedSteps array
-  → Recorder.tsx calls background "update_project_steps"
-  → background.ts writes to IndexedDB
-```
-
-#### Replay Flow:
-```
-User uploads CSV to FieldMapper
-  → FieldMapper.tsx auto-maps CSV columns to recorded step labels
-  → User navigates to TestRunner
-  → TestRunner.tsx loads project + CSV data
-  → User clicks "Run Test"
-  → TestRunner.tsx opens target URL in new tab (via background)
-  → For each CSV row:
-    → For each step:
-      → TestRunner sends { type: "runStep", data: {bundle, action, value} } to content script
-      → content.tsx calls findElementFromBundle(bundle)
-      → content.tsx executes playAction (click/input/enter)
-      → Returns success/failure
-      → TestRunner updates UI + logs
-  → Final results saved to IndexedDB testRuns table
-```
-
-### App Lifecycle
-
-1. **Installation**: `chrome.runtime.onInstalled` opens Dashboard
-2. **Icon Click**: `chrome.action.onClicked` opens pages.html#dashboard
-3. **Extension Pages**: Rendered as React SPA in pages.html
-4. **Tab Management**: Background tracks opened tabs, reinjects on navigation (via `chrome.webNavigation.onCommitted`)
-5. **Persistence**: All data in IndexedDB, survives extension reloads
+**Package Manager:**
+- **npm** (indicated by package-lock.json presence)
 
 ---
 
-## 4. DIRECTORY & FILE STRUCTURE
+## Project Structure
 
-### Root-Level Files
-- `package.json`: Dependencies, scripts (dev, build, watch:build)
-- `vite.config.ts`: Main UI build config
-- `vite.config.bg.ts`: Background worker build config
-- `tsconfig.json`: TypeScript strict mode, ES2020, DOM types
-- `tailwind.config.js`: Tailwind customization
-- `postcss.config.js`: CSS processing
-- `scripts/postbuild.js`: Manifest injection + validation
+```
+muffin/
+├── analysis-resources/          # Project documentation and analysis
+│   ├── _RESOURCE_MAP.md         # Master index of all analysis docs
+│   ├── project-analysis/        # Repository analysis outputs
+│   ├── component-breakdowns/    # Individual component deep-dives (32 files)
+│   ├── modularization-plans/    # Refactoring blueprints
+│   ├── build-instructions/      # Build pipeline documentation
+│   ├── implementation-guides/   # Code generation instructions
+│   ├── prompts/                 # Saved prompt templates
+│   └── references/              # External reference materials
+│
+├── public/                      # Static assets and extension manifests
+│   ├── manifest.json            # Chrome Extension Manifest V3
+│   ├── index.html               # Main UI page template
+│   ├── popup.html               # Extension popup template
+│   ├── pages.html               # Additional pages template
+│   ├── icon/                    # Extension icons (16px, 48px, 128px)
+│   └── fonts/                   # Custom fonts (Metropolis family)
+│
+├── src/                         # Source code (85 TypeScript files)
+│   ├── main.tsx                 # Application entry point
+│   ├── App.tsx                  # Root React component with Router
+│   ├── utils.ts                 # Minimal utility exports
+│   ├── vite-env.d.ts            # Vite type declarations
+│   │
+│   ├── pages/                   # Main UI pages (7 files)
+│   │   ├── Dashboard.tsx        # Project management interface
+│   │   ├── Recorder.tsx         # Recording interface
+│   │   ├── TestRunner.tsx       # Test execution interface
+│   │   ├── FieldMapper.tsx      # CSV mapping interface
+│   │   ├── Layout.tsx           # Page layout wrapper
+│   │   ├── Section.tsx          # Legacy section component
+│   │   └── index.tsx            # Route exports
+│   │
+│   ├── components/              # React components (50+ files)
+│   │   ├── Header.tsx           # Application header (deprecated)
+│   │   ├── Dashboard/           # Dashboard-specific components
+│   │   │   ├── CreateProjectDialog.tsx
+│   │   │   ├── EditProjectModal.tsx
+│   │   │   ├── ConfirmationModal.tsx
+│   │   │   └── ProjectStats.tsx
+│   │   ├── Recorder/            # Recorder-specific components
+│   │   │   ├── RecorderToolbar.tsx
+│   │   │   ├── StepsTable.tsx   # Drag-drop step list
+│   │   │   └── LogPanel.tsx
+│   │   ├── Runner/              # Test runner components
+│   │   │   ├── TestConsole.tsx
+│   │   │   ├── TestSteps.tsx
+│   │   │   └── TestResults.tsx
+│   │   ├── Mapper/              # Field mapping components
+│   │   │   ├── FieldMappingTable.tsx
+│   │   │   ├── FieldMappingPanel.tsx
+│   │   │   ├── MappingSummary.tsx
+│   │   │   └── WebPreview.tsx
+│   │   ├── Loader/              # Loading components
+│   │   │   └── Loader.tsx
+│   │   ├── Pages/               # Page wrapper components
+│   │   │   └── index.tsx
+│   │   └── Ui/                  # Shared UI components (shadcn/ui - 30+ files)
+│   │       ├── button.tsx
+│   │       ├── card.tsx
+│   │       ├── input.tsx
+│   │       ├── select.tsx
+│   │       ├── dialog.tsx
+│   │       ├── table.tsx
+│   │       └── ... (28+ more)
+│   │
+│   ├── contentScript/           # Scripts injected into web pages (3 files)
+│   │   ├── content.tsx          # Main recorder/replayer (1450 lines)
+│   │   ├── replay.ts            # Google Autocomplete replay handler
+│   │   └── page-interceptor.tsx # Shadow DOM interceptor
+│   │
+│   ├── background/              # Service worker script (1 file)
+│   │   └── background.ts        # Message router and tab manager (323 lines)
+│   │
+│   ├── common/                  # Shared utilities and services
+│   │   ├── services/
+│   │   │   └── indexedDB.ts     # Dexie.js database wrapper
+│   │   ├── helpers/
+│   │   │   ├── storageHelper.ts # Chrome storage sync wrapper
+│   │   │   └── commonHelpers.ts # General utilities
+│   │   ├── utils/
+│   │   │   ├── fontsUtils.ts    # Font face definitions
+│   │   │   └── types.ts         # Shared type definitions
+│   │   └── config/
+│   │       ├── constMessage.ts  # API/storage constants
+│   │       └── apiService.ts    # Chrome message-based API service
+│   │
+│   ├── redux/                   # State management (minimal usage)
+│   │   ├── store.ts             # Redux store configuration
+│   │   ├── themeSlice.ts        # Theme state (dark/light mode)
+│   │   ├── reducer/
+│   │   │   ├── header.ts        # Header UI state
+│   │   │   └── users.ts         # User state
+│   │   └── selector/
+│   │       ├── headerSelector.ts
+│   │       └── usersSelector.ts
+│   │
+│   ├── routes/                  # Routing configuration (1 file)
+│   │   └── Router.tsx           # React Router route definitions
+│   │
+│   ├── lib/                     # Core utilities (1 file)
+│   │   └── utils.tsx            # cn() function (clsx + tailwind-merge)
+│   │
+│   ├── utils/                   # Utility functions (1 file)
+│   │   └── index.tsx            # createPageUrl() helper
+│   │
+│   ├── helpers/                 # Helper functions (empty directory)
+│   │
+│   ├── hooks/                   # React hooks (1 file)
+│   │   └── use-mobile.tsx       # Mobile breakpoint detection hook
+│   │
+│   ├── constants/               # Constants and types (2 files - both empty)
+│   │   ├── constants.ts
+│   │   └── types.ts
+│   │
+│   └── css/                     # CSS injection utilities (1 file)
+│       └── inject.ts            # Font face injection
+│
+├── scripts/                     # Build scripts
+│   └── postbuild.js             # Post-build manifest copying
+│
+├── release/                     # Production builds (gitignored)
+│
+├── dist/                        # Vite build output (gitignored)
+│
+├── vite.config.ts               # Vite config for UI pages
+├── vite.config.bg.ts            # Vite config for background script
+├── tsconfig.json                # TypeScript configuration
+├── tsconfig.node.json           # TypeScript config for Node.js scripts
+├── tailwind.config.js           # Tailwind CSS configuration
+├── postcss.config.js            # PostCSS configuration
+├── package.json                 # NPM dependencies and scripts
+└── README.md                    # Project documentation
+```
 
-### `/public/`
-- `manifest.json`: Extension metadata, permissions, background worker
-- `index.html`, `popup.html`, `pages.html`: Entry points for extension pages
-- `icon/`, `fonts/`: Static assets
-
-### `/src/` (Main Application Code)
-
-#### Core Files
-- `main.tsx`: React entry point (ReactDOM.render)
-- `App.tsx`: Root component (wraps Router)
-- `utils.ts`: Shared utilities
-
-#### `/src/background/`
-- `background.ts`: **LARGE FILE** (450+ lines) - central message handler
-
-#### `/src/contentScript/`
-- `content.tsx`: **VERY LARGE FILE** (1450+ lines) - DOM interaction logic
-- `page-interceptor.tsx`: Injected into page context
-- `replay.ts`: Replay-specific logic
-
-#### `/src/pages/`
-- `Dashboard.tsx`: **LARGE** (300+ lines) - project management
-- `Recorder.tsx`: **LARGE** (450+ lines) - step recording UI
-- `FieldMapper.tsx`: **LARGE** (429 lines) - CSV mapping
-- `TestRunner.tsx`: **LARGE** (610 lines) - test execution
-- `Layout.tsx`: Extension page wrapper
-- `Section.tsx`: Page section wrapper
-- `index.tsx`: Page exports
-
-#### `/src/components/`
-- `Header.tsx`: Top navigation
-- `Dashboard/`: CreateProjectDialog, EditProjectModal, ProjectStats, ConfirmationModal
-- `Recorder/`: RecorderToolbar, StepsTable, LogPanel
-- `Mapper/`: FieldMappingPanel, FieldMappingTable, MappingSummary, WebPreview
-- `Runner/`: TestConsole, TestResults, TestSteps
-- `Ui/`: **20+ reusable components** (accordion, alert, avatar, badge, button, card, dialog, dropdown, input, label, popover, progress, radio-group, resizable, scroll-area, select, separator, sheet, sidebar, skeleton, slider, switch, table, tabs, textarea, toggle, tooltip)
-
-#### `/src/redux/`
-- `store.ts`: Redux store config
-- `themeSlice.ts`, `reducer/`, `selector/`: State slices (minimal usage)
-
-#### `/src/routes/`
-- `Router.tsx`: React Router config
-
-#### `/src/common/`
-- `config/`: apiService, constMessage
-- `helpers/`: commonHelpers, storageHelper
-- `services/`: indexedDB.ts (Dexie wrapper)
-- `utils/`: fontsUtils, types
-
-#### `/src/constants/`
-- `constants.ts`, `types.ts`: App-level constants and types
-
-#### `/src/css/`
-- `content.css`, `dashboard.css`, `InputAiPopup.css`, `inject.ts`
-
-#### `/src/lib/`
-- `utils.tsx`: Utility functions (cn, clsx)
-
-#### `/src/hooks/`
-- `use-mobile.tsx`: Responsive hook
-
-### Important Directories
-
-- **`/src/contentScript/`**: Core automation logic (element finding, replay, event capture)
-- **`/src/pages/`**: User-facing workflows
-- **`/src/components/Ui/`**: Design system components
-- **`/src/common/services/`**: Data layer
-
-### Large/Complex Files (Hotspots)
-
-1. **`src/contentScript/content.tsx`** (1450 lines): Most complex file
-   - 12+ label extraction strategies
-   - Multi-fallback element finding
-   - Iframe/shadow DOM traversal
-   - React-safe replay logic
-   
-2. **`src/pages/TestRunner.tsx`** (610 lines): Test orchestration
-3. **`src/pages/Recorder.tsx`** (450 lines): Live recording UI
-4. **`src/background/background.ts`** (450 lines): Message routing hub
-5. **`src/pages/FieldMapper.tsx`** (429 lines): CSV + mapping logic
-
----
-
-## 5. DEPENDENCIES & ROLES
-
-### Core Dependencies (Critical)
-
-| Dependency | Role |
-|------------|------|
-| **react** + **react-dom** | UI framework |
-| **vite** | Build tool, dev server, HMR |
-| **typescript** | Type safety, compilation |
-| **@crxjs/vite-plugin** | Chrome extension bundling with Vite |
-| **dexie** | IndexedDB wrapper (primary database) |
-| **react-router-dom** | Client-side routing |
-| **@radix-ui/\*** | Accessible UI primitives (20+ components) |
-| **tailwindcss** | Utility-first CSS framework |
-| **get-xpath** + **xpath** | XPath computation and evaluation |
-| **string-similarity** | Fuzzy matching for auto-field-mapping |
-| **papaparse** | CSV parsing |
-| **xlsx** | Excel/CSV export |
-
-### UI/UX Libraries (Heavy)
-
-- **@mui/material**: Material Design components (may overlap with Radix/Tailwind)
-- **@material-tailwind/react**: Tailwind + Material hybrid components
-- **flowbite** + **flowbite-react**: Tailwind component library
-- **@hello-pangea/dnd**: Drag-and-drop (forked from react-beautiful-dnd)
-- **lucide-react**, **react-icons**, **@fortawesome**: Icon libraries (3 separate icon sets!)
-- **styled-components**: CSS-in-JS (used sparingly)
-- **@emotion/react** + **@emotion/styled**: CSS-in-JS alternative
-
-### Utilities
-
-- **axios**: HTTP client (minimal usage, no API calls observed)
-- **date-fns**: Date formatting
-- **clsx** + **tailwind-merge**: Conditional CSS class merging
-- **sonner**: Toast notifications
-- **react-select**: Dropdown component
-- **react-avatar**: Avatar component
-- **jquery**: Legacy dependency (likely unused in modern code)
-- **nodemon**: Watch mode for build scripts
-
-### Dev Dependencies
-
-- **@types/chrome**, **@types/webextension-polyfill**: Chrome API types
-- **@vitejs/plugin-react-swc**: Fast React compilation with SWC
-- **eslint** + **@typescript-eslint/\***: Linting
-- **autoprefixer**: CSS vendor prefixing
-- **postcss**: CSS processing
-
-### Firebase (Unused?)
-- **firebase** (v11.9.1): Listed but not heavily integrated in codebase review
-
-### Redundancies/Bloat
-
-- **3 icon libraries** (Lucide, React Icons, FontAwesome) → Consolidate
-- **Multiple UI frameworks** (MUI, Material-Tailwind, Flowbite, Radix) → High overlap
-- **2 CSS-in-JS** libraries (styled-components + Emotion) → Pick one
-- **jQuery**: Likely legacy, should be removed
+**Key Observations:**
+- **85 TypeScript files** total in `src/`
+- **Dual build system:** Separate Vite configs for UI (React) and background script (ES module)
+- **No path aliases:** All imports use relative paths (`../`, `../../`)
+- **shadcn/ui components:** 30+ pre-built UI components in `components/Ui/`
+- **Monolithic content script:** `content.tsx` contains both recording and playback logic (1450 lines - technical debt)
 
 ---
 
-## 6. RISKS, COMPLEXITY, AND HOTSPOTS
+## Architecture & Subsystems
+
+### High-Level System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Chrome Extension (Manifest V3)               │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+         ┌────────────────────────────────────────┐
+         │   Background Service Worker (ES Module) │
+         │   - Message routing hub                │
+         │   - Tab lifecycle management           │
+         │   - IndexedDB proxy                    │
+         └────────────┬───────────────────────────┘
+                      │
+        ┌─────────────┼─────────────┐
+        │             │             │
+        ▼             ▼             ▼
+┌───────────┐  ┌─────────────┐  ┌──────────────┐
+│ UI Pages  │  │ Content     │  │ IndexedDB    │
+│ (React)   │  │ Scripts     │  │ (Dexie.js)   │
+│           │  │ (Injected)  │  │              │
+│ Dashboard │  │ - Recording │  │ - Projects   │
+│ Recorder  │  │ - Playback  │  │ - TestRuns   │
+│ FieldMap  │  │ - Intercept │  │              │
+│ TestRun   │  │             │  │              │
+└───────────┘  └─────────────┘  └──────────────┘
+      │              │
+      └──────┬───────┘
+             ▼
+    ┌─────────────────┐
+    │  Target Website │
+    │  (User's Tab)   │
+    └─────────────────┘
+```
+
+### Subsystem Breakdown
+
+#### 1. **Background Service Worker**
+- **Location:** `src/background/background.ts`
+- **Purpose:** Central message routing hub, tab management, IndexedDB operations proxy
+- **Key Responsibilities:**
+  - Route messages between UI pages, content scripts, and background
+  - Manage tab lifecycle (open, close, inject scripts)
+  - Proxy all IndexedDB operations (Manifest V3 requires background to own persistent connections)
+  - Handle 20+ action types (`add_project`, `update_project`, `get_all_projects`, `delete_project`, `openTab`, etc.)
+- **Dependencies:** Chrome runtime API, Chrome tabs API, Chrome scripting API, Dexie.js
+
+#### 2. **Content Script Recorder**
+- **Location:** `src/contentScript/content.tsx` (recording functions)
+- **Purpose:** Capture user interactions on web pages
+- **Key Responsibilities:**
+  - Attach event listeners (click, input, keydown, change)
+  - Extract element metadata (XPath, ID, classes, ARIA labels, bounding box)
+  - Extract human-readable labels using 16+ heuristics
+  - Handle shadow DOM and iframe contexts
+  - Send recorded steps to UI via Chrome messaging
+- **Dependencies:** DOM APIs, XPath generation, label extraction utilities
+
+#### 3. **Content Script Replayer**
+- **Location:** `src/contentScript/content.tsx` (playback functions), `src/contentScript/replay.ts` (autocomplete)
+- **Purpose:** Replay recorded steps on web pages
+- **Key Responsibilities:**
+  - Locate elements using multi-strategy fallback (XPath, ID, ARIA, text similarity, position)
+  - Execute actions (click, input, enter)
+  - Handle shadow DOM and closed shadow roots
+  - Traverse nested iframes
+  - Show visual notifications (success/error overlays)
+  - Special handling for Google Maps Autocomplete (via `replay.ts`)
+- **Dependencies:** DOM APIs, XPath evaluation, element finding strategies
+
+#### 4. **Shadow DOM Interceptor**
+- **Location:** `src/contentScript/page-interceptor.tsx`
+- **Purpose:** Intercept closed shadow root creation to enable access later
+- **Key Responsibilities:**
+  - Monkey-patch `Element.prototype.attachShadow`
+  - Store references to closed shadow roots in WeakMap
+  - Must run before page JavaScript executes
+- **Dependencies:** DOM prototype manipulation, injected into MAIN world context
+
+#### 5. **IndexedDB Storage Layer**
+- **Location:** `src/common/services/indexedDB.ts`
+- **Purpose:** Persistent storage for projects and test runs
+- **Key Responsibilities:**
+  - Define Dexie.js schema (projects table, testRuns table)
+  - CRUD operations for projects
+  - CRUD operations for test runs
+  - Query test runs by project ID
+- **Dependencies:** Dexie.js 4.0.11
+
+#### 6. **Message Router**
+- **Location:** `src/background/background.ts` (chrome.runtime.onMessage listener)
+- **Purpose:** Route action messages between all contexts
+- **Key Responsibilities:**
+  - Listen for messages from UI pages and content scripts
+  - Dispatch to appropriate handlers
+  - Return responses via sendResponse callback
+  - Keep message channels open for async operations (return true)
+- **Dependencies:** Chrome runtime API
+
+#### 7. **Dashboard UI**
+- **Location:** `src/pages/Dashboard.tsx`, `src/components/Dashboard/`
+- **Purpose:** Project management interface
+- **Key Responsibilities:**
+  - Display project cards with metadata
+  - Search and filter projects
+  - Create, edit, delete projects (via dialogs)
+  - Navigate to recorder/mapper/runner
+  - Show project statistics (total, completed, failed tests)
+- **Dependencies:** React, Chrome messaging, Radix UI components
+
+#### 8. **Recorder UI**
+- **Location:** `src/pages/Recorder.tsx`, `src/components/Recorder/`
+- **Purpose:** Recording interface
+- **Key Responsibilities:**
+  - Display real-time step capture
+  - Show draggable step list (via @hello-pangea/dnd)
+  - Inline step editing (label, value)
+  - Export steps as JSON
+  - Save steps to project
+  - Start/stop recording via content script messaging
+- **Dependencies:** React, Chrome messaging, drag-drop library
+
+#### 9. **Field Mapper UI**
+- **Location:** `src/pages/FieldMapper.tsx`, `src/components/Mapper/`
+- **Purpose:** CSV-to-field mapping interface
+- **Key Responsibilities:**
+  - Upload and parse CSV files (via PapaParse)
+  - Display CSV headers and step labels side-by-side
+  - Auto-map fields using string similarity (Dice coefficient)
+  - Manual mapping via dropdown selects
+  - Preview mapped data
+  - Save mappings to project
+- **Dependencies:** React, PapaParse, string-similarity library
+
+#### 10. **Test Runner UI**
+- **Location:** `src/pages/TestRunner.tsx`, `src/components/Runner/`
+- **Purpose:** Test execution interface
+- **Key Responsibilities:**
+  - Load project and CSV data
+  - Apply field mappings to steps
+  - Iterate through CSV rows
+  - Execute steps for each row (via content script)
+  - Display real-time console logs
+  - Show step execution status (pending, running, passed, failed)
+  - Aggregate test results
+  - Save test run history to IndexedDB
+- **Dependencies:** React, Chrome messaging, Chrome tabs API (via background)
+
+#### 11. **CSV Parser**
+- **Location:** Inline in `FieldMapper.tsx` and `TestRunner.tsx`
+- **Purpose:** Parse CSV files into JavaScript objects
+- **Key Responsibilities:**
+  - Read CSV files from file input
+  - Parse with PapaParse (automatic header detection)
+  - Handle encoding issues
+  - Return array of row objects
+- **Dependencies:** PapaParse 5.5.3
+
+#### 12. **Field Mapping Engine**
+- **Location:** Inline in `FieldMapper.tsx`
+- **Purpose:** Automatically map CSV columns to step labels
+- **Key Responsibilities:**
+  - Normalize strings (lowercase, remove spaces/underscores)
+  - Calculate Dice coefficient similarity scores
+  - Suggest mappings above threshold (default 0.6)
+  - Allow manual override
+- **Dependencies:** string-similarity 4.0.4
+
+#### 13. **UI Design System**
+- **Location:** `src/components/Ui/` (30+ components)
+- **Purpose:** Reusable styled components
+- **Key Responsibilities:**
+  - Provide consistent UI primitives (buttons, cards, inputs, dialogs)
+  - Handle dark/light theme via Tailwind classes
+  - Use Radix UI for accessible components
+  - Export shadcn/ui component variants
+- **Dependencies:** Radix UI packages, Tailwind CSS, CVA
+
+#### 14. **Router Navigation**
+- **Location:** `src/routes/Router.tsx`, `src/App.tsx`
+- **Purpose:** Page routing within extension
+- **Key Responsibilities:**
+  - Define routes for dashboard, recorder, mapper, runner
+  - Use hash-based routing (required for extension pages)
+  - Wrap pages with Layout component
+- **Dependencies:** React Router DOM 6.24.0
+
+#### 15. **Redux State Management**
+- **Location:** `src/redux/`
+- **Purpose:** Global state management (minimal usage)
+- **Key Responsibilities:**
+  - Manage theme state (dark/light mode toggle)
+  - Manage header UI state (sidebar open/closed)
+  - Manage user authentication state (currently unused)
+- **Dependencies:** Redux Toolkit 2.2.5, React Redux 9.1.2
+
+---
+
+## Data Flow
+
+### Recording Flow
+
+```
+1. User navigates to Dashboard
+   ↓
+2. User creates new project (name, description, target URL)
+   ↓
+   Dashboard → chrome.runtime.sendMessage({action: "add_project"})
+   ↓
+   Background → DB.addProject() → IndexedDB
+   ↓
+3. User opens Recorder page
+   ↓
+4. User clicks "Open Target Website"
+   ↓
+   Recorder → chrome.runtime.sendMessage({action: "openTab", url: target_url})
+   ↓
+   Background → chrome.tabs.create() → chrome.scripting.executeScript()
+   ↓
+   Content script injected into new tab
+   ↓
+5. User clicks "Start Recording"
+   ↓
+   Recorder → chrome.tabs.sendMessage({type: "startRecording"})
+   ↓
+   Content script attaches event listeners
+   ↓
+6. User interacts with web page (clicks, inputs)
+   ↓
+   Content script captures events
+   ↓
+   For each event:
+     - Extract element metadata (XPath, ID, classes, etc.)
+     - Extract label using 16+ heuristics
+     - Build Bundle object
+     - Create Step object
+     ↓
+   Content script → chrome.runtime.sendMessage({type: "logEvent", data: step})
+   ↓
+   Background → forwards to Recorder UI
+   ↓
+   Recorder UI updates step list in real-time
+   ↓
+7. User clicks "Stop Recording"
+   ↓
+8. User clicks "Save Steps"
+   ↓
+   Recorder → chrome.runtime.sendMessage({action: "update_project_steps", steps: [...]})
+   ↓
+   Background → DB.updateProject() → IndexedDB
+```
+
+### CSV Mapping Flow
+
+```
+1. User navigates to Field Mapper page
+   ↓
+2. User uploads CSV file
+   ↓
+   FieldMapper → PapaParse.parse(file)
+   ↓
+   CSV headers extracted: ["First Name", "Last Name", "Email", "Phone"]
+   ↓
+3. User loads project steps
+   ↓
+   FieldMapper → chrome.runtime.sendMessage({action: "get_project_by_id"})
+   ↓
+   Background → DB.projects.get() → returns project with recorded_steps
+   ↓
+   Extract step labels: ["First name", "Last name", "Email address", "Phone number"]
+   ↓
+4. User clicks "Auto-Map Fields"
+   ↓
+   For each CSV header:
+     - Normalize string (lowercase, remove spaces)
+     - Calculate similarity with each step label
+     - If similarity >= 0.6, suggest mapping
+   ↓
+   Display mapping table with suggestions
+   ↓
+5. User manually adjusts mappings via dropdowns
+   ↓
+6. User clicks "Save Mappings"
+   ↓
+   FieldMapper → chrome.runtime.sendMessage({action: "update_project_fields", mappings: [...]})
+   ↓
+   Background → DB.updateProject() → IndexedDB (stores parsed_fields)
+   ↓
+7. User saves CSV data
+   ↓
+   FieldMapper → chrome.runtime.sendMessage({action: "update_project_csv", csv_data: [...]})
+   ↓
+   Background → DB.updateProject() → IndexedDB
+```
+
+### Test Execution Flow
+
+```
+1. User navigates to Test Runner page
+   ↓
+2. User loads project
+   ↓
+   TestRunner → chrome.runtime.sendMessage({action: "get_project_by_id"})
+   ↓
+   Background → returns project with recorded_steps, parsed_fields, csv_data
+   ↓
+3. User clicks "Run Test"
+   ↓
+4. TestRunner opens target URL in new tab
+   ↓
+   TestRunner → chrome.runtime.sendMessage({action: "openTab", url: target_url})
+   ↓
+   Background → chrome.tabs.create() → chrome.scripting.executeScript()
+   ↓
+5. For each CSV row:
+   ↓
+   5a. Map CSV values to step labels using parsed_fields
+       Example: {"First Name": "John"} → {label: "First name", value: "John"}
+   ↓
+   5b. For each step in project.recorded_steps:
+       ↓
+       - Apply mapped value (if label matches)
+       - Add random delay (1000-3000ms) for human-like timing
+       ↓
+       TestRunner → chrome.tabs.sendMessage({type: "runStep", data: {event, bundle, value, label}})
+       ↓
+       Content script → findElementFromBundle(bundle)
+       ↓
+       Try strategies in order:
+         1. XPath (with shadow DOM support)
+         2. ID + attribute matching (score-based)
+         3. Name/ARIA/Placeholder
+         4. Fuzzy text similarity
+         5. Bounding rectangle (position-based)
+         6. Data attributes
+       ↓
+       If element found:
+         - Execute action (click, input, enter)
+         - Show success notification overlay
+         - Log success
+       Else:
+         - Log failure (element not found)
+         - Show error notification
+       ↓
+       Content script → chrome.runtime.sendMessage({type: "stepComplete", success: true/false})
+       ↓
+       Background → forwards to TestRunner
+       ↓
+       TestRunner updates UI (step status, console logs)
+   ↓
+6. After all steps for all rows:
+   ↓
+   TestRunner aggregates results (passed, failed, total)
+   ↓
+   TestRunner → chrome.runtime.sendMessage({action: "create_testrun", payload: {project_id, status, results, logs}})
+   ↓
+   Background → DB.createTestRun() → IndexedDB
+   ↓
+7. User can view test history in Dashboard
+```
+
+---
+
+## Dependencies
+
+### External Dependencies (from package.json)
+
+#### Production Dependencies (42 packages)
+
+**Core Framework:**
+- `react@18.2.0` - UI framework
+- `react-dom@18.2.0` - React DOM renderer
+- `react-router-dom@6.24.0` - Client-side routing
+
+**State Management:**
+- `@reduxjs/toolkit@2.2.5` - Redux with modern APIs
+- `react-redux@9.1.2` - React bindings for Redux
+
+**Data & Storage:**
+- `dexie@4.0.11` - IndexedDB wrapper with Promise API
+- `papaparse@5.5.3` - CSV parser
+- `xlsx@0.18.5` - Excel file handler
+
+**UI Components:**
+- `@radix-ui/react-*` (20+ packages) - Accessible UI primitives
+- `lucide-react@0.533.0` - Icon library
+- `react-icons@5.3.0` - Additional icons
+- `sonner@2.0.7` - Toast notifications
+
+**Styling:**
+- `class-variance-authority@0.7.1` - CVA for component variants
+- `clsx@2.0.0` - Classname utility
+- `tailwind-merge@2.0.0` - Merge Tailwind classes
+
+**Utilities:**
+- `string-similarity@4.0.4` - Dice coefficient algorithm
+- `date-fns@4.1.0` - Date formatting
+- `xpath@0.0.34` - XPath evaluation
+- `get-xpath@3.3.0` - XPath generation
+
+**Drag & Drop:**
+- `@hello-pangea/dnd@18.0.1` - Drag and drop for lists
+
+**Other:**
+- `axios@1.7.3` - HTTP client (appears unused in current code)
+- `firebase@11.9.1` - Firebase SDK (appears unused)
+- `jquery@3.7.1` - jQuery (legacy, minimal usage)
+
+#### Development Dependencies (16 packages)
+
+**Build Tools:**
+- `vite@6.3.5` - Build tool and dev server
+- `@vitejs/plugin-react-swc@3.3.2` - Fast React transforms
+- `typescript@5.0.2` - TypeScript compiler
+
+**Chrome Extension:**
+- `@types/chrome@0.0.263` - Chrome API types
+- `@types/webextension-polyfill@0.12.1` - Extension API polyfill types
+
+**Linting:**
+- `eslint@8.45.0` - JavaScript linter
+- `@typescript-eslint/eslint-plugin@6.0.0` - TypeScript linting rules
+- `@typescript-eslint/parser@6.0.0` - TypeScript parser for ESLint
+
+**CSS:**
+- `tailwindcss@3.4.17` - Utility-first CSS framework
+- `postcss@8.5.3` - CSS post-processor
+- `autoprefixer@10.4.20` - Add vendor prefixes
+
+**Type Definitions:**
+- `@types/react@18.2.15`
+- `@types/react-dom@18.2.7`
+- `@types/papaparse@5.3.16`
+- `@types/string-similarity@4.0.2`
+- `@types/jquery@3.5.33`
+
+**Development:**
+- `nodemon@3.1.7` - File watcher for auto-rebuild
+
+### Internal Dependencies
+
+**Critical Internal Modules:**
+
+1. **DB Service** (`src/common/services/indexedDB.ts`)
+   - Used by: Background script
+   - Depends on: Dexie.js
+   - Purpose: All persistent storage operations
+
+2. **StorageHelper** (`src/common/helpers/storageHelper.ts`)
+   - Used by: UI components (theme preferences)
+   - Depends on: Chrome storage.sync API
+   - Purpose: Simple key-value storage
+
+3. **cn() Utility** (`src/lib/utils.tsx`)
+   - Used by: All UI components
+   - Depends on: clsx, tailwind-merge
+   - Purpose: Merge Tailwind classes without conflicts
+
+4. **Content Script** (`src/contentScript/content.tsx`)
+   - Used by: Background script (injected into tabs)
+   - Depends on: DOM APIs, Chrome runtime API
+   - Purpose: Recording and playback logic
+
+5. **Background Script** (`src/background/background.ts`)
+   - Used by: All UI pages, content scripts
+   - Depends on: DB service, Chrome APIs
+   - Purpose: Central message hub
+
+**Dependency Graph (Internal):**
+
+```
+UI Components
+    ↓
+Chrome Messaging
+    ↓
+Background Script
+    ↓
+    ├─→ DB Service (IndexedDB)
+    └─→ Tab Manager (Chrome tabs API)
+    
+Content Scripts ←─ Injected by Background
+    ↓
+DOM Manipulation (target website)
+```
+
+---
+
+## Risks, Complexity, and Hotspots
+
+### High-Risk Areas
+
+#### 1. **Monolithic Content Script (1450 lines)**
+- **File:** `src/contentScript/content.tsx`
+- **Issue:** Recording and playback logic tightly coupled in one file
+- **Risk:** Difficult to test, maintain, or extend independently
+- **Impact:** High - this is the core automation engine
+- **Mitigation:** Extract into separate modules (recorder, replayer, element finder, label extractor)
+
+#### 2. **Element Finding Fragility**
+- **File:** `src/contentScript/content.tsx` (`findElementFromBundle` function)
+- **Issue:** 7+ fallback strategies but no telemetry on which strategies succeed/fail
+- **Risk:** Silent failures or incorrect element selection
+- **Impact:** High - incorrect elements cause test failures
+- **Mitigation:** Add logging for strategy selection, store strategy index in Bundle
+
+#### 3. **Closed Shadow DOM Dependency**
+- **Files:** `src/contentScript/page-interceptor.tsx`, `src/contentScript/content.tsx`
+- **Issue:** Relies on monkey-patching to access closed shadow roots
+- **Risk:** May not work if interceptor loads too late or page prevents modifications
+- **Impact:** Medium - breaks Google Maps Autocomplete and similar components
+- **Mitigation:** Document limitations, provide fallback UI messages
+
+#### 4. **No Schema Versioning**
+- **File:** `src/common/services/indexedDB.ts`
+- **Issue:** Dexie schema is version 1, no upgrade logic
+- **Risk:** Future schema changes will lose user data
+- **Impact:** High - users lose projects and test history
+- **Mitigation:** Add Dexie upgrade hooks, version Step and Bundle objects
+
+#### 5. **Service Worker Lifecycle**
+- **File:** `src/background/background.ts`
+- **Issue:** No state persistence across service worker restarts
+- **Risk:** In-memory state (e.g., `openedTabId`) lost on worker termination
+- **Impact:** Medium - breaks tab cleanup logic
+- **Mitigation:** Store all state in chrome.storage or IndexedDB
+
+#### 6. **Race Conditions in Message Passing**
+- **Files:** All files using `chrome.runtime.sendMessage`
+- **Issue:** No message queuing or retry logic
+- **Risk:** Messages sent before content script loads are lost
+- **Impact:** Medium - intermittent failures
+- **Mitigation:** Add message acknowledgment and retry mechanism
 
 ### Technical Debt
 
-1. **UI Framework Bloat**: 4+ component libraries with overlapping functionality
-   - MUI, Material-Tailwind, Flowbite, Radix all provide similar primitives
-   - Bundle size impact, inconsistent patterns
-   - **Risk**: Hard to maintain consistent UX
+#### 1. **Empty Type Definition Files**
+- **Files:** `src/constants/types.ts`, `src/constants/constants.ts`
+- **Issue:** Files exist but are empty
+- **Impact:** Low - unused files clutter codebase
+- **Action:** Delete or populate with actual constants/types
 
-2. **Content Script Complexity**: `content.tsx` is 1450 lines
-   - Monolithic file with 12+ label extraction strategies
-   - High cognitive load, brittle heuristics
-   - **Risk**: Hard to debug, extend, or test
+#### 2. **Unused Dependencies**
+- **Packages:** `firebase@11.9.1`, `axios@1.7.3`, `jquery@3.7.1` (minimal usage)
+- **Issue:** Increases bundle size, security surface
+- **Impact:** Low-Medium - 500KB+ unused code
+- **Action:** Remove unused packages
 
-3. **Minimal Redux Usage**: Redux configured but barely used
-   - Most state is local React state or IndexedDB
-   - **Risk**: Inconsistent state management patterns
+#### 3. **Direct IndexedDB Access from UI**
+- **Files:** Some components may call `DB` directly
+- **Issue:** Violates Manifest V3 best practices (background should own DB)
+- **Impact:** Medium - potential data corruption
+- **Action:** Enforce all DB access via background messaging
 
-4. **No API Layer**: `apiService.ts` is a placeholder
-   - Firebase mentioned but not integrated
-   - **Risk**: If backend is added later, requires refactor
+#### 4. **No Unit Tests**
+- **Files:** None found in repository
+- **Issue:** No automated testing
+- **Impact:** High - regressions not caught early
+- **Action:** Add Vitest/Jest tests for critical utilities
 
-5. **Manual XPath Computation**: Custom XPath logic instead of standard APIs
-   - May break on complex DOM structures
-   - **Risk**: Element finding failures on certain websites
+#### 5. **Label Extraction Heuristics Not Configurable**
+- **File:** `src/contentScript/content.tsx` (`getLabelForTarget` function)
+- **Issue:** 16+ hardcoded strategies, no user control
+- **Impact:** Low - most cases work, but edge cases fail silently
+- **Action:** Allow users to manually edit labels after recording
 
-6. **Shadow DOM Limitations**: Open shadow roots only
-   - Closed shadow roots fallback to host element
-   - **Risk**: Cannot automate closed shadow DOM properly
+#### 6. **No Error Boundaries in React**
+- **Files:** UI components
+- **Issue:** Component errors crash entire page
+- **Impact:** Medium - poor user experience
+- **Action:** Add React error boundaries around major sections
 
 ### Complexity Hotspots
 
-#### 🔥 **Critical: `src/contentScript/content.tsx`**
-- **1450 lines** of tightly coupled logic
-- Label extraction has 12+ cascading strategies (Google Forms, Bootstrap, Select2, Jotform, contenteditable, aria, data-attrs, table layout, sibling text, etc.)
-- Element finding uses 6+ fallback methods (XPath, ID, name, aria, bounding box, fuzzy text)
-- Iframe chain serialization/deserialization
-- Shadow DOM traversal
-- React-safe input value setting
-- **Refactor Priority: HIGH**
+#### 1. **findElementFromBundle()** (200+ lines)
+- Multi-strategy element location with shadow DOM and iframe handling
+- Complexity: Very High
+- Maintainability: Low (dense logic, many edge cases)
 
-#### 🔥 **High: Field Mapping Heuristics**
-- String similarity algorithm in `FieldMapper.tsx`
-- Requires normalized string matching (case-insensitive, whitespace-agnostic)
-- Threshold tuning (0.4 similarity cutoff)
-- **Risk**: False positives/negatives in auto-mapping
+#### 2. **getLabelForTarget()** (150+ lines)
+- 16+ label extraction heuristics for different frameworks
+- Complexity: High
+- Maintainability: Medium (well-commented but long)
 
-#### 🔥 **High: Replay Reliability**
-- `playAction()` in `content.tsx` must handle:
-  - Controlled React inputs (bypassing React's internal state)
-  - Select2 dropdowns (shadow DOM + custom events)
-  - Google autocomplete (injected page script)
-  - Contenteditable divs (Draft.js, x.com)
-  - Radio/checkbox with role attributes
-- **Risk**: Brittle on new UI frameworks
+#### 3. **TestRunner.tsx** (400+ lines)
+- Orchestrates test execution, CSV iteration, logging, UI updates
+- Complexity: High
+- Maintainability: Medium (should extract orchestration logic)
 
-#### 🔥 **Medium: Background Message Routing**
-- `background.ts` has 15+ message action handlers
-- No TypeScript discriminated unions for message types
-- **Risk**: Message protocol drift, runtime errors
+#### 4. **FieldMapper.tsx** (350+ lines)
+- CSV parsing, auto-mapping, manual mapping, preview
+- Complexity: High
+- Maintainability: Medium (could split into smaller components)
 
-### Awkward Patterns
-
-1. **Inline Style Manipulation**: Notification box styles set via `.style.property =` in content script
-   - Should use CSS classes
-
-2. **setTimeout/Polling**: Used for waiting on element visibility
-   - Should use MutationObserver or retry with exponential backoff
-
-3. **Global State in Background**: `openedTabId` and `trackedTabs` as module-level variables
-   - Should be in a proper state manager or Map
-
-4. **Commented-Out Code**: Many sections of old code left in comments
-   - Should be removed or documented
-
-5. **Mixed Naming Conventions**: `handleClick`, `onUpdateStep`, `playAction` (inconsistent)
-
-### Obvious Refactor Candidates
-
-1. **Extract Label Strategies**: `getLabelForTarget()` → separate strategy classes
-2. **Extract Element Finders**: `findElementFromBundle()` → separate finder classes
-3. **Split Content Script**: content.tsx → recording.ts + replay.ts + utils.ts
-4. **Consolidate UI Libraries**: Pick one (Radix + Tailwind likely best)
-5. **Type-Safe Messages**: Define discriminated union for background messages
-6. **Remove jQuery**: Not needed in modern stack
-7. **API Layer**: Implement real `apiService` if backend needed
-8. **Test Coverage**: Zero test files found in repo
+#### 5. **background.ts** (323 lines)
+- Routes 20+ action types to different handlers
+- Complexity: Medium
+- Maintainability: Medium (could use handler registry pattern)
 
 ---
 
-## 7. SUGGESTED SUBSYSTEM BOUNDARIES (FOR FUTURE REBUILD)
+## Suggested Subsystem Boundaries
 
-### Proposed Modular Architecture
+Based on analysis, recommended module boundaries for future refactoring:
 
-```
-muffin-extension/
-├── packages/
-│   ├── core/                       # Shared core utilities
-│   │   ├── dom-utils/              # XPath, element finding, label extraction
-│   │   ├── types/                  # Shared TypeScript interfaces
-│   │   └── constants/              # App-wide constants
-│   │
-│   ├── recorder/                   # Recording subsystem
-│   │   ├── event-capture/          # DOM event listeners
-│   │   ├── label-strategies/       # Pluggable label extraction strategies
-│   │   ├── step-builder/           # Step data structure creation
-│   │   └── ui/                     # Recorder React components
-│   │
-│   ├── replayer/                   # Replay subsystem
-│   │   ├── element-finder/         # Multi-strategy element location
-│   │   ├── action-executor/        # Click, input, keyboard actions
-│   │   ├── iframe-handler/         # Iframe traversal + injection
-│   │   ├── shadow-dom-handler/     # Shadow DOM traversal
-│   │   └── replay-engine/          # Orchestration + error handling
-│   │
-│   ├── field-mapper/               # CSV mapping subsystem
-│   │   ├── csv-parser/             # CSV/Excel parsing
-│   │   ├── similarity-matcher/     # Fuzzy string matching
-│   │   ├── mapping-engine/         # Auto + manual mapping logic
-│   │   └── ui/                     # FieldMapper React components
-│   │
-│   ├── test-runner/                # Test execution subsystem
-│   │   ├── test-orchestrator/      # Step execution loop
-│   │   ├── results-tracker/        # Pass/fail tracking
-│   │   ├── logger/                 # Test logs
-│   │   └── ui/                     # TestRunner React components
-│   │
-│   ├── storage/                    # Data persistence layer
-│   │   ├── indexeddb/              # Dexie wrapper
-│   │   ├── chrome-storage/         # Chrome storage API wrapper
-│   │   ├── repositories/           # Project, TestRun repos
-│   │   └── migrations/             # Schema versioning
-│   │
-│   ├── background/                 # Extension background layer
-│   │   ├── message-router/         # Type-safe message handling
-│   │   ├── tab-manager/            # Tab lifecycle management
-│   │   ├── injection-manager/      # Content script injection
-│   │   └── storage-bridge/         # Background ↔ IndexedDB
-│   │
-│   ├── content-script/             # Content script layer
-│   │   ├── main/                   # Isolated world content script
-│   │   ├── page-context/           # Injected page scripts
-│   │   └── notification-overlay/   # In-page UI
-│   │
-│   └── ui/                         # Shared UI components
-│       ├── design-system/          # Base components (1 library only)
-│       ├── layouts/                # Page layouts
-│       ├── dashboard/              # Dashboard pages
-│       └── common/                 # Shared components
-│
-├── apps/
-│   ├── extension/                  # Extension entry points
-│   │   ├── manifest.json
-│   │   ├── background.ts           # Thin wrapper over background/
-│   │   └── pages/                  # HTML entry points
-│   │
-│   └── docs/                       # Documentation site (optional)
-│
-└── tooling/
-    ├── vite-config/                # Shared Vite configs
-    ├── tsconfig/                   # Shared TS configs
-    └── eslint/                     # Shared linting rules
-```
+### Module 1: DOM Automation Core (Pure Library)
+- **Files:** Extract from `content.tsx`
+- **Exports:** `findElement()`, `extractLabel()`, `computeXPath()`, `traverseIframes()`, `traverseShadowRoots()`
+- **Dependencies:** None (pure DOM APIs)
+- **Consumers:** Recording Engine, Playback Engine
 
-### Module Boundaries Explained
+### Module 2: Recording Engine (Content Script)
+- **Files:** Extract recording logic from `content.tsx`
+- **Exports:** `startRecording()`, `stopRecording()`, `getRecordedSteps()`
+- **Dependencies:** DOM Automation Core, Chrome runtime API
+- **Consumers:** Recorder UI (via messaging)
 
-#### 1. **DOM Utilities Core** (`packages/core/dom-utils/`)
-- **Responsibility**: Atomic DOM operations, XPath computation, element traversal
-- **Exports**: `computeXPath()`, `findElementByXPath()`, `traverseIframes()`, `getShadowRoot()`
-- **Dependencies**: None (pure DOM APIs)
+### Module 3: Playback Engine (Content Script)
+- **Files:** Extract playback logic from `content.tsx`, include `replay.ts`
+- **Exports:** `executeStep()`, `executeAction()`, `showNotification()`
+- **Dependencies:** DOM Automation Core, Chrome runtime API
+- **Consumers:** Test Runner UI (via messaging)
 
-#### 2. **Label Extraction Strategies** (`packages/recorder/label-strategies/`)
-- **Responsibility**: Pluggable strategies for extracting human-readable labels
-- **Pattern**: Strategy pattern with fallback chain
-- **Exports**: `LabelStrategy` interface, `GoogleFormsStrategy`, `BootstrapStrategy`, `Select2Strategy`, `AriaStrategy`, `FallbackStrategy`
-- **Dependencies**: `core/dom-utils`
+### Module 4: Data Persistence Layer
+- **Files:** `indexedDB.ts` (already separated)
+- **Exports:** `ProjectRepository`, `TestRunRepository`, `Database`
+- **Dependencies:** Dexie.js
+- **Consumers:** Background script (exclusive access)
 
-#### 3. **Element Finder** (`packages/replayer/element-finder/`)
-- **Responsibility**: Multi-fallback element location during replay
-- **Pattern**: Chain of Responsibility
-- **Exports**: `ElementFinder` interface, `XPathFinder`, `IdFinder`, `AriaFinder`, `BoundingBoxFinder`, `FuzzyTextFinder`
-- **Dependencies**: `core/dom-utils`
+### Module 5: Field Mapping Engine
+- **Files:** Extract from `FieldMapper.tsx`
+- **Exports:** `autoMapFields()`, `parseCSV()`, `validateMapping()`
+- **Dependencies:** PapaParse, string-similarity
+- **Consumers:** Field Mapper UI
 
-#### 4. **Action Executor** (`packages/replayer/action-executor/`)
-- **Responsibility**: Execute actions (click, input, keyboard) with framework-specific handling
-- **Exports**: `ActionExecutor` interface, `ClickExecutor`, `InputExecutor`, `KeyboardExecutor`
-- **Dependencies**: `core/dom-utils`
+### Module 6: Test Orchestrator
+- **Files:** Extract from `TestRunner.tsx`
+- **Exports:** `executeTest()`, `executeBatch()`, progress hooks
+- **Dependencies:** Playback Engine, Field Mapping Engine, Chrome tabs API
+- **Consumers:** Test Runner UI
 
-#### 5. **Storage Layer** (`packages/storage/`)
-- **Responsibility**: Abstract data persistence (IndexedDB, Chrome Storage)
-- **Pattern**: Repository pattern
-- **Exports**: `ProjectRepository`, `TestRunRepository`, `StorageAdapter` interface
-- **Dependencies**: `dexie`, `chrome.storage` API
+### Module 7: Message Bus (Chrome Extension Infrastructure)
+- **Files:** Extract from `background.ts`
+- **Exports:** `registerHandler()`, `sendAction()`, action types
+- **Dependencies:** Chrome runtime API
+- **Consumers:** All contexts (UI, content scripts, background)
 
-#### 6. **Background Service** (`packages/background/`)
-- **Responsibility**: Extension lifecycle, message routing, tab management
-- **Pattern**: Message Bus + Service layer
-- **Exports**: `MessageRouter`, `TabManager`, `InjectionManager`
-- **Dependencies**: `storage`, `chrome.*` APIs
-
-#### 7. **UI Design System** (`packages/ui/design-system/`)
-- **Responsibility**: Single, consistent component library
-- **Recommendation**: Use **Radix UI + Tailwind** (drop MUI, Material-Tailwind, Flowbite)
-- **Exports**: `Button`, `Card`, `Input`, `Dialog`, etc.
-- **Dependencies**: `react`, `tailwindcss`, `@radix-ui/*`
-
-### Benefits of Modular Design
-
-1. **Testability**: Each package can be unit tested in isolation
-2. **Reusability**: Label strategies can be reused across recorder/replayer
-3. **Maintainability**: Clear boundaries reduce cognitive load
-4. **Extensibility**: New strategies/finders can be added via plugin pattern
-5. **Type Safety**: Strong contracts between modules
-6. **Performance**: Tree-shaking works better with proper module boundaries
-7. **Team Scalability**: Different developers can own different packages
-
-### Migration Strategy
-
-1. **Phase 1**: Extract `core/dom-utils` (no UI dependencies)
-2. **Phase 2**: Extract `storage` layer (abstract IndexedDB)
-3. **Phase 3**: Split `content.tsx` → `recorder/` + `replayer/`
-4. **Phase 4**: Consolidate UI libraries → `ui/design-system/`
-5. **Phase 5**: Refactor `background.ts` → `background/` package
-6. **Phase 6**: Add test coverage for all packages
+### Module 8: UI Layer (React Components)
+- **Files:** `pages/`, `components/` (keep as-is)
+- **Exports:** Page components, shared UI components
+- **Dependencies:** Message Bus, UI Design System
+- **Consumers:** Application entry point
 
 ---
 
-## APPENDIX: KEY TECHNICAL DECISIONS
+## Conclusion
 
-### Why Manifest V3?
-- **Future-proof**: Manifest V2 deprecated by Chrome
-- **Service Worker**: Background script must use service workers (no persistent pages)
-- **Challenges**: No DOM access in background, requires message passing
+Muffin is a sophisticated Chrome extension with a solid technical foundation but significant room for improvement in modularity and testability. The core automation capabilities (recording, element finding, playback) are robust but tightly coupled. The recommended refactoring into 8 distinct modules would improve maintainability, enable independent testing, and facilitate future feature development.
 
-### Why IndexedDB over Chrome Storage?
-- **Capacity**: Chrome Storage has 10MB limit, IndexedDB unlimited (quota-based)
-- **Complex Queries**: Dexie.js provides query/index capabilities
-- **Performance**: Better for large datasets (CSV data, test run history)
-
-### Why Multiple Vite Configs?
-- **Background Worker Isolation**: Service workers cannot import React/DOM code
-- **Separate Entry Points**: UI pages vs. background vs. content scripts
-- **Bundle Optimization**: Different output formats (ES modules vs. IIFE)
-
-### Why XPath over CSS Selectors?
-- **Robustness**: XPath handles complex DOM traversal (nth-child, text nodes, axes)
-- **Fallback**: Can compute position-based XPath when IDs/classes change
-- **Legacy**: Existing libraries (`get-xpath`) provide battle-tested implementations
-
-### Why String Similarity for Auto-Mapping?
-- **Fuzzy Matching**: Handles variations (capitalization, underscores, spaces)
-- **User-Friendly**: Non-technical users don't need perfect CSV column names
-- **Threshold**: 0.4 similarity provides good balance (configurable)
-
----
-
-## CONCLUSION
-
-**Muffin** is a **feature-rich but architecturally monolithic** Chrome extension for browser automation. The core automation logic works well but suffers from:
-- **Code concentration** in a few large files (`content.tsx`, `background.ts`, `Recorder.tsx`, `TestRunner.tsx`)
-- **UI library redundancy** (4+ frameworks)
-- **Lack of modularity** (tight coupling, no clear subsystem boundaries)
-- **Zero test coverage**
-
-**Strengths:**
-- Comprehensive DOM handling (iframes, shadow DOM, dynamic content)
-- Smart label extraction with 12+ strategies
-- Multi-fallback element finding
-- CSV bulk processing
-- User-friendly workflow (record → map → run)
-
-**Refactoring Priority:**
-1. **Extract label strategies** into pluggable modules
-2. **Split content script** into recorder + replayer + utils
-3. **Consolidate UI libraries** to Radix + Tailwind
-4. **Add test coverage** (Jest + Playwright)
-5. **Type-safe message protocol** with discriminated unions
-6. **Remove jQuery** and unused Firebase dependency
-
-**Future-Ready Architecture:**
-The proposed modular subsystem design (Section 7) provides a clear path to:
-- Maintainable, testable code
-- Team scalability
-- Feature extensibility
-- Performance optimization
-
-This analysis should enable any AI agent or developer to understand the project structure, identify refactoring opportunities, and plan subsystem extraction without re-reading the entire codebase.
+**Next Steps:**
+1. Add unit tests for critical utilities (element finding, label extraction)
+2. Extract DOM automation logic into pure library
+3. Implement schema versioning for IndexedDB
+4. Add telemetry for element finding strategy success rates
+5. Remove unused dependencies (Firebase, Axios, jQuery)
+6. Add React error boundaries
+7. Document extension limitations (closed shadow roots, cross-origin iframes)
