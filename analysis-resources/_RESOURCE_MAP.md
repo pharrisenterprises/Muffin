@@ -86,6 +86,22 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 - **analysis-resources/references/**
   Contains external and internal reference material required for accurate code generation.
 
+## Future Specs
+
+- **future-spec/**
+  Contains complete technical specifications for Muffin Lite enhancement (Vision/OCR capabilities). Defines requirements, architecture, data models, API contracts, and migration strategy for adding Tesseract.js-based automation.
+  
+  **Files:**
+  - `_INDEX.md` — Master index with navigation by role (Product/Design/Dev/QA), feature summary, build phases, key interfaces, and file change summary. **Start here for Phase 3 implementation.**
+  - `00_future-overview.md` — Executive summary, vision statement ("Any element you can see, Muffin Lite can interact with"), project objectives, 5 feature summary (Vision Engine, Vision Recording, Time Delay, CSV Loop, Conditional Click), success criteria, technical constraints, build phases, dependencies, risk assessment, and glossary.
+  - `01_requirements.md` — Complete requirements specification: 29 functional requirements (FR-101 to FR-505 across 5 features), 14 non-functional requirements (NFR-101 to NFR-503), and requirements traceability matrix linking each requirement to architecture components.
+  - `02_ux-flows.md` — User experience flows and wireframes: 6 complete user journeys with ASCII diagrams (Recording with Vision Fallback, Time Delay Configuration, CSV Loop Configuration, Conditional Click Setup, Complete Playback, Step Editing). Includes screen state mockups and error states.
+  - `03_feature-specs.md` — Detailed technical specifications for all 5 features with class structures, method specifications, TypeScript interfaces, content script handlers, and testing requirements. Defines Vision Engine API, recording fallback logic, delay execution, position-based CSV mapping, and conditional polling loop.
+  - `04_architecture.md` — System architecture and component design: high-level diagram, 4-layer architecture (Extension Pages, Shared Libraries, Service Worker, Content Scripts), data flow diagrams, complete file structure with 14 new files and 10 modified files, manifest.json updates, package.json updates. Includes Tesseract.js integration architecture.
+  - `05_data-layer.md` — Data models, schemas, and storage patterns: IndexedDB schema v2 with migration, 8 TypeScript interface definitions (Project, Recording, Step, ConditionalConfig, ParsedField, TestRun, UserPreferences, LogEntry), repository pattern implementations (RecordingRepository with 15+ methods, TestRunRepository with 9+ methods), validation functions, and sample data with all new Vision fields.
+  - `06_api-contracts.md` — Internal APIs and message contracts: Chrome extension message architecture, 40+ message type definitions (Extension Page ↔ Background, Background ↔ Content Script, Content Script ↔ Background), VisionEngine class interface with 15+ methods, MessageRouter implementation, APIClient wrapper with type-safe methods, usage examples, and error codes.
+  - `07_migration-notes.md` — Migration strategy and rollback plan: current vs future state comparison, detailed file-by-file changes, 6-phase migration strategy (Foundation 60min, Recording 45min, Time Delay 30min, CSV Loop 45min, Conditional Click 45min, Integration Testing 30min), backward compatibility strategy, rollback procedures, testing checklist, known limitations, troubleshooting guide, and timeline.
+
 ## UPDATE RULES
 
 Every time a new file or folder is created in the analysis-resources tree:
