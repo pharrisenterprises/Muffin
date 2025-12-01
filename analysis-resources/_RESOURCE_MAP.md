@@ -17,40 +17,43 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 - **analysis-resources/component-breakdowns/**
   Contains deep-dive documents for specific components/subsystems.
   Format: `<component-name>_breakdown.md`
-  
-  **Files (32 total):**
-  - `background-service-worker_breakdown.md` — Central message routing hub in service worker, handles 15+ action types
-  - `build-pipeline_breakdown.md` — Dual Vite build configuration for UI + background service worker
-  - `chrome-storage-helper_breakdown.md` — Promise-based wrapper for Chrome storage.sync API
-  - `content-script-recorder_breakdown.md` — Event capture system for recording user interactions
-  - `content-script-replayer_breakdown.md` — Playback engine that replays recorded steps
-  - `csv-parser_breakdown.md` — PapaParse integration for CSV file parsing
-  - `dashboard-ui_breakdown.md` — Main project management interface with card grid
-  - `dom-element-finder_breakdown.md` — Multi-strategy element location (6+ fallback methods)
-  - `dom-label-extraction_breakdown.md` — 16-strategy label extraction for form fields
-  - `field-mapper-ui_breakdown.md` — CSV column to step label mapping interface
-  - `field-mapping-engine_breakdown.md` — String similarity algorithm for auto-mapping
-  - `iframe-handler_breakdown.md` — Cross-frame DOM traversal for iframe support
-  - `indexeddb-storage_breakdown.md` — Dexie.js wrapper for projects/testruns tables
-  - `injection-manager_breakdown.md` — Content script injection orchestration
-  - `message-router_breakdown.md` — Background script message handler (15+ actions)
-  - `notification-overlay_breakdown.md` — In-page visual feedback during test execution
-  - `page-interceptor_breakdown.md` — Shadow DOM monkey patch for closed shadow roots
-  - `project-crud_breakdown.md` — Create/edit/delete project UI components
-  - `project-repository_breakdown.md` — Dexie CRUD wrapper for projects table
-  - `recorder-ui_breakdown.md` — Recording interface with live step display
-  - `redux-state-management_breakdown.md` — Minimal Redux store (theme state only)
-  - `router-navigation_breakdown.md` — React Router hash-based routing configuration
-  - `shadow-dom-handler_breakdown.md` — Shadow DOM traversal + closed shadow workarounds
-  - `step-capture-engine_breakdown.md` — Event-to-step transformation logic
-  - `step-table-management_breakdown.md` — Drag-drop step reordering table component
-  - `tab-manager_breakdown.md` — Browser tab lifecycle management for tests
-  - `test-logger_breakdown.md` — Timestamped logging system for test execution
-  - `test-orchestrator_breakdown.md` — Core test execution engine (CSV iteration + playback)
-  - `test-run-repository_breakdown.md` — Dexie CRUD wrapper for testruns table
-  - `test-runner-ui_breakdown.md` — Test execution interface with real-time progress
-  - `ui-design-system_breakdown.md` — Radix UI + Tailwind component library
-  - `xpath-computation_breakdown.md` — Position-based XPath generation algorithm
+
+## Component Breakdowns
+
+| File | Description |
+|------|-------------|
+| background-service-worker_breakdown.md | Central message routing hub in service worker managing lifecycle and cross-context communication |
+| build-pipeline_breakdown.md | Dual Vite build configuration for React UI and ES module service worker |
+| chrome-storage-helper_breakdown.md | Promise-based wrapper around Chrome storage.sync API for persistent key-value storage |
+| content-script-recorder_breakdown.md | Event capture system that records user interactions with full element metadata |
+| content-script-replayer_breakdown.md | Playback engine that replays recorded steps with multi-strategy element finding |
+| csv-parser_breakdown.md | PapaParse integration for parsing CSV files into structured test data |
+| dashboard-ui_breakdown.md | Main project management interface with card grid, search, and CRUD operations |
+| dom-element-finder_breakdown.md | Multi-strategy element location system with 6+ progressive fallback methods |
+| dom-label-extraction_breakdown.md | 16-strategy label extraction system for form fields and interactive elements |
+| field-mapper-ui_breakdown.md | CSV column to step label mapping interface with auto-mapping and manual editing |
+| field-mapping-engine_breakdown.md | String similarity algorithm for automatic mapping of CSV columns to step labels |
+| iframe-handler_breakdown.md | Cross-frame DOM traversal system for recording and playback in iframes |
+| indexeddb-storage_breakdown.md | Dexie.js wrapper providing CRUD operations for projects and test runs tables |
+| injection-manager_breakdown.md | Content script injection orchestration for different execution contexts |
+| message-router_breakdown.md | Background script message handler routing 15+ action types between contexts |
+| notification-overlay_breakdown.md | In-page visual feedback system displaying temporary notifications during playback |
+| page-interceptor_breakdown.md | Shadow DOM monkey patch enabling access to closed shadow roots |
+| project-crud_breakdown.md | UI components for creating, editing, and deleting projects via modal dialogs |
+| project-repository_breakdown.md | Dexie CRUD wrapper encapsulating all database operations for projects table |
+| recorder-ui_breakdown.md | Recording interface displaying live step capture with editing and drag-drop reordering |
+| redux-state-management_breakdown.md | Minimal Redux store managing theme state (dark/light mode toggle) |
+| router-navigation_breakdown.md | React Router hash-based routing configuration for extension pages |
+| shadow-dom-handler_breakdown.md | Shadow DOM traversal system with workarounds for closed shadow roots |
+| step-capture-engine_breakdown.md | Event-to-step transformation logic enriching events with XPath, labels, and metadata |
+| step-table-management_breakdown.md | Interactive step list with drag-drop reordering and inline editing |
+| tab-manager_breakdown.md | Browser tab lifecycle management for test execution (create, inject, cleanup) |
+| test-logger_breakdown.md | Centralized logging system with timestamp formatting and log level classification |
+| test-orchestrator_breakdown.md | Core test execution engine coordinating CSV iteration, tab management, and step playback |
+| test-run-repository_breakdown.md | Dexie CRUD wrapper managing test execution history in IndexedDB |
+| test-runner-ui_breakdown.md | Test execution interface with real-time progress, console logs, and results |
+| ui-design-system_breakdown.md | Reusable component library built on Radix UI primitives and Tailwind CSS |
+| xpath-computation_breakdown.md | Position-based XPath generation algorithm for DOM element identification |
 
 - **analysis-resources/modularization-plans/**
   Holds modular re-architecture plans for future rebuilding steps.
