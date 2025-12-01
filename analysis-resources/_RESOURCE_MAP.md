@@ -18,6 +18,12 @@ It must be updated automatically every time any analysis prompt, breakdown promp
   Contains deep-dive documents for specific components/subsystems.
   Format: `<component-name>_breakdown.md`
 
+- **analysis-resources/modularization-plans/**
+  Holds modular re-architecture blueprints defining module boundaries, dependencies, build order, and contracts.
+  
+  **Files:**
+  - `00_modularization-overview.md` — Complete modularization blueprint defining 9 modules with clear boundaries, dependency map, 18-week build order (30 components), risks/constraints, and 7 architecture contracts (ElementBundle, Step, FieldMapping, Action Messages, TestConfig, Repository Operations, UI Props).
+
 ## Component Breakdowns
 
 | File | Description |
@@ -54,9 +60,6 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 | test-runner-ui_breakdown.md | Test execution interface with real-time progress, console logs, and results |
 | ui-design-system_breakdown.md | Reusable component library built on Radix UI primitives and Tailwind CSS |
 | xpath-computation_breakdown.md | Position-based XPath generation algorithm for DOM element identification |
-
-- **analysis-resources/modularization-plans/**
-  Holds modular re-architecture plans for future rebuilding steps.
 
 - **analysis-resources/build-instructions/**
   Contains build pipeline designs and environment toolchain notes.
