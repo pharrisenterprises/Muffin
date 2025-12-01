@@ -14,6 +14,10 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 
 - **TECHNICAL_REFERENCE.md** — Detailed technical deep-dive with complete TypeScript interfaces, import patterns, code conventions, error handling, state management, Chrome extension architecture, database schema, file paths, utilities inventory, and integration checklists. Complements MASTER_ROLLUP with implementation-level detail.
 
+- **BIDIRECTIONAL_ANALYSIS.md** — Complete gap analysis between current system and future Vision-enabled state. Documents what exists, what's missing, what must change, dependency trees, build sequence, architecture gaps, risks, and invention requirements. Essential for migration planning.
+
+- **BUILD_CARD_BACKLOG.md** — Comprehensive backlog of 67 build cards organized into 8 categories (Foundation, Data Layer, Core Engine, Integration, UI, Testing, Migration, Documentation). Each card includes purpose, inputs, outputs, acceptance criteria, dependencies, and risk level. Provides recommended execution order and parallelization opportunities for ~4-5 hour build timeline.
+
 - **analysis-resources/project-analysis/**
   Holds outputs from the initial repo analysis phase.
   
