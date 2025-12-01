@@ -8,6 +8,12 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 - **analysis-resources/**
   Root folder for all analysis, architecture mapping, breakdowns, and planning documents.
 
+## MASTER DOCUMENTS
+
+- **MASTER_ROLLUP.md** — **[PRIMARY REFERENCE]** Single comprehensive document containing everything an AI needs to generate code for this project. Includes executive summary, tech stack, architecture, type definitions, conventions, all 32 subsystems, database schema, Chrome integration, utilities, module boundaries, and development guidelines. **Start here for any code generation task.**
+
+- **TECHNICAL_REFERENCE.md** — Detailed technical deep-dive with complete TypeScript interfaces, import patterns, code conventions, error handling, state management, Chrome extension architecture, database schema, file paths, utilities inventory, and integration checklists. Complements MASTER_ROLLUP with implementation-level detail.
+
 - **analysis-resources/project-analysis/**
   Holds outputs from the initial repo analysis phase.
   
@@ -17,6 +23,9 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 - **analysis-resources/component-breakdowns/**
   Contains deep-dive documents for specific components/subsystems.
   Format: `<component-name>_breakdown.md`
+  
+  **Files:**
+  - `00_VERIFICATION_REPORT.md` — Verification report confirming all 32 component breakdowns are current and accurately reflect the codebase (verified 2025-12-01).
 
 - **analysis-resources/modularization-plans/**
   Holds modular re-architecture blueprints defining module boundaries, dependencies, build order, and contracts.
