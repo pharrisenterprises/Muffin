@@ -25,7 +25,7 @@ chrome.runtime.onMessage.addListener(
     // Handle Vision messages
     if (message.type?.startsWith('VISION_')) {
       handleVisionMessage(message, sender)
-        .then(sendResponse)
+        ?.then(sendResponse)
         .catch((error) => {
           console.error('[Background] Vision handler error:', error);
           sendResponse({ success: false, error: error.message });
