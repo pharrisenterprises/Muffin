@@ -71,6 +71,7 @@
     "tailwind-merge": "^2.0.0",
     "tailwind.macro": "^0.5.10",
     "tailwindcss-animate": "^1.0.7",
+    "tesseract.js": "^5.1.1",
     "vite-plugin-html": "^3.2.2",
     "vite-plugin-static-copy": "^2.1.0",
     "xlsx": "^0.18.5",

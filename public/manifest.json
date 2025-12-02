@@ -1,7 +1,7 @@
 {
-  "name": "Recorder",
-  "description": "Recorder",
-  "version": "1.0.9",
+  "name": "TestFlow",
+  "description": "Browser automation with Vision/OCR capabilities",
+  "version": "2.1.0",
   "manifest_version": 3,
   "icons": {
     "128": "icon/128.png",
@@ -16,7 +16,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Recorder"
+    "default_title": "TestFlow"
   },
   "permissions": [
     "tabs",
@@ -32,7 +32,9 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "*"
+        "*",
+        "*.wasm",
+        "*.traineddata"
       ],
       "matches": [
         "<all_urls>"
