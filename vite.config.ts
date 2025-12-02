@@ -41,6 +41,7 @@ export default defineConfig({
       keep_classnames: true,
       keep_fnames: true,
     },
+    assetsInlineLimit: 0,
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, "src/main.tsx"),
@@ -58,6 +59,12 @@ export default defineConfig({
           if (/\.(png|jpe?g|gif|svg)$/.test(assetInfo.name)) {
             return "images/[name][extname]";
           }
+          if (/\.wasm$/.test(assetInfo.name)) {
+            return "wasm/[name][extname]";
+          }
+          if (/\.traineddata$/.test(assetInfo.name)) {
+            return "tessdata/[name][extname]";
+          }
           return "[name][extname]";
         },
         chunkFileNames: "js/[name].js",
@@ -67,6 +74,15 @@ export default defineConfig({
   },
   esbuild: {
     keepNames: true,
+  },
+  optimizeDeps: {
+    exclude: ["tesseract.js"],
+  },
+  worker: {
+    format: "es",
+  },
+  define: {
+    "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV || "production"),
   },
   resolve: {
     alias: {
