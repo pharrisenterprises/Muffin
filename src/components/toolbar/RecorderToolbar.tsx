@@ -19,10 +19,18 @@ import { AddConditionalButton } from './AddConditionalButton';
 export interface RecorderToolbarProps {
   /** Current recording */
   recording: Recording;
+  /** Whether currently recording */
+  isRecording?: boolean;
+  /** Toggle recording on/off */
+  onToggleRecording?: () => void;
   /** Callback to update recording */
   onUpdateRecording: (updates: Partial<Recording>) => void;
   /** Callback to add a new step */
   onAddStep: (step: Step) => void;
+  /** Callback to export steps */
+  onExportSteps?: () => void;
+  /** Callback to export header CSV */
+  onExportHeader?: () => void;
   /** Whether controls are disabled (e.g., during recording) */
   disabled?: boolean;
   /** Additional CSS classes */
@@ -48,8 +56,12 @@ export interface RecorderToolbarProps {
  */
 export function RecorderToolbar({
   recording,
+  isRecording: _isRecording,
+  onToggleRecording: _onToggleRecording,
   onUpdateRecording,
   onAddStep,
+  onExportSteps: _onExportSteps,
+  onExportHeader: _onExportHeader,
   disabled = false,
   className = '',
 }: RecorderToolbarProps): JSX.Element {

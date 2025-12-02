@@ -61,11 +61,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message.action === "update_project") {
-      DB.updateProject(message.payload.id, {
-        projectName: message.payload.name || message.payload.projectName,
-        project_url: message.payload.target_url || message.payload.project_url,
-      })
+      const { id, ...updates } = message.payload;
+      
+      // Support both old and new field names, and Vision fields
+      const projectUpdates: any = {};
+      if (updates.name || updates.projectName) {
+        projectUpdates.projectName = updates.name || updates.projectName;
+      }
+      if (updates.target_url || updates.project_url) {
+        projectUpdates.project_url = updates.target_url || updates.project_url;
+      }
+      if (updates.recorded_steps !== undefined) {
+        projectUpdates.recorded_steps = updates.recorded_steps;
+      }
+      if (updates.loopStartIndex !== undefined) {
+        projectUpdates.loopStartIndex = updates.loopStartIndex;
+      }
+      if (updates.globalDelayMs !== undefined) {
+        projectUpdates.globalDelayMs = updates.globalDelayMs;
+      }
+      if (updates.conditionalDefaults !== undefined) {
+        projectUpdates.conditionalDefaults = updates.conditionalDefaults;
+      }
+      if (updates.schemaVersion !== undefined) {
+        projectUpdates.schemaVersion = updates.schemaVersion;
+      }
+      
+      DB.updateProject(id, projectUpdates)
         .then(() => sendResponse({ success: true }))
+        .catch(error =>
+          sendResponse({ success: false, error: error.message })
+        );
+      return true;
+    }
+    
+    if (message.action === "get_project") {
+      const projectId = message.payload?.id;
+      DB.projects.get(projectId)
+        .then((project) => {
+          if (project) {
+            sendResponse({ success: true, project });
+          } else {
+            sendResponse({ success: false, error: 'Project not found' });
+          }
+        })
         .catch(error =>
           sendResponse({ success: false, error: error.message })
         );
@@ -108,44 +147,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       DB.getAllProjects()
         .then((projects) => {
           const project = projects.find(p => p.id === projectId);
-          if (!project || !project.project_url) {
-            sendResponse({ success: false, error: "Process not found or missing URL" });
+          if (!project) {
+            sendResponse({ success: false, error: "Process not found" });
             return;
           }
 
-          // Open new tab with target_url
-          // chrome.tabs.create({ url: project.target_url }, (tab) => {
-          //   if (tab?.id) {
-          //     openedTabId = tab.id;
-          //     //Try injecting main.js dynamically
-          //     chrome.scripting.executeScript(
-          //       {
-          //         target: { tabId: tab.id },
-          //         files: ["js/main.js"]
-          //       },
-          //       () => {
-          //         if (chrome.runtime.lastError) {
-          //           //Injection failed → close the tab
-          //           if (typeof tab.id === "number") {
-          //             chrome.tabs.remove(tab.id);
-          //           }
-          //           sendResponse({ success: false, error: chrome.runtime.lastError.message });
-          //         } else {
-          //           //Script injected → tab is valid
-          //           sendResponse({ success: true, tabId: tab.id });
-          //         }
-          //       }
-          //     );
-          //   } else {
-          //     sendResponse({ success: false });
-          //   }
-          // });
+          // FIX-003: Support both target_url and project_url field names
+          const targetUrl = (project as any).target_url || project.project_url;
+          if (!targetUrl) {
+            sendResponse({ success: false, error: 'No target URL configured for project' });
+            return;
+          }
 
-          chrome.tabs.create({ url: project.project_url }, (tab) => {
+          chrome.tabs.create({ url: targetUrl }, (tab) => {
             if (tab?.id) {
               openedTabId = tab.id;
               trackedTabs.add(tab.id);
               injectMain(tab.id);
+              sendResponse({ success: true, tabId: tab.id });
+            } else {
+              sendResponse({ success: false, error: 'Failed to create tab' });
             }
           });
         })
