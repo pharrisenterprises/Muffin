@@ -285,3 +285,284 @@ export interface VisionResponse {
   error?: string;
   data?: unknown;
 }
+
+// ============================================================================
+// EXTENDED STEP INTERFACE
+// ============================================================================
+
+/**
+ * Extended Step interface with Vision and delay fields.
+ * All new fields are optional for backward compatibility with existing recordings.
+ * 
+ * Existing steps will have recordedVia default to 'dom' via migration.
+ */
+export interface Step {
+  // === EXISTING FIELDS (unchanged) ===
+  /** Unique step identifier */
+  id?: number;
+  /** User-defined label for the step */
+  label: string;
+  /** Type of event/action */
+  event: StepEventType;
+  /** Input value for input/dropdown steps */
+  value?: string;
+  /** CSS selector for the target element */
+  selector?: string;
+  /** XPath for the target element */
+  xpath?: string;
+  /** URL for navigation steps */
+  url?: string;
+  /** Timestamp when step was recorded */
+  timestamp?: number;
+  /** Order index in the recording */
+  order?: number;
+
+  // === NEW FIELDS (Phase 3 Vision Enhancement) ===
+  
+  /**
+   * How the step was recorded.
+   * - 'dom': Traditional DOM selector-based recording
+   * - 'vision': OCR/coordinate-based recording (Vision fallback)
+   * @default 'dom' (set by migration for existing steps)
+   */
+  recordedVia?: RecordedVia;
+
+  /**
+   * Screen coordinates for Vision-recorded steps.
+   * Only populated when recordedVia === 'vision'.
+   */
+  coordinates?: StepCoordinates;
+
+  /**
+   * OCR text that was matched during Vision recording.
+   * Stored for debugging and re-matching during playback.
+   */
+  ocrText?: string;
+
+  /**
+   * OCR confidence score (0-100) from Vision recording.
+   * Higher values indicate more reliable text recognition.
+   */
+  confidenceScore?: number;
+
+  /**
+   * Delay in seconds to wait BEFORE executing this step.
+   * Used for steps that need the page to settle.
+   */
+  delaySeconds?: number;
+
+  /**
+   * Configuration for conditional click behavior.
+   * Only used when event === 'conditional-click'.
+   */
+  conditionalConfig?: ConditionalConfig | null;
+}
+
+/**
+ * Creates a new Step with default values.
+ * Use this factory function when programmatically creating steps.
+ */
+export function createDefaultStep(overrides: Partial<Step> = {}): Step {
+  return {
+    label: '',
+    event: 'click',
+    recordedVia: 'dom',
+    ...overrides,
+  };
+}
+
+/**
+ * Type guard to check if a step was recorded via Vision.
+ */
+export function isVisionStep(step: Step): boolean {
+  return step.recordedVia === 'vision';
+}
+
+/**
+ * Type guard to check if a step is a conditional click.
+ */
+export function isConditionalStep(step: Step): boolean {
+  return step.event === 'conditional-click';
+}
+
+/**
+ * Type guard to check if a step has a delay configured.
+ */
+export function hasStepDelay(step: Step): boolean {
+  return typeof step.delaySeconds === 'number' && step.delaySeconds > 0;
+}
+
+// ============================================================================
+// EXTENDED RECORDING INTERFACE
+// ============================================================================
+
+/**
+ * Extended Recording interface with loop, delay, and conditional configuration.
+ * All new fields have sensible defaults for backward compatibility.
+ */
+export interface Recording {
+  // === EXISTING FIELDS ===
+  /** Unique recording identifier */
+  id?: number;
+  /** Associated project ID */
+  projectId: number;
+  /** Recording name/title */
+  name?: string;
+  /** Array of recorded steps */
+  steps: Step[];
+  /** When the recording was created */
+  createdAt?: number;
+  /** When the recording was last modified */
+  updatedAt?: number;
+
+  // === NEW FIELDS (Phase 3 Vision Enhancement) ===
+
+  /**
+   * Schema version for migration tracking.
+   * - v1: Original schema (no Vision fields)
+   * - v2: Added Vision fields
+   * - v3: Current version with all features
+   * @default 3
+   */
+  schemaVersion?: number;
+
+  /**
+   * Index of the step where CSV loop iteration begins.
+   * Steps before this index execute only on the first row.
+   * Steps at and after this index execute for every CSV row.
+   * @default 0 (all steps execute for every row)
+   */
+  loopStartIndex: number;
+
+  /**
+   * Global delay in milliseconds to apply AFTER each step.
+   * Applied only when the step doesn't have its own delaySeconds.
+   * @default 0 (no delay)
+   */
+  globalDelayMs: number;
+
+  /**
+   * Default settings for new conditional click steps.
+   * These values are used when creating new conditional steps.
+   */
+  conditionalDefaults: RecordingConditionalDefaults;
+
+  /**
+   * Parsed CSV field mappings for data-driven testing.
+   * Populated after CSV upload and field mapping.
+   */
+  parsedFields?: ParsedField[];
+
+  /**
+   * Raw CSV data rows.
+   * First row is headers, subsequent rows are data.
+   */
+  csvData?: string[][];
+}
+
+/**
+ * Parsed field mapping from CSV columns to step labels.
+ */
+export interface ParsedField {
+  /** CSV column header name */
+  columnName: string;
+  /** Index of the column in CSV (0-based) */
+  columnIndex: number;
+  /** Target step label to inject value into */
+  targetLabel: string;
+  /** Step indices that match this target label */
+  stepIndices: number[];
+}
+
+/**
+ * Creates a new Recording with default values.
+ * Use this factory function when programmatically creating recordings.
+ */
+export function createDefaultRecording(projectId: number, overrides: Partial<Recording> = {}): Recording {
+  return {
+    projectId,
+    steps: [],
+    schemaVersion: 3,
+    loopStartIndex: 0,
+    globalDelayMs: 0,
+    conditionalDefaults: { ...DEFAULT_RECORDING_CONDITIONAL },
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ...overrides,
+  };
+}
+
+/**
+ * Checks if a recording has CSV loop configuration.
+ */
+export function hasLoopConfig(recording: Recording): boolean {
+  return recording.loopStartIndex > 0;
+}
+
+/**
+ * Checks if a recording has a global delay configured.
+ */
+export function hasGlobalDelay(recording: Recording): boolean {
+  return recording.globalDelayMs > 0;
+}
+
+/**
+ * Gets the steps that execute only on the first CSV row.
+ */
+export function getPreLoopSteps(recording: Recording): Step[] {
+  return recording.steps.slice(0, recording.loopStartIndex);
+}
+
+/**
+ * Gets the steps that execute for every CSV row.
+ */
+export function getLoopSteps(recording: Recording): Step[] {
+  return recording.steps.slice(recording.loopStartIndex);
+}
+
+// ============================================================================
+// MIGRATION HELPERS
+// ============================================================================
+
+/**
+ * Migrates a legacy step (v1) to the current schema (v3).
+ * Adds default values for all new fields.
+ */
+export function migrateStep(step: Partial<Step>): Step {
+  return {
+    ...step,
+    label: step.label || '',
+    event: step.event || 'click',
+    recordedVia: step.recordedVia || 'dom',
+  } as Step;
+}
+
+/**
+ * Migrates a legacy recording (v1/v2) to the current schema (v3).
+ * Adds default values for all new fields and migrates all steps.
+ */
+export function migrateRecording(recording: Partial<Recording>, projectId: number): Recording {
+  const migratedSteps = (recording.steps || []).map(migrateStep);
+  
+  return {
+    ...recording,
+    projectId: recording.projectId || projectId,
+    steps: migratedSteps,
+    schemaVersion: 3,
+    loopStartIndex: recording.loopStartIndex ?? 0,
+    globalDelayMs: recording.globalDelayMs ?? 0,
+    conditionalDefaults: recording.conditionalDefaults || { ...DEFAULT_RECORDING_CONDITIONAL },
+    createdAt: recording.createdAt || Date.now(),
+    updatedAt: Date.now(),
+  } as Recording;
+}
+
+/**
+ * Validates that a recording has been migrated to the current schema.
+ */
+export function isRecordingMigrated(recording: Partial<Recording>): boolean {
+  return recording.schemaVersion === 3 &&
+    typeof recording.loopStartIndex === 'number' &&
+    typeof recording.globalDelayMs === 'number' &&
+    recording.conditionalDefaults !== undefined;
+}
