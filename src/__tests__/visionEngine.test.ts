@@ -1,12 +1,16 @@
 /**
- * VisionEngine Tests
+ * VisionEngine Test Suite
  * 
- * Tests for TST-001 through TST-005:
- * - Initialization and termination
- * - Screenshot capture
- * - OCR recognition
- * - findText accuracy
- * - Coordinate clicking
+ * Tests for VisionEngine initialization, screenshot capture,
+ * OCR recognition, text finding, and coordinate clicking.
+ * 
+ * Build Cards: TST-001, TST-002, TST-003, TST-004, TST-005
+ * 
+ * - TST-001: VisionEngine initialization and lifecycle tests
+ * - TST-002: Screenshot capture tests with mock Chrome APIs
+ * - TST-003: OCR recognition tests with mock Tesseract.js
+ * - TST-004: findText accuracy tests for text search
+ * - TST-005: Coordinate click tests with message passing
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
