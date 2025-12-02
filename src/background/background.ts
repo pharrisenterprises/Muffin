@@ -38,9 +38,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     if (message.action === "update_project") {
       DB.updateProject(message.payload.id, {
-        name: message.payload.name,
-        description: message.payload.description,
-        target_url: message.payload.target_url,
+        projectName: message.payload.name || message.payload.projectName,
+        project_url: message.payload.target_url || message.payload.project_url,
       })
         .then(() => sendResponse({ success: true }))
         .catch(error =>
@@ -85,7 +84,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       DB.getAllProjects()
         .then((projects) => {
           const project = projects.find(p => p.id === projectId);
-          if (!project || !project.target_url) {
+          if (!project || !project.project_url) {
             sendResponse({ success: false, error: "Process not found or missing URL" });
             return;
           }
@@ -118,7 +117,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           //   }
           // });
 
-          chrome.tabs.create({ url: project.target_url }, (tab) => {
+          chrome.tabs.create({ url: project.project_url }, (tab) => {
             if (tab?.id) {
               openedTabId = tab.id;
               trackedTabs.add(tab.id);
@@ -146,9 +145,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
 
     if (message.action === "update_project_fields") {
-      const { id, parsed_fields, status } = message.payload;
+      const { id, parsed_fields } = message.payload;
 
-      DB.projects.update(id, { parsed_fields, status })
+      DB.projects.update(id, { parsed_fields })
         .then(() => {
           sendResponse({ success: true });
         })
