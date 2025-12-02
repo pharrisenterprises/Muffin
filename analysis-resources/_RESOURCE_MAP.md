@@ -18,6 +18,8 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 
 - **BUILD_CARD_BACKLOG.md** — Comprehensive backlog of 67 build cards organized into 8 categories (Foundation, Data Layer, Core Engine, Integration, UI, Testing, Migration, Documentation). Each card includes purpose, inputs, outputs, acceptance criteria, dependencies, and risk level. Provides recommended execution order and parallelization opportunities for ~4-5 hour build timeline.
 
+- **PHASE_3_STATUS_TRACKER.md** — Progress tracker for Phase 3 Specification Generation. Lists all 74 specification files to be generated across 8 categories (FND 11, DAT 6, ENG 18, INT 9, UI 12, TST 10, MIG 5, DOC 3). Tracks completion status, commit status, category progress, and session notes. Used to maintain steady progress through the 4-5 hour specification generation workflow.
+
 - **analysis-resources/project-analysis/**
   Holds outputs from the initial repo analysis phase.
   
