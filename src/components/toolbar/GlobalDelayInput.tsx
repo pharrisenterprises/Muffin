@@ -3,6 +3,8 @@
  * 
  * Number input for setting the global delay between steps.
  * This delay is applied AFTER each step completes (unless overridden by per-step delay).
+ * 
+ * Build Card: UI-008
  */
 
 import { useState, useEffect, useCallback } from 'react';

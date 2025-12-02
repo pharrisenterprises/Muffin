@@ -3,6 +3,8 @@
  * 
  * Dropdown for selecting which step begins the CSV loop for rows 2+.
  * Steps before the loop start are only executed on the first CSV row.
+ * 
+ * Build Card: UI-007
  */
 
 import type { Step } from '../../types/vision';
