@@ -177,9 +177,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message.action === "update_project_steps") {
-      const { id, recorded_steps } = message.payload;
+      const { id, recorded_steps, loopStartIndex, globalDelayMs } = message.payload;
 
-      DB.projects.update(id, { recorded_steps })
+      DB.projects.update(id, {
+        recorded_steps,
+        // VISION: Save Vision fields
+        ...(loopStartIndex !== undefined && { loopStartIndex }),
+        ...(globalDelayMs !== undefined && { globalDelayMs }),
+        updated_date: new Date().toISOString()
+      })
         .then(() => {
           sendResponse({ success: true });
         })

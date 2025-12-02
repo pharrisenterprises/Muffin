@@ -14,13 +14,26 @@ import {
   Plus,
 } from 'lucide-react';
 
-// Define the props type
+// VISION: Extended Step interface for dropdown
+interface Step {
+  id: string;
+  label: string;
+  name: string;
+}
+
+// VISION: Extended props for Vision features
 interface RecorderToolbarProps {
   isRecording: boolean;
   onToggleRecording: () => void;
   onAddStep: () => void;
   onExportSteps?: () => void;
   onExportHeader?: () => void;
+  // VISION: New props
+  steps?: Step[];
+  loopStartIndex?: number;
+  onLoopStartChange?: (index: number) => void;
+  globalDelayMs?: number;
+  onGlobalDelayChange?: (delayMs: number) => void;
 }
 
 export default function RecorderToolbar({
@@ -28,8 +41,20 @@ export default function RecorderToolbar({
   onToggleRecording,
   onAddStep,
   onExportSteps,
-  onExportHeader
+  onExportHeader,
+  // VISION: New props with defaults
+  steps = [],
+  loopStartIndex = 0,
+  onLoopStartChange,
+  globalDelayMs = 0,
+  onGlobalDelayChange,
 }: RecorderToolbarProps) {
+  
+  // VISION: Handle delay input change
+  const handleDelayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const seconds = parseInt(e.target.value, 10) || 0;
+    onGlobalDelayChange?.(seconds * 1000); // Convert to ms
+  };
 
   return (
     <div className="flex items-center gap-2 mb-4 p-3 bg-slate-800 rounded-xl border border-slate-700">
@@ -69,12 +94,41 @@ export default function RecorderToolbar({
         </Button>
       )}
 
+      {/* Right side controls */}
       <div className="flex items-center gap-2 ml-auto">
+        
+        {/* VISION: CSV Loop Start Dropdown - NEW */}
+        <span className="text-sm text-slate-400">CSV Loop Start:</span>
+        <Select 
+          value={loopStartIndex.toString()} 
+          onValueChange={(val) => onLoopStartChange?.(parseInt(val, 10))}
+        >
+          <SelectTrigger className="w-40 h-8 bg-slate-700 border-slate-600">
+            <SelectValue placeholder="Select step" />
+          </SelectTrigger>
+          <SelectContent className="bg-slate-700 border-slate-600 text-white">
+            {steps.length === 0 ? (
+              <SelectItem value="0" disabled>No steps recorded</SelectItem>
+            ) : (
+              steps.map((step, index) => (
+                <SelectItem key={step.id} value={index.toString()}>
+                  Loop from Step {index + 1}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+        
+        <div className="h-6 w-px bg-slate-600 mx-2"></div>
+        
+        {/* Delay Input - ENHANCED to use globalDelayMs */}
         <span className="text-sm text-slate-400">Delay:</span>
         <Input
           type="number"
-          defaultValue="4"
+          value={Math.round(globalDelayMs / 1000)}
+          onChange={handleDelayChange}
           className="w-16 h-8 bg-slate-700 border-slate-600"
+          min={0}
         />
         <Select defaultValue="static">
           <SelectTrigger className="w-28 h-8 bg-slate-700 border-slate-600">

@@ -1,52 +1,51 @@
-/**
- * Recorder Page - Phase 4 Vision Enhancement Integration
- * 
- * Build Cards: FIX-001 through FIX-006
- * 
- * Changes from original:
- * - Uses Vision-enabled RecorderToolbar from components/toolbar/
- * - Tracks full Recording object with Vision fields
- * - Uses StepList with badges instead of StepsTable
- * - Integrates Vision state management
- * - Creates steps with Vision fields
- */
-
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import * as XLSX from 'xlsx';
 import { Button } from "../components/Ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Ui/card";
-import { Video, ArrowRight, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
+import { Disc, Video, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
-
-// FIX-001: Correct toolbar with Vision features
-import RecorderToolbar from "../components/toolbar/RecorderToolbar";
-
-// FIX-004: Step list with Vision badges
-import StepList from "../components/recorder/StepList";
-
-// Types with Vision fields
-import type { Recording, Step } from "../types/vision";
-
-// Default value generators
-import { createStep } from "../lib/defaults";
-
-// Existing components
+import RecorderToolbar from "../components/Recorder/RecorderToolbar";
+import StepsTable from "../components/Recorder/StepsTable";
 import LogPanel from "../components/Recorder/LogPanel";
-import { Alert, AlertDescription } from "../components/Ui/alert";
+import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { createPageUrl } from "../utils/index";
+import { TableHead, TableHeader, TableRow } from "../components/Ui/table"
+import { Alert, AlertDescription } from "../components/Ui/alert";
 
-interface ProjectType {
+interface Step {
   id: string;
   name: string;
-  target_url?: string;
-  project_url?: string;
-  recorded_steps?: Step[];
-  loopStartIndex?: number;
-  globalDelayMs?: number;
-  conditionalDefaults?: any;
-  schemaVersion?: number;
-  created_date?: string;
-  updated_date?: string;
+  event: string;
+  path: string;
+  value: string;
+  label: string;
+  x:number;
+  y:number;
+  bundle?: LocatorBundle;
+  // VISION: Added fields for Phase 4
+  delaySeconds?: number;
+  visionFallback?: boolean;
+  conditionalConfig?: {
+    enabled: boolean;
+    searchTerms: string[];
+    maxWaitSeconds: number;
+    pollingIntervalMs: number;
+  };
+}
+
+interface LocatorBundle {
+  tag: string;
+  id: string | null;
+  name: string | null;
+  placeholder: string | null;
+  aria: string | null;
+  dataAttrs: Record<string, string>;
+  text: string;
+  css: string;
+  xpath: string;
+  classes: string[];
+  pageUrl: string;
+  //framePath: number[] | null;
 }
 
 interface Log {
@@ -55,16 +54,29 @@ interface Log {
   message: string;
 }
 
+interface ProjectType {
+  id: string;
+  name: string;
+  recorded_steps: Step[];
+  target_url: string;
+  // VISION: Added fields for Phase 4
+  loopStartIndex?: number;
+  globalDelayMs?: number;
+}
+
 export default function Recorder() {
   const [currentProject, setCurrentProject] = useState<ProjectType | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [recordedSteps, setRecordedSteps] = useState<Step[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
   
-  // FIX-002: Vision-enabled Recording state
-  const [recording, setRecording] = useState<Recording | null>(null);
+  // VISION: Added state for loop start index
+  const [loopStartIndex, setLoopStartIndex] = useState<number>(0);
+  // VISION: Added state for global delay
+  const [globalDelayMs, setGlobalDelayMs] = useState<number>(0);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.hash.split("?")[1]);
@@ -83,34 +95,36 @@ export default function Recorder() {
 
     chrome.runtime.sendMessage(
       {
-        action: "get_project",
+        action: "get_project_by_id",
         payload: { id: parseInt(projectId, 10) },
       },
       (response) => {
-        if (response?.success && response.project) {
-          const project = response.project as ProjectType;
+        if (response?.success) {
+          const project = response.project;
 
-          // FIX-002: Initialize Recording with Vision fields
-          const fullRecording: Recording = {
-            projectId: parseInt(project.id, 10),
-            steps: Array.isArray(project.recorded_steps) ? project.recorded_steps : [],
-            loopStartIndex: project.loopStartIndex ?? 0,
-            globalDelayMs: project.globalDelayMs ?? 0,
-            conditionalDefaults: project.conditionalDefaults ?? {
-              searchTerms: ['approve', 'confirm', 'accept', 'yes', 'ok'],
-              timeoutSeconds: 60,
-              confidenceThreshold: 60
-            },
-            schemaVersion: project.schemaVersion ?? 3,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          };
+          // Ensure recorded_steps is always an array
+          const steps = Array.isArray(project.recorded_steps) ? project.recorded_steps : [];
+
+          // Optionally update the DB if recorded_steps was missing
+          if (!project.recorded_steps) {
+            chrome.runtime.sendMessage({
+              action: "update_project_steps",
+              payload: {
+                id: parseInt(project.id),
+                recorded_steps: [],
+              }
+            });
+          }
 
           setCurrentProject(project);
-          setRecording(fullRecording);
-          addLog("info", `Loaded project: ${project.name}`);
+          setRecordedSteps(steps);
+          
+          // VISION: Load Vision fields from project
+          setLoopStartIndex(project.loopStartIndex ?? 0);
+          setGlobalDelayMs(project.globalDelayMs ?? 0);
         } else {
-          addLog("error", `Failed to load project: ${response?.error || 'Unknown error'}`);
+          //console.error("Failed to load project:", response?.error);
+          addLog("error", `Failed to load project: ${response?.error}`);
         }
         setIsLoading(false);
       }
@@ -126,200 +140,223 @@ export default function Recorder() {
     setLogs(prev => [...prev, newLog]);
   };
 
-  // FIX-002: Update Recording (for toolbar and step changes)
-  const handleUpdateRecording = useCallback((updates: Partial<Recording>) => {
-    if (!recording) return;
-    
-    const updatedRecording: Recording = { 
-      ...recording, 
-      ...updates,
-      updatedAt: Date.now()
-    };
-    setRecording(updatedRecording);
-    
-    // Save to database
-    if (currentProject) {
-      chrome.runtime.sendMessage({
-        action: "update_project",
-        payload: {
-          id: parseInt(currentProject.id, 10),
-          recorded_steps: updatedRecording.steps,
-          loopStartIndex: updatedRecording.loopStartIndex,
-          globalDelayMs: updatedRecording.globalDelayMs,
-          conditionalDefaults: updatedRecording.conditionalDefaults
-        }
-      }, (response) => {
-        if (response?.success) {
-          addLog('info', 'Recording settings saved');
-        } else {
-          addLog('error', `Failed to save: ${response?.error || 'Unknown error'}`);
-        }
-      });
-    }
-  }, [recording, currentProject]);
-
   const handleToggleRecording = () => {
     setIsRecording(prev => {
       const newRecording = !prev;
 
       if (newRecording && projectId) {
         // Start recording
-        addLog("info", "Starting recording...");
         chrome.runtime.sendMessage({
           action: "open_project_url_and_inject",
           payload: { id: parseInt(projectId, 10) },
-        }, (response) => {
-          if (response?.success) {
-            addLog("success", "Target page opened, recording active");
-          } else {
-            addLog("error", `Failed to open target: ${response?.error || 'Unknown error'}`);
-          }
         });
       } else {
         // Stop recording → close opened tab
         chrome.runtime.sendMessage({ action: "close_opened_tab" });
         setError("Recorded steps have been saved successfully !");
-        addLog('info', 'Recording stopped.');
       }
 
+      addLog('info', newRecording ? 'Recording started...' : 'Recording stopped.');
       return newRecording;
     });
   };
 
   const handleAddStep = () => {
-    if (!recording) return;
+    const newStep: Step = {
+      id: `step_${Date.now()}`,
+      name: `New Step ${recordedSteps.length + 1}`,
+      event: 'Click',
+      path: '',
+      value: '',
+      label: '',
+      x: 0,
+      y: 0,
+      // VISION: Initialize Vision fields
+      visionFallback: false,
+    };
 
-    // FIX-006: Use correct Step interface with Vision fields
-    const newStep = createStep({
-      event: 'click',
-      xpath: '',
-      label: `New Step ${recording.steps.length + 1}`
-    });
+    const updatedSteps = [...recordedSteps, newStep];
+    setRecordedSteps(updatedSteps);
 
-    const updatedSteps = [...recording.steps, newStep];
-    handleUpdateRecording({ steps: updatedSteps });
-    addLog('info', 'Added a new step.');
+    if (!currentProject) return;
+
+    updateProjectSteps(
+      parseInt(currentProject.id),
+      updatedSteps, // ✅ send the correct updated steps
+      () => {
+        addLog('info', 'Added a new step.');
+      },
+      (error) => {
+        addLog("error", `Failed to save: ${error}`);
+      }
+    );
   };
 
-  // FIX-004: Update step with proper typing
-  const handleUpdateStep = (index: number, updates: Partial<Step>) => {
-    if (!recording) return;
+  const handleUpdateStep = (index: number, updatedField: Partial<Step>) => {
+    const updatedSteps = [...recordedSteps];
+    updatedSteps[index] = { ...updatedSteps[index], ...updatedField };
+    setRecordedSteps(updatedSteps);
 
-    const updatedSteps = [...recording.steps];
-    updatedSteps[index] = { ...updatedSteps[index], ...updates };
-    handleUpdateRecording({ steps: updatedSteps });
-    addLog('info', `Updated step ${index + 1}.`);
+    if (!currentProject) return;
+
+    updateProjectSteps(
+      parseInt(currentProject.id),
+      updatedSteps,
+      () => {
+        addLog('info', `Updated step ${index + 1}.`);
+      },
+      (error) => {
+        addLog("error", `Failed to save: ${error}`);
+      }
+    );
   };
 
   const handleDeleteStep = (index: number) => {
-    if (!recording) return;
+    if (!currentProject) return;
 
-    const updatedSteps = recording.steps.filter((_, i) => i !== index);
-    const stepName = recording.steps[index]?.label || `Step ${index + 1}`;
-    
-    // Adjust loopStartIndex if needed
-    let newLoopStartIndex = recording.loopStartIndex;
-    if (index < recording.loopStartIndex) {
-      newLoopStartIndex = Math.max(0, recording.loopStartIndex - 1);
-    } else if (index === recording.loopStartIndex && recording.loopStartIndex >= updatedSteps.length) {
-      newLoopStartIndex = Math.max(0, updatedSteps.length - 1);
+    const updatedSteps = recordedSteps.filter((_, i) => i !== index);
+    const stepName = recordedSteps[index]?.name || `Step ${index + 1}`;
+    setRecordedSteps(updatedSteps);
+
+    // VISION: Adjust loopStartIndex if needed
+    if (index < loopStartIndex) {
+      setLoopStartIndex(Math.max(0, loopStartIndex - 1));
+    } else if (index === loopStartIndex && loopStartIndex >= updatedSteps.length) {
+      setLoopStartIndex(Math.max(0, updatedSteps.length - 1));
     }
-    
-    handleUpdateRecording({ 
-      steps: updatedSteps,
-      loopStartIndex: newLoopStartIndex
-    });
-    addLog('info', `Deleted step: ${stepName}`);
+
+    updateProjectSteps(
+      parseInt(currentProject.id),
+      updatedSteps,
+      () => {
+        addLog('info', `Deleted step: ${stepName}`);
+      },
+      (error) => {
+        addLog("error", `Failed to save: ${error}`);
+      }
+    );
   };
-
-
-
   const handleSave = async () => {
-    if (!currentProject || !recording) return;
+    if (!currentProject) return;
     try {
-      chrome.runtime.sendMessage({
-        action: "update_project",
-        payload: {
-          id: parseInt(currentProject.id, 10),
-          recorded_steps: recording.steps,
-          loopStartIndex: recording.loopStartIndex,
-          globalDelayMs: recording.globalDelayMs,
-          conditionalDefaults: recording.conditionalDefaults
-        }
-      }, (response) => {
-        if (response?.success) {
-          addLog("info", `Saved recording successfully`);
+      // Update through background script (not Dexie directly here)
+
+      if (!currentProject) return;
+
+      updateProjectSteps(
+        parseInt(currentProject.id),
+        recordedSteps,
+        () => {
+          addLog("info", `Captured step and updated project successfully`);
           window.location.href = createPageUrl(`index.html#/FieldMapper?project=${currentProject.id}`);
-        } else {
-          addLog("error", `Failed to save: ${response?.error}`);
+        },
+        (error) => {
+          addLog("error", `Failed to save: ${error}`);
         }
-      });
+      );
     } catch (error: any) {
       addLog("error", `Error saving project: ${error.message}`);
     }
   };
 
-  // FIX-006: Listen for recorded events with Vision fields
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const items = Array.from(recordedSteps);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    setRecordedSteps(items);
+    
+    // VISION: Adjust loopStartIndex when dragging
+    const oldIndex = result.source.index;
+    const newIndex = result.destination.index;
+    if (oldIndex === loopStartIndex) {
+      setLoopStartIndex(newIndex);
+    } else if (oldIndex < loopStartIndex && newIndex >= loopStartIndex) {
+      setLoopStartIndex(loopStartIndex - 1);
+    } else if (oldIndex > loopStartIndex && newIndex <= loopStartIndex) {
+      setLoopStartIndex(loopStartIndex + 1);
+    }
+    
+    if (!currentProject) return;
+    updateProjectSteps(
+      parseInt(currentProject.id),
+      items,
+      () => {
+      },
+      (error) => {
+        addLog("error", `Failed to save: ${error}`);
+      }
+    );
+  };
+
   useEffect(() => {
     const listener = (message: any, _sender: any, _sendResponse: any) => {
-      if (message.type === "logEvent" && isRecording && recording) {
-        const { eventType, xpath, value, label } = message.data;
-        console.log("message.data >>>>", message.data);
-
-        // Create step with Vision fields
+      if (message.type === "logEvent" && isRecording && currentProject) {
+        const { eventType, xpath, value, label, x, y, bundle} = message.data;
+        console.log("message.data >>>>",message.data);
         const newStep: Step = {
-          label: label && label.trim() !== '' ? label : (value ?? eventType),
+          id: `step_${Date.now()}`,
+          name: `${eventType} Event`,
           event: eventType,
-          xpath: xpath || '',
-          value: value ?? '',
-          // Vision field - how step was recorded
-          recordedVia: 'dom',
-          timestamp: Date.now(),
-          // conditionalConfig and delaySeconds remain undefined unless set
+          label: label && label.trim() !== "" ? label : value ?? "",
+          path: xpath,
+          value: value ?? "",
+          x: x ?? "",
+          y: y ?? "",
+          bundle: bundle,
+          // VISION: Initialize Vision fields for recorded steps
+          visionFallback: false,
         };
 
-        const updatedSteps = [...recording.steps];
+        const updatedSteps = [...recordedSteps];
         const lastStep = updatedSteps[updatedSteps.length - 1];
-        const url = currentProject?.target_url || currentProject?.project_url || '';
+        const url = currentProject.target_url;
 
         const isSheet = url.includes("docs.google.com");
-        
-        // Special case: always push new step if Enter key
+        // --- Special case: always push new step if Enter key ---
         if (eventType === "Enter") {
           updatedSteps.push(newStep);
         } else {
           const result = !isSheet;
           if (result) {
-            // Only update if last step has the same xpath
-            if (lastStep && lastStep.xpath === xpath) {
+            //Only update if last step has the same path
+            if (lastStep && lastStep.path === xpath) {
               updatedSteps[updatedSteps.length - 1] = {
                 ...lastStep,
                 value: value ?? lastStep.value,
                 label: label ?? lastStep.label,
                 event: eventType ?? lastStep.event,
-                timestamp: Date.now()
+                name: `${eventType} Event` || lastStep.name,
               };
             } else {
-              updatedSteps.push(newStep);
+              updatedSteps.push(newStep); // otherwise, add new step
             }
           } else {
-            // Make sure lastStep exists before checking `.label`
+            //Make sure lastStep exists before checking `.label`
             if (lastStep && lastStep.label && lastStep.label === label) {
               updatedSteps[updatedSteps.length - 1] = {
                 ...lastStep,
                 value: value ?? lastStep.value,
                 label: label ?? lastStep.label,
                 event: eventType ?? lastStep.event,
-                timestamp: Date.now()
+                name: `${eventType} Event` || lastStep.name,
               };
             } else {
-              updatedSteps.push(newStep);
+              updatedSteps.push(newStep); // otherwise, add new step
             }
           }
         }
-
-        handleUpdateRecording({ steps: updatedSteps });
-        addLog("info", `Captured ${eventType} at ${xpath}`);
+        setRecordedSteps(updatedSteps);
+        updateProjectSteps(
+          parseInt(currentProject.id),
+          updatedSteps,
+          () => {
+            addLog("info", `Captured ${eventType} at ${xpath}`);
+          },
+          (error) => {
+            addLog("error", `Failed to save: ${error}`);
+          }
+        );
       }
     };
 
@@ -327,16 +364,96 @@ export default function Recorder() {
     return () => {
       chrome.runtime.onMessage.removeListener(listener);
     };
-  }, [isRecording, recording, currentProject, handleUpdateRecording]);
+  }, [isRecording, currentProject, recordedSteps]);
+
+  const updateProjectSteps = (
+    projectId: number,
+    steps: Step[],
+    onSuccess: () => void,
+    onError: (error: string) => void
+  ) => {
+    chrome.runtime.sendMessage(
+      {
+        action: "update_project_steps",
+        payload: {
+          id: projectId,
+          recorded_steps: steps,
+          // VISION: Include Vision fields in save
+          loopStartIndex: loopStartIndex,
+          globalDelayMs: globalDelayMs,
+        },
+      },
+      (response) => {
+        if (response?.success) {
+          onSuccess();
+        } else {
+          onError(response?.error || "Unknown error");
+        }
+      }
+    );
+  };
+
+  // VISION: Handler for loop start change
+  const handleLoopStartChange = (index: number) => {
+    setLoopStartIndex(index);
+    if (currentProject) {
+      chrome.runtime.sendMessage({
+        action: "update_project_steps",
+        payload: {
+          id: parseInt(currentProject.id),
+          recorded_steps: recordedSteps,
+          loopStartIndex: index,
+          globalDelayMs: globalDelayMs,
+        },
+      });
+      addLog('info', `Loop start set to step ${index + 1}`);
+    }
+  };
+
+  // VISION: Handler for global delay change
+  const handleGlobalDelayChange = (delayMs: number) => {
+    setGlobalDelayMs(delayMs);
+    if (currentProject) {
+      chrome.runtime.sendMessage({
+        action: "update_project_steps",
+        payload: {
+          id: parseInt(currentProject.id),
+          recorded_steps: recordedSteps,
+          loopStartIndex: loopStartIndex,
+          globalDelayMs: delayMs,
+        },
+      });
+    }
+  };
+
+  // VISION: Handler for setting per-step delay
+  const handleSetStepDelay = (index: number, delaySeconds: number) => {
+    const updatedSteps = [...recordedSteps];
+    updatedSteps[index] = { ...updatedSteps[index], delaySeconds };
+    setRecordedSteps(updatedSteps);
+    
+    if (currentProject) {
+      updateProjectSteps(
+        parseInt(currentProject.id),
+        updatedSteps,
+        () => {
+          addLog('info', `Set ${delaySeconds}s delay before step ${index + 1}`);
+        },
+        (error) => {
+          addLog("error", `Failed to save: ${error}`);
+        }
+      );
+    }
+  };
 
   const handleExportSteps = () => {
-    if (!recording || !recording.steps.length) {
+    if (!recordedSteps.length) {
       addLog("info", "No steps to export.");
       return;
     }
 
     // Convert data to worksheet
-    const worksheet = XLSX.utils.json_to_sheet(recording.steps);
+    const worksheet = XLSX.utils.json_to_sheet(recordedSteps);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Steps");
 
@@ -348,13 +465,13 @@ export default function Recorder() {
   };
 
   const handleExportHeader = () => {
-    if (!recording || !recording.steps.length) {
+    if (!recordedSteps.length) {
       addLog("info", "No steps to export.");
       return;
     }
 
     // Collect labels and values (skip "open page")
-    const validSteps = recording.steps.filter(
+    const validSteps = recordedSteps.filter(
       step => step.label?.trim() && step.label.toLowerCase() !== "open page"
     );
 
@@ -364,7 +481,7 @@ export default function Recorder() {
     }
 
     // Headers from labels
-    const headers = validSteps.map(step => step.label?.trim());
+    const headers = validSteps.map(step => step.label.trim());
 
     // Row values from step.value
     const values = validSteps.map(step => step.value || "");
@@ -375,129 +492,110 @@ export default function Recorder() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Steps");
 
-    // Save as CSV
+    // 🔹 Save as CSV
     const filename = `ProjectSteps_Labels_${currentProject?.name || "Untitled"}.csv`;
     XLSX.writeFile(workbook, filename, { bookType: "csv" });
 
     addLog("success", "Headers and values exported to CSV successfully!");
   };
 
+
+
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => {
-        setError("");
+        setError(""); // Hide alert
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [error]);
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading project...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // No project found
-  if (!currentProject || !recording) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white gap-4">
-        <p className="text-slate-400">Project not found</p>
-        <Button onClick={() => window.location.href = createPageUrl('index.html#/dashboard')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Dashboard
-        </Button>
-      </div>
-    );
-  }
+  }, [error, setError]);
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 text-white">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
-            <Video className="w-8 h-8 text-red-400" />
-            Recorded Script Manager
-          </h1>
-          {currentProject && (
-            <p className="text-slate-400 text-lg line-clamp-1">
-              Process: <span className="text-red-400 font-semibold">{currentProject.name}</span>
-            </p>
-          )}
-        </div>
-        <Button onClick={handleSave} disabled={!recording || recording.steps.length === 0} className="bg-green-500 hover:bg-green-600 flex items-center gap-2">
-          Continue with field mapping
-          <ArrowRight className="w-4 h-4" />
-        </Button>
-      </div>
-
-      {/* FIX-001: Vision-enabled Toolbar */}
-      <RecorderToolbar
-        recording={recording}
-        isRecording={isRecording}
-        onToggleRecording={handleToggleRecording}
-        onUpdateRecording={handleUpdateRecording}
-        onAddStep={handleAddStep}
-        onExportSteps={handleExportSteps}
-        onExportHeader={handleExportHeader}
-        disabled={false}
-      />
-
-      {error && (
-        <Alert
-          variant={error.toLowerCase().includes('successfully') ? 'default' : 'destructive'}
-          className={
-            error.toLowerCase().includes('successfully')
-              ? 'bg-green-500/10 border-green-500/30 text-green-300 mb-4'
-              : 'bg-red-500/10 border-red-500/30 text-red-300 mb-4'
-          }
-        >
-          {error.toLowerCase().includes('successfully') ? (
-            <CheckCircle className="h-4 w-4 text-green-400" />
-          ) : (
-            <AlertCircle className="h-4 w-4 text-red-400" />
-          )}
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="flex-grow flex flex-col pb-[20px]">
-        <Card className="flex-grow glass-effect bg-slate-800/30 border-slate-700/50 flex flex-col max-h-[735px] h-[735px] max-[1600px]:max-h-[430px]">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-lg">
-              <span>Recorded Steps ({recording.steps.length})</span>
-              {recording.loopStartIndex > 0 && (
-                <span className="text-sm font-normal text-slate-400">
-                  Loop starts at step {recording.loopStartIndex + 1}
-                </span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-grow p-0 overflow-auto">
-            {recording.steps.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
-                <p>No steps recorded yet.</p>
-                <p className="text-sm mt-2">
-                  Click "Record" to start capturing actions, or "Add Step" to create manually.
-                </p>
-              </div>
-            ) : (
-              /* FIX-004: Use StepList with badges */
-              <StepList
-                recording={recording}
-                onUpdateStep={handleUpdateStep}
-                onDeleteStep={handleDeleteStep}
-              />
+    <DragDropContext onDragEnd={onDragEnd}>
+      <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 text-white">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+              <Video className="w-8 h-8 text-red-400" />
+              Recorded Script Manager
+            </h1>
+            {currentProject && (
+              <p className="text-slate-400 text-lg line-clamp-1">
+                Process: <span className="text-red-400 font-semibold">{currentProject.name}</span>
+              </p>
             )}
-          </CardContent>
-        </Card>
-        <LogPanel logs={logs as any} onClear={() => setLogs([])} />
+          </div>
+          <Button onClick={handleSave} disabled={!recordedSteps || recordedSteps.length === 0} className="bg-green-500 hover:bg-green-600 flex items-center gap-2">
+            Continue with field mapping
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* VISION: Added loopStartIndex, steps, and handlers to toolbar */}
+        <RecorderToolbar
+          isRecording={isRecording}
+          onToggleRecording={handleToggleRecording}
+          onAddStep={handleAddStep}
+          onExportSteps={handleExportSteps}
+          onExportHeader={handleExportHeader}
+          steps={recordedSteps}
+          loopStartIndex={loopStartIndex}
+          onLoopStartChange={handleLoopStartChange}
+          globalDelayMs={globalDelayMs}
+          onGlobalDelayChange={handleGlobalDelayChange}
+        />
+
+        {error && (
+          <Alert
+            variant={error.toLowerCase().includes('successfully') ? 'default' : 'destructive'}
+            className={
+              error.toLowerCase().includes('successfully')
+                ? 'bg-green-500/10 border-green-500/30 text-green-300 mb-4'
+                : 'bg-red-500/10 border-red-500/30 text-red-300 mb-4'
+            }
+          >
+            {error.toLowerCase().includes('successfully') ? (
+              <CheckCircle className="h-4 w-4 text-green-400" />
+            ) : (
+              <AlertCircle className="h-4 w-4 text-red-400" />
+            )}
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex-grow flex flex-col pb-[20px]">
+          <Card className="flex-grow glass-effect bg-slate-800/30 border-slate-700/50 flex flex-col max-h-[735px] h-[735px] max-[1600px]:max-h-[430px]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Disc className="w-5 h-5" /> Record Steps
+              </CardTitle>
+            </CardHeader>
+            <TableHeader className="sticky top-0 custom-table">
+              <TableRow className="bg-slate-700/50 hover:bg-slate-700/50 border-slate-600">
+                <TableHead className="text-slate-300 font-semibold">LABEL</TableHead>
+                <TableHead className="text-slate-300 font-semibold text-center">EVENT</TableHead>
+                <TableHead className="text-slate-300 font-semibold">PATH</TableHead>
+                <TableHead className="text-slate-300 font-semibold">INPUT</TableHead>
+              </TableRow>
+            </TableHeader>
+            <CardContent className="flex-grow p-0 overflow-auto">
+              {isLoading ? (
+                <div className="text-center p-8">Loading...</div>
+              ) : (
+                /* VISION: Added loopStartIndex and onSetStepDelay to StepsTable */
+                <StepsTable
+                  steps={recordedSteps}
+                  onUpdateStep={handleUpdateStep as any}
+                  onDeleteStep={handleDeleteStep}
+                  loopStartIndex={loopStartIndex}
+                  onSetStepDelay={handleSetStepDelay}
+                />
+              )}
+            </CardContent>
+          </Card>
+          <LogPanel logs={logs as any} onClear={() => setLogs([])} />
+        </div>
       </div>
-    </div>
+    </DragDropContext>
   );
 }

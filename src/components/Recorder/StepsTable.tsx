@@ -12,6 +12,25 @@ import { Droppable, Draggable } from '@hello-pangea/dnd';
 
 const eventTypes = ["open", "click", "input", "select", "Enter"];
 
+// VISION: Badge components for step indicators
+const LoopStartBadge = () => (
+  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
+    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+      <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+    </svg>
+    Loop Start
+  </span>
+);
+
+const DelayBadge = ({ seconds }: { seconds: number }) => (
+  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30">
+    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+    </svg>
+    {seconds}s
+  </span>
+);
+
 interface Step {
   id?: string | number;
   name: string;
@@ -19,15 +38,26 @@ interface Step {
   path: string;
   value: string;
   label: string;
+  // VISION: Added fields
+  delaySeconds?: number;
 }
 
 interface StepsTableProps {
   steps: Step[];
   onUpdateStep: (index: number, updatedFields: Partial<Step>) => void;
   onDeleteStep: (index: number) => void;
+  // VISION: Add these new props
+  loopStartIndex?: number;
+  onSetStepDelay?: (index: number, delaySeconds: number) => void;
 }
 
-export default function StepsTable({ steps, onUpdateStep, onDeleteStep }: StepsTableProps) {
+export default function StepsTable({ 
+  steps, 
+  onUpdateStep, 
+  onDeleteStep, 
+  loopStartIndex = 0,
+  onSetStepDelay 
+}: StepsTableProps) {
   const inputClass = "bg-slate-200 text-slate-900 border-slate-400 placeholder:text-slate-500 focus:bg-white focus:border-blue-500 focus:ring-blue-500";
 
   return (
@@ -52,18 +82,27 @@ export default function StepsTable({ steps, onUpdateStep, onDeleteStep }: StepsT
                         <GripVertical className="text-slate-500" />
                       </TableCell>
                       <TableCell className="w-1/4 py-2">
-                        <Input
-                          value={
-                            step.event === "open" && !step.label
-                              ? "Open Page"
-                              : step.label
-                          }
-                          onChange={(e) => onUpdateStep(index, {
-                            label: e.target.value,
-                            name: step.name
-                          })}
-                          className={inputClass}
-                        />
+                        {/* VISION: Added badges next to label */}
+                        <div className="flex flex-col gap-1">
+                          <Input
+                            value={
+                              step.event === "open" && !step.label
+                                ? "Open Page"
+                                : step.label
+                            }
+                            onChange={(e) => onUpdateStep(index, {
+                              label: e.target.value,
+                              name: step.name
+                            })}
+                            className={inputClass}
+                          />
+                          <div className="flex items-center gap-1">
+                            {loopStartIndex === index && <LoopStartBadge />}
+                            {step.delaySeconds && step.delaySeconds > 0 && (
+                              <DelayBadge seconds={step.delaySeconds} />
+                            )}
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="w-48 py-2">
                         <Select
@@ -100,14 +139,35 @@ export default function StepsTable({ steps, onUpdateStep, onDeleteStep }: StepsT
                         />
                       </TableCell>
                       <TableCell className="w-20 text-right py-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onDeleteStep(index)}
-                          className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          {/* VISION: Add Set Delay button */}
+                          {onSetStepDelay && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const seconds = prompt('Enter delay in seconds before this step:', '0');
+                                if (seconds !== null) {
+                                  onSetStepDelay(index, parseInt(seconds, 10) || 0);
+                                }
+                              }}
+                              className="text-slate-400 hover:text-orange-400 hover:bg-orange-500/10"
+                              title="Set Delay Before Step"
+                            >
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                              </svg>
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onDeleteStep(index)}
+                            className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}
