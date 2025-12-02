@@ -4,6 +4,10 @@
  * Unified module for executing recording steps.
  * Handles both DOM-based and Vision-based step execution,
  * including delays and conditional clicks.
+ * 
+ * Build Cards:
+ * - ENG-017: Unified Step Executor Module (DOM/Vision routing)
+ * - ENG-018: Delay Execution Logic (per-step and global delays)
  */
 
 import type { Step, Recording, ConditionalClickResult } from '../types/vision';
@@ -90,6 +94,8 @@ export async function delay(ms: number, abortSignal?: AbortSignal): Promise<void
 
 /**
  * Execute per-step delay (before step execution).
+ * Part of ENG-018: Delay Execution Logic.
+ * Per-step delays are in seconds and run BEFORE the step.
  * 
  * @param step - Step with optional delaySeconds
  * @param abortSignal - Optional abort signal
@@ -104,6 +110,9 @@ export async function executeStepDelay(step: Step, abortSignal?: AbortSignal): P
 
 /**
  * Execute global delay (after step execution).
+ * Part of ENG-018: Delay Execution Logic.
+ * Global delays are in milliseconds and run AFTER the step.
+ * Only applied if no per-step delay was set.
  * 
  * @param globalDelayMs - Global delay in milliseconds
  * @param abortSignal - Optional abort signal
@@ -135,6 +144,8 @@ export async function executeNavigationDelay(abortSignal?: AbortSignal): Promise
 
 /**
  * Execute a single step using the appropriate method (DOM or Vision).
+ * Part of ENG-017: Unified Step Executor Module.
+ * Routes execution between DOM-based and Vision-based pathways.
  * 
  * @param step - Step to execute
  * @param stepIndex - Index of the step
