@@ -369,18 +369,6 @@ function VisionDataDialog({ open, onClose, step }: VisionDataDialogProps): JSX.E
             </div>
           )}
 
-          {/* Fallback Reason */}
-          {step.visionFallbackReason && (
-            <div>
-              <label className="block font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Vision Fallback Reason
-              </label>
-              <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-yellow-800 dark:text-yellow-200">
-                {step.visionFallbackReason}
-              </div>
-            </div>
-          )}
-
           {/* No Vision Data */}
           {!step.ocrText && !step.coordinates && (
             <p className="text-gray-500 dark:text-gray-400 italic">
