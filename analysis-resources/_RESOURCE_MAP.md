@@ -104,6 +104,7 @@ It must be updated automatically every time any analysis prompt, breakdown promp
   
   **Files:**
   - `PHASE_3_MANUAL.md` — Complete guide for Phase 3 Specification Generation. Defines workflow for creating 67 implementation-ready specification files (400-600 lines each, NO placeholders). Includes Smart Prompt template, dependency layers, quality gates, and execution sequence. Documents all categories: Foundation (FND 11 specs), Data Layer (DAT 6 specs), Core Engine (ENG 18 specs), Integration (INT 9 specs), UI Components (UI 12 specs), Testing (TST 10 specs), Migration (MIG 5 specs), Documentation (DOC 3 specs). Total estimated duration: 4-5 hours.
+  - `PHASE_4_MANUAL.md` — Code generation manual for Phase 4 Implementation. Defines Claude/Copilot division of labor, 11-layer dependency graph, smart prompt template for all 67 build cards, code standards (relative imports, naming conventions, async patterns), testing requirements (unit/integration/E2E), status tracker template, and error handling procedures. Includes implementation details for all categories with acceptance criteria, verification commands, and rollback procedures. Total estimated duration: 4-5 hours.
 
 - **analysis-resources/prompts/**
   Contains saved standardized prompts for the automated code-factory system.
