@@ -10,7 +10,9 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Recording, ConditionalDefaults } from '../common/types';
+import type { Recording, RecordingConditionalDefaults } from '../types/vision';
+
+type ConditionalDefaults = RecordingConditionalDefaults;
 
 // ============================================================================
 // TYPES
@@ -53,9 +55,9 @@ export const DEFAULT_RECORDING_CONFIG: RecordingConfig = {
   globalDelayMs: 0,
   loopStartIndex: 0,
   conditionalDefaults: {
-    buttonTexts: ['Allow', 'Keep'],
+    searchTerms: ['Allow', 'Keep'],
     timeoutSeconds: 120,
-    confidenceThreshold: 0.6,
+    confidenceThreshold: 60,
   },
 };
 

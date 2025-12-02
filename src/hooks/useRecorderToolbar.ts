@@ -10,7 +10,7 @@
 import { useMemo } from 'react';
 import { useRecordingConfig } from './useRecordingConfig';
 import { useStepConfig } from './useStepConfig';
-import type { Recording, Step, ConditionalConfig } from '../common/types';
+import type { Recording, Step, ConditionalConfig } from '../types/vision';
 
 // ============================================================================
 // TYPES
@@ -50,7 +50,7 @@ export interface UseRecorderToolbarReturn {
 export function useRecorderToolbar(
   recording: Recording | null,
   steps: Step[],
-  onRecordingChange: (recording: Recording) => void,
+  _onRecordingChange: (recording: Recording) => void,
   onStepsChange: (steps: Step[]) => void
 ): UseRecorderToolbarReturn {
   // Recording-level config

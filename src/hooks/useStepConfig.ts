@@ -10,7 +10,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import type { Step, ConditionalConfig } from '../common/types';
+import type { Step, ConditionalConfig } from '../types/vision';
 
 // ============================================================================
 // TYPES
@@ -63,7 +63,7 @@ export function useStepConfig(
   const setStepDelay = useCallback((stepIndex: number, delaySeconds: number | null) => {
     // Validate
     const validDelay = delaySeconds === null 
-      ? null 
+      ? undefined
       : Math.max(0, Math.min(3600, delaySeconds));
     
     // Update steps
@@ -95,12 +95,11 @@ export function useStepConfig(
   // Add a new conditional click step
   const addConditionalStep = useCallback((config: ConditionalConfig): Step => {
     const newStep: Step = {
-      id: `step-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      label: `Conditional Click: ${config.buttonTexts.slice(0, 2).join(', ')}`,
+      id: Date.now(),
+      label: `Conditional Click: ${config.searchTerms.slice(0, 2).join(', ')}`,
       event: 'conditional-click',
       recordedVia: 'vision',
       conditionalConfig: config,
-      delaySeconds: null,
       timestamp: Date.now(),
       xpath: '',
       value: '',
