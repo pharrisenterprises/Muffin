@@ -21,15 +21,21 @@ ensurePersistentStorage();
 let openedTabId: number | null = null;
 const trackedTabs = new Set<number>();
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log("[Background] Message received:", message);
+  
   // Handle Vision messages first
   const visionResponse = handleVisionMessage(message, sender);
   if (visionResponse !== undefined) {
+    console.log("[Background] Handling as Vision message");
     // Return true to indicate async response
     Promise.resolve(visionResponse).then(sendResponse);
     return true;
   }
   
-  if (!message.action) return false;
+  if (!message.action) {
+    console.log("[Background] No action specified, returning false");
+    return false;
+  }
   try {
     //const senderTabId = sender?.tab?.id;
     if (message.action === "add_project") {
