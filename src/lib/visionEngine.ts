@@ -28,6 +28,7 @@ import type {
   ClickTarget,
   ConditionalClickResult,
   ConditionalConfig,
+  QuickScanResult,
 } from '../types/vision';
 import { DEFAULT_VISION_CONFIG } from './defaults';
 
@@ -76,6 +77,7 @@ export type VisionEngineEvent =
   | 'conditionalStart'
   | 'conditionalClick'
   | 'conditionalComplete'
+  | 'quickScanClick'
   | 'error';
 
 // ============================================================================
@@ -732,19 +734,148 @@ export class VisionEngine {
     }
   }
 
+  // ==========================================================================
+  // AUTO-DETECTION FAILSAFE (ENG-015)
+  // ==========================================================================
+
   /**
-   * Quick single-attempt detection and click.
-   * Used for auto-detection failsafe during playback.
+   * Quick scan for approval buttons and click if found.
+   * This is a single-attempt scan (no polling) used as a failsafe
+   * between steps during playback.
+   * 
+   * @param searchTerms - Button texts to search for (e.g., ["Allow", "Keep", "Continue"])
+   * @param tabId - Tab ID for clicking
+   * @param confidenceThreshold - Minimum confidence for match (default: use config)
+   * @returns Result indicating if a button was found and clicked
+   */
+  async quickScanAndClick(
+    searchTerms: string[],
+    tabId: number,
+    confidenceThreshold?: number
+  ): Promise<QuickScanResult> {
+    if (!this.isInit) {
+      return { found: false, clicked: false };
+    }
+    
+    const threshold = confidenceThreshold ?? this.config.confidenceThreshold;
+    
+    this.log(`Quick scan for: ${searchTerms.join(', ')}`);
+    
+    try {
+      // Capture screenshot
+      const screenshot = await this.captureScreenshot(tabId);
+      
+      // Run OCR
+      const ocrResults = await this.recognizeText(screenshot.dataUrl);
+      
+      // Search for any matching button text
+      for (const searchTerm of searchTerms) {
+        const searchLower = searchTerm.toLowerCase();
+        
+        // Find matching word with sufficient confidence
+        const match = ocrResults.find(
+          result => result.text.toLowerCase().includes(searchLower) &&
+                    result.confidence >= threshold
+        );
+        
+        if (match) {
+          // Calculate click coordinates (center of bounding box)
+          const clickX = match.bounds.x + match.bounds.width / 2;
+          const clickY = match.bounds.y + match.bounds.height / 2;
+          
+          this.log(`Quick scan found "${searchTerm}" at (${clickX}, ${clickY})`);
+          
+          // Click the button
+          const clicked = await this.clickAtCoordinates(clickX, clickY, tabId);
+          
+          if (clicked) {
+            this.log(`Quick scan clicked "${searchTerm}"`);
+            
+            // Emit event for monitoring
+            this.emit('quickScanClick', {
+              buttonText: searchTerm,
+              matchedText: match.text,
+              confidence: match.confidence,
+            });
+            
+            // Brief pause for UI to respond
+            await this.delay(300);
+            
+            return {
+              found: true,
+              clicked: true,
+              buttonText: searchTerm,
+              matchedText: match.text,
+              confidence: match.confidence,
+            };
+          } else {
+            this.logError(`Quick scan found but failed to click "${searchTerm}"`);
+            return {
+              found: true,
+              clicked: false,
+              buttonText: searchTerm,
+              matchedText: match.text,
+              confidence: match.confidence,
+              error: 'Click failed',
+            };
+          }
+        }
+      }
+      
+      // No matching buttons found
+      this.log('Quick scan: no buttons found');
+      return {
+        found: false,
+        clicked: false,
+      };
+      
+    } catch (error) {
+      this.logError('Quick scan error', error);
+      return {
+        found: false,
+        clicked: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Run auto-detection failsafe using recording's conditional defaults.
+   * Called after each step completes, before global delay.
+   * 
+   * @param conditionalDefaults - The recording's default conditional config
+   * @param tabId - Tab ID for clicking
+   * @returns Result of quick scan
+   */
+  async runAutoDetection(
+    conditionalDefaults: ConditionalConfig | null | undefined,
+    tabId: number
+  ): Promise<QuickScanResult> {
+    // Skip if no defaults configured or not initialized
+    if (!this.isInit || !conditionalDefaults || !conditionalDefaults.searchTerms?.length) {
+      return { found: false, clicked: false };
+    }
+    
+    this.log('Running auto-detection failsafe');
+    
+    return this.quickScanAndClick(
+      conditionalDefaults.searchTerms,
+      tabId,
+      this.config.confidenceThreshold
+    );
+  }
+
+  /**
+   * Quick single-attempt detection and click (legacy method).
+   * Maintained for backward compatibility.
    * 
    * @param searchTerms - Button text to look for
    * @param tabId - Tab ID
    * @returns True if a button was found and clicked
    */
   async quickDetectAndClick(searchTerms: string[], tabId: number): Promise<boolean> {
-    const target = await this.findText(searchTerms);
-    if (!target) return false;
-
-    return await this.clickAtCoordinates(target.x, target.y, tabId);
+    const result = await this.quickScanAndClick(searchTerms, tabId);
+    return result.clicked;
   }
 
   // ==========================================================================

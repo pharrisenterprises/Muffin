@@ -145,6 +145,25 @@ export interface ConditionalClickResult {
   clickedTexts?: string[];
 }
 
+/**
+ * Result of a quick scan (single-attempt) operation.
+ * Used by the auto-detection failsafe (ENG-015).
+ */
+export interface QuickScanResult {
+  /** Whether a matching button was found */
+  found: boolean;
+  /** Whether the button was successfully clicked */
+  clicked: boolean;
+  /** The search term that matched (if found) */
+  buttonText?: string;
+  /** The actual text that was matched in OCR (if found) */
+  matchedText?: string;
+  /** OCR confidence of the match (if found) */
+  confidence?: number;
+  /** Error message if something went wrong */
+  error?: string;
+}
+
 // ============================================================================
 // STEP RECORDING
 // ============================================================================
