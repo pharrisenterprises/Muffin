@@ -10,6 +10,13 @@
  * - VISION_KEY: Send keyboard shortcuts
  * - VISION_SCROLL: Scroll the page
  * - VISION_GET_ELEMENT: Get element info at coordinates
+ * 
+ * Build Cards:
+ * - INT-001: visionHandlers.ts file structure with message router
+ * - INT-002: VISION_CLICK handler
+ * - INT-003: VISION_TYPE handler
+ * - INT-004: VISION_KEY handler and VISION_SCROLL handler
+ * - INT-005: VISION_GET_ELEMENT handler
  */
 
 import type { VisionMessage, VisionResponse } from '../types/vision';
@@ -77,6 +84,7 @@ export interface ScrollResult {
 /**
  * Handle VISION_CLICK command.
  * Clicks at the specified screen coordinates.
+ * Part of INT-002: VISION_CLICK handler
  * 
  * @param x - X coordinate (relative to viewport)
  * @param y - Y coordinate (relative to viewport)
@@ -152,6 +160,7 @@ function handleVisionClick(x: number, y: number): ClickResult {
 /**
  * Handle VISION_TYPE command.
  * Types text into the currently focused element.
+ * Part of INT-003: VISION_TYPE handler
  * 
  * @param text - Text to type
  * @returns Type result with success status
@@ -260,6 +269,7 @@ function handleVisionType(text: string): TypeResult {
 /**
  * Handle VISION_KEY command.
  * Sends keyboard shortcuts/special keys.
+ * Part of INT-004: VISION_KEY handler
  * 
  * @param key - Key to send (e.g., 'Enter', 'Tab', 'Escape', 'a')
  * @param modifiers - Modifier keys
@@ -341,6 +351,7 @@ function handleVisionKey(
 /**
  * Handle VISION_SCROLL command.
  * Scrolls the page in the specified direction.
+ * Part of INT-005: VISION_SCROLL handler
  * 
  * @param direction - Scroll direction
  * @param amount - Pixels to scroll (default: 500)
@@ -393,6 +404,7 @@ function handleVisionScroll(
 /**
  * Handle VISION_GET_ELEMENT command.
  * Gets information about the element at specified coordinates.
+ * Part of INT-005: VISION_GET_ELEMENT handler
  * 
  * @param x - X coordinate
  * @param y - Y coordinate

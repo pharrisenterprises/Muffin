@@ -1,4 +1,5 @@
 import { DB } from "../common/services/indexedDB";
+import { handleVisionMessage } from './visionMessageHandler';
 
 async function ensurePersistentStorage() {
   if ('storage' in navigator && navigator.storage && navigator.storage.persist) {
@@ -19,7 +20,15 @@ ensurePersistentStorage();
 
 let openedTabId: number | null = null;
 const trackedTabs = new Set<number>();
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Handle Vision messages first
+  const visionResponse = handleVisionMessage(message, sender);
+  if (visionResponse !== undefined) {
+    // Return true to indicate async response
+    Promise.resolve(visionResponse).then(sendResponse);
+    return true;
+  }
+  
   if (!message.action) return false;
   try {
     //const senderTabId = sender?.tab?.id;
