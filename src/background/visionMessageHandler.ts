@@ -185,10 +185,10 @@ export function handleVisionMessage(
 
   switch (message.type) {
     case 'VISION_SCREENSHOT':
-      return await handleVisionScreenshot(message.tabId as number | undefined);
+      return handleVisionScreenshot(message.tabId as number | undefined);
 
     case 'VISION_INJECT_SCRIPT':
-      return await handleVisionInjectScript(
+      return handleVisionInjectScript(
         message.tabId as number,
         message.files as string[] | undefined
       );
@@ -200,9 +200,9 @@ export function handleVisionMessage(
     case 'VISION_GET_ELEMENT':
       // These need to be forwarded to the content script
       if (!message.tabId) {
-        return { success: false, error: 'tabId is required' };
+        return Promise.resolve({ success: false, error: 'tabId is required' });
       }
-      return await forwardToContentScript(message as VisionForwardRequest);
+      return forwardToContentScript(message as VisionForwardRequest);
 
     default:
       console.warn(`[VisionHandler] Unknown Vision message type: ${message.type}`);
