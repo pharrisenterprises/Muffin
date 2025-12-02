@@ -16,5 +16,15 @@ export * from './csvPositionMapping';
 // Playback Engine
 export * from './playbackEngine';
 
+// Schema Migration (MIG-001 to MIG-005)
+export {
+  MIGRATION_DEFAULTS,
+  migrateStep,
+  migrateRecording,
+  stepNeedsMigration,
+  recordingNeedsMigration,
+  verifyRecordingMigration
+} from './schemaMigration';
+
 // Defaults
 export * from './defaults';

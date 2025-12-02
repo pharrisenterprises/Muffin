@@ -7,6 +7,8 @@
  * Schema Versions:
  * - v1: Original (no Vision fields)
  * - v2: Current (loopStartIndex, globalDelayMs, conditionalDefaults, recordedVia)
+ * 
+ * Build Cards: MIG-001, MIG-002, MIG-003, MIG-004, MIG-005
  */
 
 import type { 
@@ -45,12 +47,13 @@ export const MAX_VALUES = {
 } as const;
 
 // ============================================================================
-// STEP MIGRATION
+// STEP MIGRATION (MIG-001)
 // ============================================================================
 
 /**
  * Migrate a single step to the current schema.
  * Adds default values for missing Vision fields.
+ * MIG-001: Adds recordedVia default ('dom') to existing steps.
  * 
  * @param step - The step to migrate (may be partial/legacy)
  * @returns A fully-typed Step with all required fields
@@ -131,12 +134,15 @@ function repairConditionalConfig(config: ConditionalConfig | null | undefined): 
 }
 
 // ============================================================================
-// RECORDING MIGRATION
+// RECORDING MIGRATION (MIG-002, MIG-003, MIG-004)
 // ============================================================================
 
 /**
  * Migrate a recording to the current schema.
  * Adds default values and migrates all steps.
+ * MIG-002: Adds loopStartIndex default (0)
+ * MIG-003: Adds globalDelayMs default (0)
+ * MIG-004: Adds conditionalDefaults
  * 
  * @param recording - The recording to migrate (may be partial/legacy)
  * @param projectId - Project ID to use if not present
@@ -237,6 +243,9 @@ function migrateConditionalDefaults(
 // ============================================================================
 // VALIDATION
 // ============================================================================
+// Build Card: MIG-005
+// Ensures backward compatibility with v1/v2 recordings. Validates presence of all
+// required Vision fields (loopStartIndex, globalDelayMs, conditionalDefaults, recordedVia).
 
 /**
  * Check if a step needs migration.
