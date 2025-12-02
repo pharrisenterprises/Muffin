@@ -61,18 +61,25 @@ export default function CreateProjectDialog({
           },
         },
         (response) => {
-          if (response.success) {
-            console.log("Process added:", response.id);
-            onSuccess();
-            setFormData({ name: "", description: "", target_url: "", status: "", created_date: 0, updated_date: 0 });
-          } else {
-            //console.error("Error:", response.error);
-          }
           setIsSubmitting(false);
+          
+          if (chrome.runtime.lastError) {
+            console.error("Chrome runtime error:", chrome.runtime.lastError);
+            return;
+          }
+          
+          if (response?.success) {
+            console.log("Process added:", response.id);
+            setFormData({ name: "", description: "", target_url: "", status: "", created_date: 0, updated_date: 0 });
+            onSuccess();
+          } else {
+            console.error("Error:", response?.error);
+          }
         }
       );
     } catch (error) {
-      //console.error("Error creating Process:", error);
+      console.error("Error creating Process:", error);
+      setIsSubmitting(false);
     }
   };
 

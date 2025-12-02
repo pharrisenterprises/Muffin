@@ -45,8 +45,13 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
     e.preventDefault();
     if (!projectData) return;
     setIsSubmitting(true);
-    await onSave({ id: projectData.id, ...formData });
-    setIsSubmitting(false);
+    try {
+      await onSave({ id: projectData.id, ...formData });
+    } catch (error) {
+      console.error("Error updating process:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
