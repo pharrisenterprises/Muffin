@@ -13,7 +13,7 @@
  * @packageDocumentation
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   buildLabelToColumnsMapping,
   buildStepToColumnMapping,
@@ -57,12 +57,14 @@ function createStep(overrides: Partial<Step> = {}): Step {
 function createParsedField(
   columnName: string,
   targetLabel: string,
-  columnIndex: number
+  columnIndex: number,
+  stepIndices: number[] = [0]
 ): ParsedField {
   return {
     columnName,
     targetLabel,
     columnIndex,
+    stepIndices
   };
 }
 
