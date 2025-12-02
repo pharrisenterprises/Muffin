@@ -46,6 +46,8 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 | background-service-worker_breakdown.md | Central message routing hub in service worker managing lifecycle and cross-context communication |
 | build-pipeline_breakdown.md | Dual Vite build configuration for React UI and ES module service worker |
 | chrome-storage-helper_breakdown.md | Promise-based wrapper around Chrome storage.sync API for persistent key-value storage |
+| conditional-click-ui_breakdown.md | UI components for conditional click configuration (AddConditionalClickMenu, ConfigureConditionalPanel, ConditionalBadge) |
+| csv-position-mapping_breakdown.md | CSV variable substitution algorithm with {{var}} syntax and loop start implementation |
 | content-script-recorder_breakdown.md | Event capture system that records user interactions with full element metadata |
 | content-script-replayer_breakdown.md | Playback engine that replays recorded steps with multi-strategy element finding |
 | csv-parser_breakdown.md | PapaParse integration for parsing CSV files into structured test data |
@@ -61,19 +63,37 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 | notification-overlay_breakdown.md | In-page visual feedback system displaying temporary notifications during playback |
 | page-interceptor_breakdown.md | Shadow DOM monkey patch enabling access to closed shadow roots |
 | project-crud_breakdown.md | UI components for creating, editing, and deleting projects via modal dialogs |
-| project-repository_breakdown.md | Dexie CRUD wrapper encapsulating all database operations for projects table |
-| recorder-ui_breakdown.md | Recording interface displaying live step capture with editing and drag-drop reordering |
 | redux-state-management_breakdown.md | Minimal Redux store managing theme state (dark/light mode toggle) |
 | router-navigation_breakdown.md | React Router hash-based routing configuration for extension pages |
+| schema-migration_breakdown.md | v1 → v3 migration pipeline with repair functions and backward compatibility verification |
 | shadow-dom-handler_breakdown.md | Shadow DOM traversal system with workarounds for closed shadow roots |
 | step-capture-engine_breakdown.md | Event-to-step transformation logic enriching events with XPath, labels, and metadata |
-| step-table-management_breakdown.md | Interactive step list with drag-drop reordering and inline editing |
-| tab-manager_breakdown.md | Browser tab lifecycle management for test execution (create, inject, cleanup) |
-| test-logger_breakdown.md | Centralized logging system with timestamp formatting and log level classification |
-| test-orchestrator_breakdown.md | Core test execution engine coordinating CSV iteration, tab management, and step playback |
+| step-executor_breakdown.md | Routes step execution between DOM and Vision pathways with delay logic and CSV substitution |
+| shadow-dom-handler_breakdown.md | Shadow DOM traversal system with workarounds for closed shadow roots |
+| step-capture-engine_breakdown.md | Event-to-step transformation logic enriching events with XPath, labels, and metadata |
 | test-run-repository_breakdown.md | Dexie CRUD wrapper managing test execution history in IndexedDB |
 | test-runner-ui_breakdown.md | Test execution interface with real-time progress, console logs, and results |
 | ui-design-system_breakdown.md | Reusable component library built on Radix UI primitives and Tailwind CSS |
+| vision-content-handlers_breakdown.md | Content script handlers for Vision interactions (VISION_CLICK, TYPE, KEY, SCROLL, GET_ELEMENT) |
+| vision-engine_breakdown.md | Tesseract.js OCR wrapper with screenshot capture, text recognition, and conditional click polling |
+- **analysis-resources/build-instructions/**
+  Contains build pipeline designs and environment toolchain notes.
+  
+  **Phase 3 Specifications (build-instructions/masterplan/):**
+  Complete implementation specifications for Vision/OCR system (74 files across 8 categories):
+  - `01-foundation/` — Foundation (FND-001 to FND-011): 11 specs for Tesseract setup, type definitions, interfaces
+  - `02-data-layer/` — Data Layer (DAT-001 to DAT-006): 6 specs for schema v3, migration, repositories
+  - `03-engine/` — Core Engine (ENG-001 to ENG-018): 18 specs for VisionEngine, OCR, text finding, clicking, CSV mapping, delays
+  - `04-integration/` — Integration (INT-001 to INT-009): 9 specs for Vision content handlers and DOM/Vision switching
+  - `05-ui-components/` — UI Components (UI-001 to UI-012): 12 specs for badges, dropdowns, config panels
+  - `06-testing/` — Testing (TST-001 to TST-010): 10 specs for unit, integration, and E2E tests
+  - `07-migration/` — Migration (MIG-001 to MIG-005): 5 specs for schema migration and backward compatibility
+  - `08-documentation/` — Documentation (DOC-001 to DOC-003): 3 specs for README, API docs, troubleshooting algorithm for DOM element identification | step playback |
+| test-run-repository_breakdown.md | Dexie CRUD wrapper managing test execution history in IndexedDB |
+- **analysis-resources/references/**
+  Contains external and internal reference material required for accurate code generation.
+
+- **SOURCE_CODE_ROLLUP.md** — Key source code examples from critical files (type definitions, IndexedDB schema, Chrome Storage Helper, background message router, Redux store, React Router, build configs, and Phase 3 Vision type specifications). Provides implementation context and patterns for code generation.and Tailwind CSS |
 | xpath-computation_breakdown.md | Position-based XPath generation algorithm for DOM element identification |
 
 - **analysis-resources/build-instructions/**
