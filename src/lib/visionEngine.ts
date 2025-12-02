@@ -73,6 +73,9 @@ export type VisionEngineEvent =
   | 'ocr-complete'
   | 'text-found'
   | 'click'
+  | 'conditionalStart'
+  | 'conditionalClick'
+  | 'conditionalComplete'
   | 'error';
 
 // ============================================================================
@@ -638,7 +641,8 @@ export class VisionEngine {
    * Wait for and click buttons matching search terms.
    * Polls the screen repeatedly until timeout.
    * 
-   * This is the core method for handling dynamic approval dialogs.
+   * This is the core method for handling dynamic approval dialogs (ENG-014).
+   * Resets timeout after each successful click.
    * 
    * @param config - Conditional click configuration
    * @param tabId - Tab ID for clicking
@@ -664,13 +668,27 @@ export class VisionEngine {
     const clickedTexts: string[] = [];
 
     this.log(`Starting conditional polling for: ${searchTerms.join(', ')}`);
-    this.log(`Timeout: ${timeoutSeconds}s, Poll interval: ${pollIntervalMs}ms`);
+    this.log(`Timeout: ${timeoutSeconds}s after last click, Poll interval: ${pollIntervalMs}ms`);
+
+    // Emit start event
+    this.emit('conditionalStart', {
+      buttonTexts: searchTerms,
+      timeoutSeconds,
+    });
 
     while (true) {
       // Check timeout (time since last successful click)
       const timeSinceLastClick = (Date.now() - lastClickTime) / 1000;
       if (timeSinceLastClick >= timeoutSeconds) {
         this.log(`Conditional timeout after ${buttonsClicked} clicks`);
+        
+        // Emit complete event
+        this.emit('conditionalComplete', {
+          buttonsClicked: clickedTexts,
+          terminationReason: 'timeout',
+          duration: Date.now() - startTime,
+        });
+        
         return {
           buttonsClicked,
           timedOut: true,
@@ -688,15 +706,25 @@ export class VisionEngine {
 
         if (clicked) {
           buttonsClicked++;
-          lastClickTime = Date.now();
+          lastClickTime = Date.now(); // Reset timeout on successful click
           clickedTexts.push(target.text);
 
           this.log(`Clicked button "${target.text}" (${buttonsClicked} total)`);
+          
+          // Emit click event
+          this.emit('conditionalClick', {
+            buttonText: target.text,
+            clickCount: buttonsClicked,
+          });
+          
           onButtonClick?.(target.text, buttonsClicked);
 
-          // Small delay after click before next poll
+          // Small delay after click before next poll (let UI update)
           await this.delay(500);
         }
+      } else {
+        const remaining = Math.round(timeoutSeconds - timeSinceLastClick);
+        this.log(`No buttons found. Timeout in ${remaining}s`);
       }
 
       // Wait before next poll
