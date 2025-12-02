@@ -289,7 +289,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    // Unknown action
+    console.warn("Background: Unknown action:", message.action);
+    sendResponse({ success: false, error: `Unknown action: ${message.action}` });
+    return false;
+
   } catch (err: any) {
+    console.error("Background: Exception in message handler:", err);
     sendResponse({ success: false, error: err.message });
     return false;
   }
