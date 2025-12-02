@@ -21,7 +21,7 @@ ensurePersistentStorage();
 let openedTabId: number | null = null;
 const trackedTabs = new Set<number>();
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("[Background] Message received:", message);
+  console.log("[Background] Message received:", message, "from sender:", sender);
   
   // Handle Vision messages first
   const visionResponse = handleVisionMessage(message, sender);
@@ -36,6 +36,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("[Background] No action specified, returning false");
     return false;
   }
+  
+  console.log("[Background] Processing action:", message.action);
   try {
     //const senderTabId = sender?.tab?.id;
     if (message.action === "add_project") {
