@@ -65,15 +65,23 @@ export default function CreateProjectDialog({
           
           if (chrome.runtime.lastError) {
             console.error("Chrome runtime error:", chrome.runtime.lastError);
+            alert("Failed to create process: " + chrome.runtime.lastError.message);
             return;
           }
           
-          if (response?.success) {
+          if (!response) {
+            console.error("No response received from background script");
+            alert("Failed to create process: No response from background script. Please try reloading the extension.");
+            return;
+          }
+          
+          if (response.success) {
             console.log("Process added:", response.id);
             setFormData({ name: "", description: "", target_url: "", status: "", created_date: 0, updated_date: 0 });
             onSuccess();
           } else {
-            console.error("Error:", response?.error);
+            console.error("Error:", response.error);
+            alert("Failed to create process: " + (response.error || "Unknown error"));
           }
         }
       );

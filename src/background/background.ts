@@ -33,6 +33,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   try {
     //const senderTabId = sender?.tab?.id;
     if (message.action === "add_project") {
+      console.log("Background: Received add_project request", message.payload);
       const newProject = {
         ...message.payload,
         recorded_steps: [],
@@ -40,8 +41,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         csv_data: []
       };
       DB.addProject(newProject)
-        .then(id => sendResponse({ success: true, id }))
-        .catch(error => sendResponse({ success: false, error: error.message }));
+        .then(id => {
+          console.log("Background: Project added successfully with ID:", id);
+          sendResponse({ success: true, id });
+        })
+        .catch(error => {
+          console.error("Background: Error adding project:", error);
+          sendResponse({ success: false, error: error.message });
+        });
       return true;
     }
 
