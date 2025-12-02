@@ -3,6 +3,8 @@
  * 
  * Modal dialog for setting per-step delays.
  * Allows users to configure a delay in seconds before a step executes.
+ * 
+ * Build Card: UI-005
  */
 
 import { useState, useEffect } from 'react';

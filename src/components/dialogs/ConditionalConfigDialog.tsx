@@ -3,6 +3,8 @@
  * 
  * Modal dialog for configuring conditional click steps.
  * Allows users to set search terms, timeout, and interaction type.
+ * 
+ * Build Card: UI-006
  */
 
 import { useState, useEffect } from 'react';
