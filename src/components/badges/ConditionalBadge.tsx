@@ -3,6 +3,8 @@
  * 
  * Displays a badge indicating a conditional click step.
  * These steps wait for and click buttons matching search terms.
+ * 
+ * Build Card: UI-004
  */
 
 // ============================================================================

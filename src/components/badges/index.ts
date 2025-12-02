@@ -1,6 +1,8 @@
 /**
  * Badge Components Index
  * Re-exports all badge components for convenient importing.
+ * 
+ * Build Cards: UI-001, UI-002, UI-003, UI-004
  */
 
 export { VisionBadge } from './VisionBadge';

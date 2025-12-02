@@ -3,6 +3,8 @@
  * 
  * Displays a badge indicating the step where CSV loop iteration begins.
  * Steps before this index are only executed on the first row.
+ * 
+ * Build Card: UI-002
  */
 
 // ============================================================================

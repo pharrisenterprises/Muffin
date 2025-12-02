@@ -3,6 +3,8 @@
  * 
  * Displays a badge showing the delay before a step executes.
  * Shows the delay duration in seconds.
+ * 
+ * Build Card: UI-003
  */
 
 // ============================================================================

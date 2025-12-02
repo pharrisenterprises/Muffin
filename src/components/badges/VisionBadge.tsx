@@ -3,6 +3,8 @@
  * 
  * Displays a badge indicating a step was recorded using Vision/OCR.
  * Shows on steps where recordedVia === 'vision'.
+ * 
+ * Build Card: UI-001
  */
 
 // ============================================================================
