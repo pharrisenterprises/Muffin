@@ -172,10 +172,10 @@ export async function forwardToContentScript(
  * @param sender - Message sender info
  * @returns Response or undefined if not a Vision message
  */
-export async function handleVisionMessage(
-  message: { type: string; [key: string]: unknown },
+export function handleVisionMessage(
+  message: { type?: string; [key: string]: unknown },
   _sender: chrome.runtime.MessageSender
-): Promise<unknown | undefined> {
+): Promise<unknown> | undefined {
   // Only handle VISION_* messages
   if (!message.type?.startsWith('VISION_')) {
     return undefined;
