@@ -1,5 +1,5 @@
 import fs from "fs";
-import manifest from "../public/manifest.json" assert { type: "json" };
+import manifest from "../public/manifest.json" with { type: "json" };
 
 /**
  * readFile uses a Regex to filter, match, and return the static file based on
