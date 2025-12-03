@@ -7,10 +7,24 @@ import { format } from "date-fns";
 import RecorderToolbar from "../components/Recorder/RecorderToolbar";
 import StepsTable from "../components/Recorder/StepsTable";
 import LogPanel from "../components/Recorder/LogPanel";
+import ConditionalClickModal from "../components/Recorder/ConditionalClickModal";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { createPageUrl } from "../utils/index";
 import { TableHead, TableHeader, TableRow } from "../components/Ui/table"
 import { Alert, AlertDescription } from "../components/Ui/alert";
+
+// ============================================
+// FIX 3 & 4: Post-Recording Cleanup
+// Normalizes labels and detects patterns
+// ============================================
+
+interface CleanupChange {
+  stepIndex: number;
+  field: 'label' | 'value';
+  oldValue: string;
+  newValue: string;
+  reason: string;
+}
 
 interface Step {
   id: string;
@@ -64,6 +78,192 @@ interface ProjectType {
   globalDelayMs?: number;
 }
 
+// ============================================
+// Cleanup Helper Functions
+// ============================================
+
+function extractBaseLabel(label: string | undefined): string {
+  if (!label) return '';
+  // Remove counter suffix: "search_28" → "search"
+  return label.replace(/_\d+$/, '');
+}
+
+function isDropdownClick(step: Step): boolean {
+  const xpath = step.path || '';
+  const bundle = step.bundle || {};
+  
+  const bundleXPath = (bundle && typeof bundle === 'object' && 'xpath' in bundle) ? (bundle as any).xpath : '';
+  
+  return (
+    xpath.includes('pac-item') ||
+    xpath.includes('option') ||
+    xpath.includes('listbox') ||
+    xpath.includes('menu-item') ||
+    xpath.includes('dropdown') ||
+    (typeof bundleXPath === 'string' && bundleXPath.includes('pac-item')) ||
+    false
+  );
+}
+
+function isMatchingPreviousInput(
+  currentStep: Step,
+  previousSteps: Step[]
+): { isMatch: boolean; matchedStepIndex?: number } {
+  
+  if (currentStep.event !== 'click') {
+    return { isMatch: false };
+  }
+  
+  const clickedText = (currentStep.value || currentStep.label || '').toLowerCase();
+  if (!clickedText || clickedText.length < 3) {
+    return { isMatch: false };
+  }
+  
+  // Look at last 5 steps for matching input
+  const recentInputs = previousSteps
+    .map((step, idx) => ({ step, idx }))
+    .filter(({ step }) => step.event === 'input' && step.value)
+    .slice(-5);
+  
+  for (const { step: inputStep, idx } of recentInputs) {
+    const inputValue = (inputStep.value || '').toLowerCase();
+    if (!inputValue || inputValue.length < 2) continue;
+    
+    // Check if clicked text contains the input value
+    const inputWords = inputValue.split(/\s+/);
+    const firstWord = inputWords[0];
+    
+    if (
+      clickedText.includes(inputValue) ||
+      clickedText.startsWith(firstWord) ||
+      inputValue.includes(clickedText.substring(0, 10))
+    ) {
+      return { isMatch: true, matchedStepIndex: idx };
+    }
+  }
+  
+  return { isMatch: false };
+}
+
+function cleanupRecordedSteps(steps: Step[]): { steps: Step[]; changes: CleanupChange[] } {
+  const changes: CleanupChange[] = [];
+  const labelCounters = new Map<string, number>();
+  
+  const getSequentialLabel = (base: string): string => {
+    const key = base.toLowerCase();
+    const count = labelCounters.get(key) || 0;
+    labelCounters.set(key, count + 1);
+    return count === 0 ? base : `${base}_${count}`;
+  };
+  
+  const cleanedSteps = steps.map((step, index) => {
+    const cleaned = { ...step };
+    const previousSteps = steps.slice(0, index);
+    
+    // === RULE 1: Enter key → "submit" ===
+    if (step.event === 'enter' || step.event === 'Enter') {
+      const newLabel = getSequentialLabel('submit');
+      if (cleaned.label !== newLabel) {
+        changes.push({
+          stepIndex: index,
+          field: 'label',
+          oldValue: cleaned.label || '',
+          newValue: newLabel,
+          reason: 'Enter key standardized to submit'
+        });
+        cleaned.label = newLabel;
+      }
+      return cleaned;
+    }
+    
+    // === RULE 2: Click events ===
+    if (step.event === 'click') {
+      const matchResult = isMatchingPreviousInput(step, previousSteps);
+      
+      if (matchResult.isMatch) {
+        // Click matches a previous input (autocomplete selection)
+        const newLabel = getSequentialLabel('match_input');
+        changes.push({
+          stepIndex: index,
+          field: 'label',
+          oldValue: cleaned.label || '',
+          newValue: newLabel,
+          reason: `Matches input from step ${matchResult.matchedStepIndex! + 1}`
+        });
+        cleaned.label = newLabel;
+        
+        // Replace value with descriptor
+        if (cleaned.value) {
+          changes.push({
+            stepIndex: index,
+            field: 'value',
+            oldValue: cleaned.value,
+            newValue: '[matched selection]',
+            reason: 'Click value not used in playback'
+          });
+          cleaned.value = '[matched selection]';
+        }
+      } else if (isDropdownClick(step)) {
+        // Independent dropdown selection
+        const newLabel = getSequentialLabel('select');
+        changes.push({
+          stepIndex: index,
+          field: 'label',
+          oldValue: cleaned.label || '',
+          newValue: newLabel,
+          reason: 'Dropdown selection'
+        });
+        cleaned.label = newLabel;
+      } else {
+        // Regular click (button, link, etc.)
+        const baseLabel = extractBaseLabel(cleaned.label) || 'click';
+        const newLabel = getSequentialLabel(baseLabel);
+        if (cleaned.label !== newLabel) {
+          changes.push({
+            stepIndex: index,
+            field: 'label',
+            oldValue: cleaned.label || '',
+            newValue: newLabel,
+            reason: 'Sequential click label'
+          });
+          cleaned.label = newLabel;
+        }
+      }
+      return cleaned;
+    }
+    
+    // === RULE 3: Input events ===
+    if (step.event === 'input') {
+      const baseLabel = extractBaseLabel(cleaned.label) || 'input';
+      const newLabel = getSequentialLabel(baseLabel);
+      if (cleaned.label !== newLabel) {
+        changes.push({
+          stepIndex: index,
+          field: 'label',
+          oldValue: cleaned.label || '',
+          newValue: newLabel,
+          reason: 'Sequential input label'
+        });
+        cleaned.label = newLabel;
+      }
+      return cleaned;
+    }
+    
+    // === RULE 4: Open/navigation events ===
+    if (step.event === 'open' || step.event === 'open page') {
+      cleaned.label = 'open_page';
+      return cleaned;
+    }
+    
+    // Default: keep as-is with sequential numbering
+    const baseLabel = extractBaseLabel(cleaned.label) || step.event || 'step';
+    cleaned.label = getSequentialLabel(baseLabel);
+    return cleaned;
+  });
+  
+  return { steps: cleanedSteps, changes };
+}
+
 export default function Recorder() {
   const [currentProject, setCurrentProject] = useState<ProjectType | null>(null);
   const [recordedSteps, setRecordedSteps] = useState<Step[]>([]);
@@ -73,10 +273,12 @@ export default function Recorder() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
   
-  // VISION: Added state for loop start index (-1 means no loop)
-  const [loopStartIndex, setLoopStartIndex] = useState<number>(-1);
+  // VISION: Added state for loop start index (B-39: Changed default to 0)
+  const [loopStartIndex, setLoopStartIndex] = useState<number>(0);
   // VISION: Added state for global delay
   const [globalDelayMs, setGlobalDelayMs] = useState<number>(0);
+  // FIX 7C: Conditional Click modal state
+  const [conditionalModalOpen, setConditionalModalOpen] = useState(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.hash.split("?")[1]);
@@ -119,8 +321,8 @@ export default function Recorder() {
           setCurrentProject(project);
           setRecordedSteps(steps);
           
-          // VISION: Load Vision fields from project (-1 means no loop)
-          setLoopStartIndex(project.loopStartIndex ?? -1);
+          // VISION: Load Vision fields from project (B-39: Default 0)
+          setLoopStartIndex(project.loopStartIndex ?? 0);
           setGlobalDelayMs(project.globalDelayMs ?? 0);
         } else {
           //console.error("Failed to load project:", response?.error);
@@ -153,6 +355,32 @@ export default function Recorder() {
       } else {
         // Stop recording → close opened tab
         chrome.runtime.sendMessage({ action: "close_opened_tab" });
+        
+        // FIX 3 & 4: Post-recording cleanup
+        const { steps: cleanedSteps, changes } = cleanupRecordedSteps(recordedSteps);
+        
+        if (changes.length > 0) {
+          console.log('[TestFlow] Post-recording cleanup applied:', changes);
+          addLog('info', `Cleaned up ${changes.length} step labels for better CSV export`);
+          
+          // Update state with cleaned steps
+          setRecordedSteps(cleanedSteps);
+          
+          // Save to project
+          if (currentProject) {
+            updateProjectSteps(
+              parseInt(currentProject.id),
+              cleanedSteps,
+              () => {
+                addLog('info', 'Cleaned steps saved to project.');
+              },
+              (error) => {
+                addLog("error", `Failed to save cleaned steps: ${error}`);
+              }
+            );
+          }
+        }
+        
         setError("Recorded steps have been saved successfully !");
       }
 
@@ -190,6 +418,43 @@ export default function Recorder() {
         addLog("error", `Failed to save: ${error}`);
       }
     );
+  };
+
+  // FIX 7C: Handler for adding conditional click step
+  const handleAddConditionalClick = (config: any) => {
+    const newStep: Step = {
+      id: `step_${Date.now()}`,
+      name: `Conditional Click ${recordedSteps.filter(s => s.event === 'conditional-click').length + 1}`,
+      event: 'conditional-click',
+      path: '',
+      value: config.buttonTexts.join(', '),
+      label: `conditional_${recordedSteps.filter(s => s.event === 'conditional-click').length + 1}`,
+      x: 0,
+      y: 0,
+      visionFallback: true,
+      conditionalConfig: {
+        enabled: true,
+        searchTerms: config.buttonTexts,
+        maxWaitSeconds: config.timeoutMinutes * 60,
+        pollingIntervalMs: config.pollIntervalMs,
+      },
+    };
+
+    const updatedSteps = [...recordedSteps, newStep];
+    setRecordedSteps(updatedSteps);
+
+    if (currentProject) {
+      updateProjectSteps(
+        parseInt(currentProject.id),
+        updatedSteps,
+        () => {
+          addLog('info', `Added conditional click step: looking for "${config.buttonTexts.join(', ')}"`);
+        },
+        (error) => {
+          addLog("error", `Failed to save: ${error}`);
+        }
+      );
+    }
   };
 
   const handleUpdateStep = (index: number, updatedField: Partial<Step>) => {
@@ -543,6 +808,7 @@ export default function Recorder() {
           onLoopStartChange={handleLoopStartChange}
           globalDelayMs={globalDelayMs}
           onGlobalDelayChange={handleGlobalDelayChange}
+          onAddConditionalClick={() => setConditionalModalOpen(true)}
         />
 
         {error && (
@@ -597,6 +863,13 @@ export default function Recorder() {
           <LogPanel logs={logs as any} onClear={() => setLogs([])} />
         </div>
       </div>
+
+      {/* FIX 7C: Conditional Click Modal */}
+      <ConditionalClickModal
+        open={conditionalModalOpen}
+        onClose={() => setConditionalModalOpen(false)}
+        onSave={handleAddConditionalClick}
+      />
     </DragDropContext>
   );
 }

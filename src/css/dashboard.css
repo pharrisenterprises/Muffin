@@ -780,3 +780,35 @@ span.begins-count-in-two:before,
         opacity: 0.2;
     }
 }
+
+/* ============================================
+   FIX 6: Zoom Fix - Scale UI to 85%
+   Applies to extension pages only
+   ============================================ */
+
+/* Base scaling for extension pages */
+html {
+    font-size: 12px; /* Reduced from default 16px */
+}
+
+/* Scale the entire app container */
+#root {
+    transform: scale(0.85);
+    transform-origin: top left;
+    width: 117.65%; /* Compensate: 100 / 0.85 = 117.65 */
+    min-height: 117.65vh;
+}
+
+/* Ensure scrolling works correctly */
+body {
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+/* Keep modals at normal scale for readability */
+[role="dialog"],
+.modal,
+.dialog {
+    transform: scale(1.176); /* Counter the parent scaling: 1/0.85 = 1.176 */
+    transform-origin: center center;
+}

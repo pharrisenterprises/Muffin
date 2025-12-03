@@ -7,7 +7,7 @@ import {
 import { Input } from '../Ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../Ui/select';
 import { Button } from '../Ui/button';
-import { GripVertical, MoreVertical, Clock, RotateCcw, Edit, Trash } from 'lucide-react';
+import { GripVertical, MoreVertical, Clock, RotateCcw, Edit, Trash, Target } from 'lucide-react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import {
   DropdownMenu,
@@ -35,6 +35,14 @@ const DelayBadge = ({ seconds }: { seconds: number }) => (
       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
     </svg>
     {seconds}s
+  </span>
+);
+
+// FIX 7D: Conditional Click Badge
+const ConditionalBadge = () => (
+  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+    <Target className="w-3 h-3" />
+    Conditional
   </span>
 );
 
@@ -110,6 +118,8 @@ export default function StepsTable({
                             {step.delaySeconds && step.delaySeconds > 0 && (
                               <DelayBadge seconds={step.delaySeconds} />
                             )}
+                            {/* FIX 7D: Conditional Click Badge */}
+                            {step.event === 'conditional-click' && <ConditionalBadge />}
                           </div>
                         </div>
                       </TableCell>

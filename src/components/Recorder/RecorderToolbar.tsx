@@ -12,7 +12,15 @@ import {
   Square,
   Upload,
   Plus,
+  Target,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../Ui/dropdown-menu';
 
 // VISION: Extended Step interface for dropdown
 interface Step {
@@ -34,6 +42,8 @@ interface RecorderToolbarProps {
   onLoopStartChange?: (index: number) => void;
   globalDelayMs?: number;
   onGlobalDelayChange?: (delayMs: number) => void;
+  // FIX 7C: Conditional Click handler
+  onAddConditionalClick?: () => void;
 }
 
 export default function RecorderToolbar({
@@ -42,12 +52,14 @@ export default function RecorderToolbar({
   onAddStep,
   onExportSteps,
   onExportHeader,
-  // VISION: New props with defaults
+  // VISION: New props with defaults (B-39: Changed default to 0)
   steps = [],
-  loopStartIndex = -1,
+  loopStartIndex = 0,
   onLoopStartChange,
   globalDelayMs = 0,
   onGlobalDelayChange,
+  // FIX 7C: Conditional Click handler
+  onAddConditionalClick,
 }: RecorderToolbarProps) {
   
   // VISION: Handle delay input change
@@ -76,10 +88,32 @@ export default function RecorderToolbar({
 
       <div className="h-6 w-px bg-slate-600"></div>
 
-      <Button onClick={onAddStep} variant="ghost" className="gap-2 hover:bg-slate-700">
-        <Plus className="w-4 h-4" />
-        Add Variable
-      </Button>
+      {/* FIX 7C: Add Variable Dropdown with Conditional Click */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="gap-2 hover:bg-slate-700">
+            <Plus className="w-4 h-4" />
+            Add Variable
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="bg-slate-800 border-slate-700">
+          <DropdownMenuItem onClick={onAddStep} className="hover:bg-slate-700 cursor-pointer">
+            <Plus className="w-4 h-4 mr-2" />
+            <span>Input Variable</span>
+          </DropdownMenuItem>
+          
+          <DropdownMenuSeparator className="bg-slate-700" />
+          
+          <DropdownMenuItem 
+            onClick={onAddConditionalClick} 
+            className="hover:bg-slate-700 cursor-pointer"
+          >
+            <Target className="w-4 h-4 mr-2 text-cyan-400" />
+            <span>Conditional Click</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      
       {onExportSteps && (
         <Button variant="ghost" className="gap-2 hover:bg-slate-700" onClick={onExportSteps}>
           <Upload className="w-4 h-4 rotate-180" /> {/* flipped icon for export */}

@@ -65,9 +65,25 @@ const Layout: React.FC = () => {
     });
   };
 
-  // VISION: Generate unique labels for similar elements (e.g., search, search_1, search_2)
-  const labelCounts = new Map<string, number>();
+  // ============================================
+  // FIX 2: Label Counter with Reset
+  // Resets when new recording starts
+  // ============================================
+  let labelCounts = new Map<string, number>();
   
+  const resetLabelCounters = (): void => {
+    labelCounts = new Map<string, number>();
+    console.log('[TestFlow] Label counters reset for new recording');
+  };
+  
+  const generateSequentialLabel = (baseLabel: string): string => {
+    const key = (baseLabel || 'field').toLowerCase().replace(/\s+/g, '_');
+    const count = labelCounts.get(key) || 0;
+    labelCounts.set(key, count + 1);
+    return count === 0 ? baseLabel : `${baseLabel}_${count}`;
+  };
+  
+  // VISION: Generate unique labels for similar elements (e.g., search, search_1, search_2)
   const generateUniqueLabel = (baseLabel: string | undefined): string | undefined => {
     if (!baseLabel) return undefined;
     
@@ -455,12 +471,13 @@ const Layout: React.FC = () => {
       const x = rect.left + rect.width / 2;
       const y = rect.top + rect.height / 2;
 
+      // FIX 5: Enter key always gets "submit" label
       logEvent({
         eventType: 'Enter',
         xpath: getXPath(xpathTarget),
         bundle,
         value,
-        label: generateUniqueLabel(getLabelForTarget(target)),
+        label: generateSequentialLabel('submit'),
         page: window.location.href,
         x,
         y,
@@ -698,6 +715,9 @@ const Layout: React.FC = () => {
     }
   };
   const initContentScript = (): void => {
+    // FIX 2: Reset label counters for fresh sequential numbering
+    resetLabelCounters();
+    
     logOpenPageEvent();
 
     // main doc
@@ -1270,8 +1290,60 @@ const Layout: React.FC = () => {
     return () => hidden.forEach(n => (n.style.display = "none"));
   }
 
+  // ============================================
+  // FIX 1: Navigation Blocker for Playback
+  // Prevents Google overlays from opening unwanted tabs
+  // ============================================
+  let navigationBlockerInstalled = false;
+
+  function installNavigationBlocker(): void {
+    if (navigationBlockerInstalled) return;
+    navigationBlockerInstalled = true;
+    
+    const blockedPatterns = [
+      'drive.google.com',
+      'youtube.com',
+      'google.com/?authuser',
+      'accounts.google.com',
+      'docs.google.com/picker',
+      'plus.google.com'
+    ];
+    
+    // Block window.open calls
+    const originalOpen = window.open;
+    window.open = function(url?: string | URL, target?: string, features?: string): Window | null {
+      const urlStr = String(url || '');
+      if (blockedPatterns.some(pattern => urlStr.includes(pattern))) {
+        console.log('[TestFlow Playback] Blocked window.open:', urlStr);
+        return null;
+      }
+      return originalOpen.call(window, url, target, features);
+    };
+    
+    // Block link clicks that open new tabs
+    document.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      const anchor = target.closest('a') as HTMLAnchorElement | null;
+      
+      if (anchor && anchor.target === '_blank') {
+        const href = anchor.href || '';
+        if (blockedPatterns.some(pattern => href.includes(pattern))) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          console.log('[TestFlow Playback] Blocked link click:', href);
+          return false;
+        }
+      }
+    }, true); // Capture phase
+    
+    console.log('[TestFlow] Navigation blocker installed for playback');
+  }
+
   // ---------------------- Play Action ----------------------
   async function playAction(bundle: Bundle, action: Action): Promise<boolean> {
+    // FIX 1: Install navigation blocker on first playback step
+    installNavigationBlocker();
     const bundleTag = bundle.tag ?? "";
     const actionType = action.type ?? "";
 
