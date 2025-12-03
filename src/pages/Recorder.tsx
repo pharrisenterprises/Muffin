@@ -273,7 +273,7 @@ export default function Recorder() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
   
-  // VISION: Added state for loop start index (B-39: Changed default to -1 for no loop)
+  // VISION: Added state for loop start index (B-45: Changed default to -1 for no loop)
   const [loopStartIndex, setLoopStartIndex] = useState<number>(-1);
   // VISION: Added state for global delay
   const [globalDelayMs, setGlobalDelayMs] = useState<number>(0);
