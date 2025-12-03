@@ -1,4 +1,55 @@
 import React, { useEffect } from 'react';
+
+// B-46: Safe querySelector that handles special characters in selectors
+function safeQuerySelector(doc: Document | ShadowRoot, selector: string): Element | null {
+  if (!selector) return null;
+  
+  try {
+    // Check if selector has aria-label with special chars
+    if (selector.includes('[aria-label="')) {
+      const match = selector.match(/\[aria-label="([^"]+)"\]/);
+      if (match) {
+        const labelValue = match[1];
+        // If label contains CSS-breaking chars, search manually
+        if (/[,:\[\]()>+~]/.test(labelValue)) {
+          console.log('[TestFlow] Using manual aria-label search for:', labelValue.substring(0, 40));
+          const elements = doc.querySelectorAll('[aria-label]');
+          for (const el of elements) {
+            if (el.getAttribute('aria-label') === labelValue) {
+              return el;
+            }
+          }
+          // Also check for partial match (label might be truncated)
+          const labelStart = labelValue.substring(0, 30);
+          for (const el of elements) {
+            const attr = el.getAttribute('aria-label') || '';
+            if (attr.startsWith(labelStart)) {
+              return el;
+            }
+          }
+          return null;
+        }
+      }
+    }
+    return doc.querySelector(selector);
+  } catch (e) {
+    console.error('[TestFlow] querySelector failed, trying fallback:', e);
+    // Try to find by aria-label manually
+    if (selector.includes('aria-label')) {
+      const match = selector.match(/\[aria-label="([^"]+)"\]/);
+      if (match) {
+        const elements = doc.querySelectorAll('[aria-label]');
+        for (const el of elements) {
+          if (el.getAttribute('aria-label')?.includes(match[1].substring(0, 20))) {
+            return el;
+          }
+        }
+      }
+    }
+    return null;
+  }
+}
+
 interface LogEventData {
   eventType: string;
   xpath: string;
@@ -1550,11 +1601,11 @@ const Layout: React.FC = () => {
       }
     }
     if (bundle.aria) {
-      const el = doc.querySelector<HTMLElement>(`[aria-labelledby="${bundle.aria}"]`);
+      const el = safeQuerySelector(doc, `[aria-labelledby="${bundle.aria}"]`) as HTMLElement | null;
       if (el && visible(el)) return el;
     }
     if (bundle.placeholder) {
-      const el = doc.querySelector<HTMLElement>(`[placeholder="${bundle.placeholder}"]`);
+      const el = safeQuerySelector(doc, `[placeholder="${bundle.placeholder}"]`) as HTMLElement | null;
       if (el && visible(el)) return el;
     }
 
@@ -1595,12 +1646,50 @@ const Layout: React.FC = () => {
       if (best && bestDist < 200) return best;
     }
 
+    // B-46: Fallback for terminal/monaco - use coordinates or known selectors
+    if (candidates.length === 0 || (candidates[0] && candidates[0].score < 0.5)) {
+      // Check if this looks like a terminal interaction
+      const isTerminal = bundle.xpath?.includes('xterm') ||
+                         bundle.tag?.includes('xterm') ||
+                         (bundle.visibleText && bundle.visibleText.length < 200);
+      const isMonaco = bundle.xpath?.includes('monaco') ||
+                       bundle.tag?.includes('monaco');
+      
+      if (isTerminal) {
+        console.log('[TestFlow] Terminal fallback - finding terminal textarea');
+        let element = doc.querySelector('.xterm-helper-textarea') as HTMLElement;
+        if (!element) {
+          element = doc.querySelector('.xterm textarea') as HTMLElement;
+        }
+        if (!element) {
+          element = doc.querySelector('[class*="xterm"] textarea') as HTMLElement;
+        }
+        if (element && visible(element)) return element;
+      }
+      
+      if (isMonaco) {
+        console.log('[TestFlow] Monaco fallback - finding editor textarea');
+        let element = doc.querySelector('.monaco-editor textarea') as HTMLElement;
+        if (!element) {
+          element = doc.querySelector('.inputarea') as HTMLElement;
+        }
+        if (element && visible(element)) return element;
+      }
+      
+      // Last resort: use coordinates
+      if (bundle.coordinates && doc instanceof Document) {
+        console.log('[TestFlow] Using coordinate fallback:', bundle.coordinates);
+        const element = doc.elementFromPoint(bundle.coordinates.x, bundle.coordinates.y) as HTMLElement;
+        if (element && visible(element)) return element;
+      }
+    }
+
     // 5) Data attributes exact match
     if (bundle.dataAttrs) {
       for (const k in bundle.dataAttrs) {
         const v = bundle.dataAttrs[k];
         if (!v) continue;
-        const el = doc.querySelector<HTMLElement>(`[${k}="${v}"]`);
+        const el = safeQuerySelector(doc, `[${k}="${v}"]`) as HTMLElement | null;
         if (el && visible(el)) return el;
       }
     }
@@ -1915,6 +2004,28 @@ const Layout: React.FC = () => {
 
         case "enter": {
           const value = action.value ?? "";
+          
+          // B-46: Terminal special handling
+          const terminalTextarea = document.querySelector('.xterm-helper-textarea') as HTMLTextAreaElement;
+          if (terminalTextarea || el.closest('.xterm') || el.closest('[class*="terminal"]')) {
+            const target = terminalTextarea || el as HTMLTextAreaElement;
+            console.log('[TestFlow] Terminal Enter');
+            target.focus();
+            if (value) {
+              // Type the value first
+              target.value = value;
+              target.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            // Send Enter key
+            ['keydown', 'keypress', 'keyup'].forEach(type => {
+              target.dispatchEvent(new frameWin.KeyboardEvent(type, {
+                key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true
+              }));
+            });
+            return true;
+          }
+          
+          // Standard handling
           if (value) await focusAndSetValue(el, value);
 
           ["keydown", "keypress", "keyup"].forEach(type => {
