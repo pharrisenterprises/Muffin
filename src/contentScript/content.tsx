@@ -65,6 +65,30 @@ const Layout: React.FC = () => {
     });
   };
 
+  // VISION: Generate unique labels for similar elements (e.g., search, search_1, search_2)
+  const labelCounts = new Map<string, number>();
+  
+  const generateUniqueLabel = (baseLabel: string | undefined): string | undefined => {
+    if (!baseLabel) return undefined;
+    
+    // Clean and normalize the label
+    const normalized = baseLabel.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+    
+    // If label is too short (1-2 chars like "q"), make it more descriptive
+    let finalLabel = normalized;
+    if (normalized.length <= 2) {
+      // Try to infer from placeholder or aria-label
+      finalLabel = 'search'; // Default for short labels
+    }
+    
+    // Check if we've seen this label before
+    const count = labelCounts.get(finalLabel) || 0;
+    labelCounts.set(finalLabel, count + 1);
+    
+    // Return with suffix if duplicate
+    return count > 0 ? `${finalLabel}_${count}` : finalLabel;
+  };
+
   const getLabelForTarget = (target: HTMLElement): string | undefined => {
     if (window.location.hostname === "docs.google.com" && window.location.pathname.startsWith("/forms")) {
       // Case 1: Google Forms question heading nearby
@@ -436,7 +460,7 @@ const Layout: React.FC = () => {
         xpath: getXPath(xpathTarget),
         bundle,
         value,
-        label: getLabelForTarget(target),
+        label: generateUniqueLabel(getLabelForTarget(target)),
         page: window.location.href,
         x,
         y,
@@ -573,7 +597,7 @@ const Layout: React.FC = () => {
       // Use label element (or target) for XPath
       const xpathTarget = labelEl || target;
       const xpath = getXPath(xpathTarget);
-      const label = getLabelForTarget(target);
+      const label = generateUniqueLabel(getLabelForTarget(target));
 
       // Usage: pass exactly the focused element to recordElement
       const focusedEl = getFocusedElement(target);
@@ -644,7 +668,7 @@ const Layout: React.FC = () => {
       xpath: getXPath(xpathTarget),
       bundle,
       value,
-      label: getLabelForTarget(target),
+      label: generateUniqueLabel(getLabelForTarget(target)),
       page: window.location.href,
     });
   };
@@ -769,7 +793,7 @@ const Layout: React.FC = () => {
               xpath: data.xpath,
               bundle,
               value: data.text,
-              label: getLabelForTarget(focusedEl),
+              label: generateUniqueLabel(getLabelForTarget(focusedEl)),
               page: window.location.href,
             });
           }

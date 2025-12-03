@@ -44,7 +44,7 @@ export default function RecorderToolbar({
   onExportHeader,
   // VISION: New props with defaults
   steps = [],
-  loopStartIndex = 0,
+  loopStartIndex = -1,
   onLoopStartChange,
   globalDelayMs = 0,
   onGlobalDelayChange,
@@ -107,6 +107,7 @@ export default function RecorderToolbar({
             <SelectValue placeholder="Select step" />
           </SelectTrigger>
           <SelectContent className="bg-slate-700 border-slate-600 text-white">
+            <SelectItem value="-1">No CSV Loop</SelectItem>
             {steps.length === 0 ? (
               <SelectItem value="0" disabled>No steps recorded</SelectItem>
             ) : (

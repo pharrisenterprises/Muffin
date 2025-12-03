@@ -7,8 +7,15 @@ import {
 import { Input } from '../Ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../Ui/select';
 import { Button } from '../Ui/button';
-import { Trash2, GripVertical } from 'lucide-react';
+import { GripVertical, MoreVertical, Clock, RotateCcw, Edit, Trash } from 'lucide-react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '../Ui/dropdown-menu';
 
 const eventTypes = ["open", "click", "input", "select", "Enter"];
 
@@ -49,14 +56,16 @@ interface StepsTableProps {
   // VISION: Add these new props
   loopStartIndex?: number;
   onSetStepDelay?: (index: number, delaySeconds: number) => void;
+  onSetLoopStart?: (index: number) => void;
 }
 
 export default function StepsTable({ 
   steps, 
   onUpdateStep, 
   onDeleteStep, 
-  loopStartIndex = 0,
-  onSetStepDelay 
+  loopStartIndex = -1,
+  onSetStepDelay,
+  onSetLoopStart 
 }: StepsTableProps) {
   const inputClass = "bg-slate-200 text-slate-900 border-slate-400 placeholder:text-slate-500 focus:bg-white focus:border-blue-500 focus:ring-blue-500";
 
@@ -97,7 +106,7 @@ export default function StepsTable({
                             className={inputClass}
                           />
                           <div className="flex items-center gap-1">
-                            {loopStartIndex === index && <LoopStartBadge />}
+                            {loopStartIndex >= 0 && loopStartIndex === index && <LoopStartBadge />}
                             {step.delaySeconds && step.delaySeconds > 0 && (
                               <DelayBadge seconds={step.delaySeconds} />
                             )}
@@ -139,35 +148,62 @@ export default function StepsTable({
                         />
                       </TableCell>
                       <TableCell className="w-20 text-right py-2">
-                        <div className="flex items-center gap-1">
-                          {/* VISION: Add Set Delay button */}
-                          {onSetStepDelay && (
+                        {/* VISION: 3-dot dropdown menu */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => {
-                                const seconds = prompt('Enter delay in seconds before this step:', '0');
-                                if (seconds !== null) {
-                                  onSetStepDelay(index, parseInt(seconds, 10) || 0);
-                                }
-                              }}
-                              className="text-slate-400 hover:text-orange-400 hover:bg-orange-500/10"
-                              title="Set Delay Before Step"
+                              className="text-slate-400 hover:text-slate-200 hover:bg-slate-700"
                             >
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                              </svg>
+                              <MoreVertical className="w-4 h-4" />
                             </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onDeleteStep(index)}
-                            className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="bg-slate-800 border-slate-700 text-white">
+                            {onSetStepDelay && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  const seconds = prompt('Enter delay in seconds before this step:', '0');
+                                  if (seconds !== null) {
+                                    onSetStepDelay(index, parseInt(seconds, 10) || 0);
+                                  }
+                                }}
+                                className="hover:bg-slate-700 cursor-pointer"
+                              >
+                                <Clock className="w-4 h-4 mr-2" />
+                                Set Delay Before Step
+                              </DropdownMenuItem>
+                            )}
+                            {onSetLoopStart && (
+                              <DropdownMenuItem
+                                onClick={() => onSetLoopStart(index)}
+                                className="hover:bg-slate-700 cursor-pointer"
+                              >
+                                <RotateCcw className="w-4 h-4 mr-2" />
+                                Set as Loop Start
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator className="bg-slate-700" />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                // Focus on the label input for editing
+                                const labelInput = document.querySelector(`input[value="${step.label}"]`) as HTMLInputElement;
+                                labelInput?.focus();
+                              }}
+                              className="hover:bg-slate-700 cursor-pointer"
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit Step
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => onDeleteStep(index)}
+                              className="hover:bg-red-900/50 text-red-400 cursor-pointer"
+                            >
+                              <Trash className="w-4 h-4 mr-2" />
+                              Delete Step
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   )}

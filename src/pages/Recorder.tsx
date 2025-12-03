@@ -73,8 +73,8 @@ export default function Recorder() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
   
-  // VISION: Added state for loop start index
-  const [loopStartIndex, setLoopStartIndex] = useState<number>(0);
+  // VISION: Added state for loop start index (-1 means no loop)
+  const [loopStartIndex, setLoopStartIndex] = useState<number>(-1);
   // VISION: Added state for global delay
   const [globalDelayMs, setGlobalDelayMs] = useState<number>(0);
 
@@ -119,8 +119,8 @@ export default function Recorder() {
           setCurrentProject(project);
           setRecordedSteps(steps);
           
-          // VISION: Load Vision fields from project
-          setLoopStartIndex(project.loopStartIndex ?? 0);
+          // VISION: Load Vision fields from project (-1 means no loop)
+          setLoopStartIndex(project.loopStartIndex ?? -1);
           setGlobalDelayMs(project.globalDelayMs ?? 0);
         } else {
           //console.error("Failed to load project:", response?.error);
@@ -582,13 +582,14 @@ export default function Recorder() {
               {isLoading ? (
                 <div className="text-center p-8">Loading...</div>
               ) : (
-                /* VISION: Added loopStartIndex and onSetStepDelay to StepsTable */
+                /* VISION: Added loopStartIndex, onSetStepDelay, and onSetLoopStart to StepsTable */
                 <StepsTable
                   steps={recordedSteps}
                   onUpdateStep={handleUpdateStep as any}
                   onDeleteStep={handleDeleteStep}
                   loopStartIndex={loopStartIndex}
                   onSetStepDelay={handleSetStepDelay}
+                  onSetLoopStart={handleLoopStartChange}
                 />
               )}
             </CardContent>
