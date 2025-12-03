@@ -1635,8 +1635,11 @@ const Layout: React.FC = () => {
       'youtube.com',
       'google.com/?authuser',
       'accounts.google.com',
+      'myaccount.google.com',      // FIX: Block account settings popups
       'docs.google.com/picker',
-      'plus.google.com'
+      'plus.google.com',
+      'google.com/intl',           // FIX: Block language redirects
+      'support.google.com'         // FIX: Block help popups
     ];
     
     // Block window.open calls
@@ -1668,6 +1671,70 @@ const Layout: React.FC = () => {
     }, true); // Capture phase
     
     console.log('[TestFlow] Navigation blocker installed for playback');
+  }
+
+  // ============================================
+  // B-41: Vision Playback Functions
+  // ============================================
+  
+  // Keyboard simulation for Vision playback
+  async function simulateTyping(text: string): Promise<void> {
+    const activeElement = document.activeElement as HTMLElement;
+    if (!activeElement) return;
+    
+    // Type each character with a small delay
+    for (const char of text) {
+      // Create and dispatch keyboard events
+      const keydownEvent = new KeyboardEvent('keydown', {
+        key: char,
+        code: `Key${char.toUpperCase()}`,
+        keyCode: char.charCodeAt(0),
+        which: char.charCodeAt(0),
+        bubbles: true,
+        cancelable: true
+      });
+      
+      const keypressEvent = new KeyboardEvent('keypress', {
+        key: char,
+        code: `Key${char.toUpperCase()}`,
+        keyCode: char.charCodeAt(0),
+        which: char.charCodeAt(0),
+        bubbles: true,
+        cancelable: true
+      });
+      
+      const inputEvent = new InputEvent('input', {
+        data: char,
+        inputType: 'insertText',
+        bubbles: true,
+        cancelable: true
+      });
+      
+      const keyupEvent = new KeyboardEvent('keyup', {
+        key: char,
+        code: `Key${char.toUpperCase()}`,
+        keyCode: char.charCodeAt(0),
+        which: char.charCodeAt(0),
+        bubbles: true,
+        cancelable: true
+      });
+      
+      activeElement.dispatchEvent(keydownEvent);
+      activeElement.dispatchEvent(keypressEvent);
+      activeElement.dispatchEvent(inputEvent);
+      activeElement.dispatchEvent(keyupEvent);
+      
+      // Also try execCommand for contenteditable
+      if (activeElement.getAttribute('contenteditable') === 'true' || 
+          activeElement.closest('[contenteditable="true"]')) {
+        document.execCommand('insertText', false, char);
+      }
+      
+      // Small delay between characters
+      await new Promise(r => setTimeout(r, 20));
+    }
+    
+    console.log('[TestFlow Vision] Typed:', text.substring(0, 50) + '...');
   }
 
   // ---------------------- Play Action ----------------------
@@ -1823,6 +1890,46 @@ const Layout: React.FC = () => {
             return false;
           }
 
+          // B-41: Check if this is a vision-recorded step that needs special handling
+          const isVisionStep = bundle.recordedVia === 'vision' || bundle.visionCapture === true;
+          const hasCoordinates = bundle.coordinates && bundle.coordinates.x && bundle.coordinates.y;
+          
+          // For Monaco/complex editors, use coordinate click + keyboard simulation
+          if (isVisionStep && hasCoordinates && !el) {
+            console.log('[TestFlow Vision Playback] Using coordinate-based input');
+            
+            // Click at coordinates to focus
+            const clickX = bundle.coordinates!.x;
+            const clickY = bundle.coordinates!.y;
+            
+            // Dispatch click at coordinates
+            const clickEvent = new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              view: window,
+              clientX: clickX,
+              clientY: clickY
+            });
+            
+            // Find element at coordinates
+            const targetElement = document.elementFromPoint(clickX, clickY) as HTMLElement;
+            if (targetElement) {
+              targetElement.dispatchEvent(clickEvent);
+              targetElement.focus();
+              
+              // Wait for focus
+              await new Promise(r => setTimeout(r, 100));
+              
+              // Type using keyboard simulation
+              await simulateTyping(value);
+              
+              return true;
+            } else {
+              console.warn('[TestFlow Vision] No element at coordinates:', clickX, clickY);
+            }
+          }
+
+          // Standard input handling
           await focusAndSetValue(el, value);
 
           // Handle Select2 special case

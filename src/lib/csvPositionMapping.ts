@@ -304,6 +304,10 @@ export function getStepsForRow(
     // First row: execute all steps
     return steps;
   } else {
+    // B-41: Handle -1 (no loop mode) - skip all rows after first
+    if (loopStartIndex < 0) {
+      return [];
+    }
     // Subsequent rows: skip setup steps (execute from loop start)
     return steps.slice(loopStartIndex);
   }

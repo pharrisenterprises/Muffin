@@ -273,8 +273,8 @@ export default function Recorder() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
   
-  // VISION: Added state for loop start index (B-39: Changed default to 0)
-  const [loopStartIndex, setLoopStartIndex] = useState<number>(0);
+  // VISION: Added state for loop start index (B-39: Changed default to -1 for no loop)
+  const [loopStartIndex, setLoopStartIndex] = useState<number>(-1);
   // VISION: Added state for global delay
   const [globalDelayMs, setGlobalDelayMs] = useState<number>(0);
   // FIX 7C: Conditional Click modal state
@@ -321,8 +321,8 @@ export default function Recorder() {
           setCurrentProject(project);
           setRecordedSteps(steps);
           
-          // VISION: Load Vision fields from project (B-39: Default 0)
-          setLoopStartIndex(project.loopStartIndex ?? 0);
+          // VISION: Load Vision fields from project (B-39: Default -1 for no loop)
+          setLoopStartIndex(project.loopStartIndex ?? -1);
           setGlobalDelayMs(project.globalDelayMs ?? 0);
         } else {
           //console.error("Failed to load project:", response?.error);
@@ -485,9 +485,9 @@ export default function Recorder() {
 
     // VISION: Adjust loopStartIndex if needed
     if (index < loopStartIndex) {
-      setLoopStartIndex(Math.max(0, loopStartIndex - 1));
+      setLoopStartIndex(Math.max(-1, loopStartIndex - 1));
     } else if (index === loopStartIndex && loopStartIndex >= updatedSteps.length) {
-      setLoopStartIndex(Math.max(0, updatedSteps.length - 1));
+      setLoopStartIndex(Math.max(-1, updatedSteps.length - 1));
     }
 
     updateProjectSteps(

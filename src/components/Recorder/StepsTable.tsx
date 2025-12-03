@@ -7,7 +7,7 @@ import {
 import { Input } from '../Ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../Ui/select';
 import { Button } from '../Ui/button';
-import { GripVertical, MoreVertical, Clock, RotateCcw, Edit, Trash, Target } from 'lucide-react';
+import { GripVertical, MoreVertical, Clock, RotateCcw, Edit, Trash2, Target } from 'lucide-react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import {
   DropdownMenu,
@@ -95,76 +95,14 @@ export default function StepsTable({
                         backgroundColor: snapshot.isDragging ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
                       }}
                     >
-                      <TableCell className="w-10 cursor-move py-2" {...provided.dragHandleProps}>
-                        <GripVertical className="text-slate-500" />
-                      </TableCell>
-                      <TableCell className="w-1/4 py-2">
-                        {/* VISION: Added badges next to label */}
-                        <div className="flex flex-col gap-1">
-                          <Input
-                            value={
-                              step.event === "open" && !step.label
-                                ? "Open Page"
-                                : step.label
-                            }
-                            onChange={(e) => onUpdateStep(index, {
-                              label: e.target.value,
-                              name: step.name
-                            })}
-                            className={inputClass}
-                          />
-                          <div className="flex items-center gap-1">
-                            {loopStartIndex >= 0 && loopStartIndex === index && <LoopStartBadge />}
-                            {step.delaySeconds && step.delaySeconds > 0 && (
-                              <DelayBadge seconds={step.delaySeconds} />
-                            )}
-                            {/* FIX 7D: Conditional Click Badge */}
-                            {step.event === 'conditional-click' && <ConditionalBadge />}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="w-48 py-2">
-                        <Select
-                          value={step.event}
-                          onValueChange={(value) => onUpdateStep(index, { event: value, name: value })}
-                        >
-                          <SelectTrigger className={inputClass}>
-                            <SelectValue placeholder="Select event" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                            {eventTypes.map(type => (
-                              <SelectItem key={type} value={type} className="hover:bg-slate-700">
-                                {type}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="w-1/3 py-2">
-                        <Input
-                          value={step.path}
-                          onChange={(e) => onUpdateStep(index, { path: e.target.value })}
-                          placeholder="URL or element selector..."
-                          className={inputClass}
-                        />
-                      </TableCell>
-                      <TableCell className="w-1/4 py-2">
-                        <Input
-                          value={step.value}
-                          onChange={(e) => onUpdateStep(index, { value: e.target.value })}
-                          placeholder="Input value..."
-                          //disabled={step.event !== 'Input' && step.event !== 'Select'}
-                          className={inputClass}
-                        />
-                      </TableCell>
-                      <TableCell className="w-20 text-right py-2">
-                        {/* VISION: 3-dot dropdown menu */}
+                      {/* B-41: 3-dot Menu FIRST (on left) */}
+                      <TableCell className="w-10 py-2">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+                              className="text-slate-400 hover:text-slate-200 hover:bg-slate-700 h-8 w-8"
                             >
                               <MoreVertical className="w-4 h-4" />
                             </Button>
@@ -205,15 +143,89 @@ export default function StepsTable({
                               <Edit className="w-4 h-4 mr-2" />
                               Edit Step
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => onDeleteStep(index)}
-                              className="hover:bg-red-900/50 text-red-400 cursor-pointer"
-                            >
-                              <Trash className="w-4 h-4 mr-2" />
-                              Delete Step
-                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
+                      </TableCell>
+
+                      {/* B-41: Drag Handle SECOND */}
+                      <TableCell className="w-10 cursor-move py-2" {...provided.dragHandleProps}>
+                        <GripVertical className="text-slate-500" />
+                      </TableCell>
+
+                      {/* Label + Badges */}
+                      <TableCell className="w-1/4 py-2">
+                        <div className="flex flex-col gap-1">
+                          <Input
+                            value={
+                              step.event === "open" && !step.label
+                                ? "Open Page"
+                                : step.label
+                            }
+                            onChange={(e) => onUpdateStep(index, {
+                              label: e.target.value,
+                              name: step.name
+                            })}
+                            className={inputClass}
+                          />
+                          <div className="flex items-center gap-1">
+                            {loopStartIndex >= 0 && loopStartIndex === index && <LoopStartBadge />}
+                            {step.delaySeconds && step.delaySeconds > 0 && (
+                              <DelayBadge seconds={step.delaySeconds} />
+                            )}
+                            {step.event === 'conditional-click' && <ConditionalBadge />}
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Event Dropdown */}
+                      <TableCell className="w-48 py-2">
+                        <Select
+                          value={step.event}
+                          onValueChange={(value) => onUpdateStep(index, { event: value, name: value })}
+                        >
+                          <SelectTrigger className={inputClass}>
+                            <SelectValue placeholder="Select event" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                            {eventTypes.map(type => (
+                              <SelectItem key={type} value={type} className="hover:bg-slate-700">
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+
+                      {/* Path Input */}
+                      <TableCell className="w-1/3 py-2">
+                        <Input
+                          value={step.path}
+                          onChange={(e) => onUpdateStep(index, { path: e.target.value })}
+                          placeholder="URL or element selector..."
+                          className={inputClass}
+                        />
+                      </TableCell>
+
+                      {/* Value Input */}
+                      <TableCell className="w-1/4 py-2">
+                        <Input
+                          value={step.value}
+                          onChange={(e) => onUpdateStep(index, { value: e.target.value })}
+                          placeholder="Input value..."
+                          className={inputClass}
+                        />
+                      </TableCell>
+
+                      {/* B-41: Trash Button LAST (on right, direct access) */}
+                      <TableCell className="w-12 text-right py-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onDeleteStep(index)}
+                          className="text-slate-400 hover:text-red-400 hover:bg-red-900/30 h-8 w-8"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   )}

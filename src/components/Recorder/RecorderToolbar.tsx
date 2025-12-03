@@ -52,9 +52,9 @@ export default function RecorderToolbar({
   onAddStep,
   onExportSteps,
   onExportHeader,
-  // VISION: New props with defaults (B-39: Changed default to 0)
+  // VISION: New props with defaults (B-41: Changed default to -1 for no loop)
   steps = [],
-  loopStartIndex = 0,
+  loopStartIndex = -1,
   onLoopStartChange,
   globalDelayMs = 0,
   onGlobalDelayChange,
