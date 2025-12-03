@@ -277,6 +277,7 @@ export default function Recorder() {
   const [loopStartIndex, setLoopStartIndex] = useState<number>(-1);
   // VISION: Added state for global delay
   const [globalDelayMs, setGlobalDelayMs] = useState<number>(0);
+  const [delayMode, setDelayMode] = useState<'static' | 'dynamic'>('static');
   // FIX 7C: Conditional Click modal state
   const [conditionalModalOpen, setConditionalModalOpen] = useState(false);
 
@@ -322,8 +323,9 @@ export default function Recorder() {
           setRecordedSteps(steps);
           
           // VISION: Load Vision fields from project (B-39: Default -1 for no loop)
-          setLoopStartIndex(project.loopStartIndex ?? -1);
-          setGlobalDelayMs(project.globalDelayMs ?? 0);
+            setLoopStartIndex(project.loopStartIndex ?? -1);
+            setGlobalDelayMs(project.globalDelayMs ?? 0);
+            setDelayMode((project as any).delayMode || 'static');
         } else {
           //console.error("Failed to load project:", response?.error);
           addLog("error", `Failed to load project: ${response?.error}`);
@@ -808,6 +810,8 @@ export default function Recorder() {
           onLoopStartChange={handleLoopStartChange}
           globalDelayMs={globalDelayMs}
           onGlobalDelayChange={handleGlobalDelayChange}
+          delayMode={delayMode}
+          onDelayModeChange={setDelayMode}
           onAddConditionalClick={() => setConditionalModalOpen(true)}
         />
 

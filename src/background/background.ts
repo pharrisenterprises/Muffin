@@ -215,13 +215,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message.action === "update_project_steps") {
-      const { id, recorded_steps, loopStartIndex, globalDelayMs } = message.payload;
+      const { id, recorded_steps, loopStartIndex, globalDelayMs, delayMode } = message.payload;
 
       DB.projects.update(id, {
         recorded_steps,
         // VISION: Save Vision fields
-        ...(loopStartIndex !== undefined && { loopStartIndex }),
-        ...(globalDelayMs !== undefined && { globalDelayMs }),
+          ...(loopStartIndex !== undefined && { loopStartIndex }),
+          ...(globalDelayMs !== undefined && { globalDelayMs }),
+          ...(delayMode !== undefined && { delayMode }),
+        ...(delayMode !== undefined && { delayMode }), // B-43: Add this
         updated_date: new Date().toISOString()
       })
         .then(() => {

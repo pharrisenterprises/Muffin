@@ -45,9 +45,9 @@ type Project = {
   csv_data: [];
   recorded_steps: [];
   parsed_fields: [];
+  // B-42: Added delay and loop settings
   globalDelayMs?: number;
   loopStartIndex?: number;
-  delayMode?: 'static' | 'dynamic';
 };
 
 type TestRun = {
@@ -149,27 +149,7 @@ export default function TestRunner() {
       // B-42: Read delay and loop settings from project
       const globalDelayMs = currentProject.globalDelayMs ?? 0;
       const loopStartIndex = currentProject.loopStartIndex ?? -1;
-      const delayMode = (currentProject as any).delayMode || 'static';
-      addLog("info", `Settings: Delay mode=${delayMode}, Global delay=${globalDelayMs}ms, Loop start=${loopStartIndex === -1 ? 'No loop' : 'Step ' + (loopStartIndex + 1)}`);
-
-      // B-43: Dynamic page ready detection
-      const waitForPageReady = async (tabId: number, maxWaitMs: number = 30000): Promise<void> => {
-        const startTime = Date.now();
-        addLog("info", "⏳ Dynamic: Waiting for page to be ready...");
-        while (Date.now() - startTime < maxWaitMs) {
-          try {
-            const response = await chrome.tabs.sendMessage(tabId, { type: 'checkPageReady' });
-            if (response?.ready) {
-              addLog("info", "✓ Dynamic: Page is ready");
-              return;
-            }
-          } catch (e) {
-            // Tab might not be ready yet, keep trying
-          }
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-        addLog("warning", "⚠ Dynamic: Max wait time reached, proceeding anyway");
-      };
+      addLog("info", `Settings: delay=${globalDelayMs}ms, loop=${loopStartIndex === -1 ? 'No loop' : 'Step ' + (loopStartIndex + 1)}`);
 
       // Validate required data
       if (!recorded_steps || !target_url) {
@@ -269,13 +249,6 @@ export default function TestRunner() {
           step.status = "pending";
 
           try {
-            // B-42: Apply per-step delay BEFORE executing step
-            const perStepDelay = step.delaySeconds || 0;
-            if (perStepDelay > 0) {
-              addLog("info", `⏳ Waiting ${perStepDelay}s before step ${stepIndex + 1}...`);
-              await new Promise(r => setTimeout(r, perStepDelay * 1000));
-            }
-
             if (step.event === "input" || step.event === "click") {
               let inputValue: string | undefined;
 
@@ -310,12 +283,18 @@ export default function TestRunner() {
               }
             }
 
+            // B-42: Apply per-step delay BEFORE executing step
+            const perStepDelay = step.delaySeconds || 0;
+            if (perStepDelay > 0) {
+              addLog("info", `⏳ Waiting ${perStepDelay}s before step ${stepIndex + 1}...`);
+              await new Promise(r => setTimeout(r, perStepDelay * 1000));
+            }
+
             // Add random delay
             await new Promise(resolve =>
               setTimeout(resolve, 1000 + Math.random() * 2000)
             );
             if (!isRunningRef.current) break;
-
 
             const stepData = {
               event: step.event,
@@ -325,25 +304,8 @@ export default function TestRunner() {
               label: step.label,
               x: step.x,
               y: step.y,
-              bundle: {
-                ...step.bundle,
-                // B-43: Explicitly include vision fields if not already present
-                ...(!(step.bundle?.recordedVia) && { recordedVia: step.recordedVia || 'dom' }),
-                ...(!(step.bundle?.coordinates) && { coordinates: step.coordinates || (step.x && step.y ? { x: step.x, y: step.y } : undefined) }),
-                ...(!(step.bundle?.visionCapture) && { visionCapture: step.visionCapture || false }),
-              },
+              bundle: step.bundle,
             };
-
-            // B-43: Debug log
-            console.log('[TestRunner DEBUG] Sending step:', {
-              event: stepData.event,
-              label: stepData.label,
-              bundleVision: {
-                recordedVia: stepData.bundle.recordedVia,
-                visionCapture: stepData.bundle.visionCapture,
-                hasCoordinates: !!stepData.bundle.coordinates
-              }
-            });
 
             let stepSuccess = false;
             let executionError: any = "";
@@ -380,16 +342,10 @@ export default function TestRunner() {
             setProgress(((stepIndex + 1) / testSteps.length) * 100);
             prev_step = stepData;
             
-            // B-43: Apply delay based on mode
-            if (stepIndex < testSteps.length - 1) {
-              if (delayMode === 'dynamic') {
-                // Dynamic: Wait for page to be ready
-                await waitForPageReady(tabId, 30000);
-              } else if (globalDelayMs > 0) {
-                // Static: Fixed delay
-                addLog("info", `⏳ Static delay ${globalDelayMs}ms...`);
-                await new Promise(resolve => setTimeout(resolve, globalDelayMs));
-              }
+            // B-42: Apply global delay AFTER step execution
+            if (globalDelayMs > 0 && stepIndex < testSteps.length - 1) {
+              addLog("info", `⏳ Global delay ${globalDelayMs}ms...`);
+              await new Promise(r => setTimeout(r, globalDelayMs));
             }
             
           } catch (stepError) {
@@ -406,7 +362,8 @@ export default function TestRunner() {
         const skippedSteps = testSteps.filter((s: { status: string; }) => s.status === "skipped").length;
 
         addLog("info",
-          `${csv_data && csv_data.length > 0 ? "CSV row " + (rowIndex + 1) : "Test"} completed: ${passedSteps} passed, ${failedSteps} failed, ${skippedSteps} skipped`
+          `${csv_data && csv_data.length > 0 ? "CSV row " + (rowIndex + 1) : "Test"} completed: ` +
+          `${passedSteps} passed, ${failedSteps} failed, ${skippedSteps} skipped`
         );
 
         // Close the tab after test

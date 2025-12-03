@@ -1635,8 +1635,11 @@ const Layout: React.FC = () => {
       'youtube.com',
       'google.com/?authuser',
       'accounts.google.com',
+      'myaccount.google.com',      // FIX: Block account settings popups
       'docs.google.com/picker',
-      'plus.google.com'
+      'plus.google.com',
+      'google.com/intl',           // FIX: Block language redirects
+      'support.google.com'         // FIX: Block help popups
     ];
     
     // Block window.open calls
@@ -1668,6 +1671,103 @@ const Layout: React.FC = () => {
     }, true); // Capture phase
     
     console.log('[TestFlow] Navigation blocker installed for playback');
+  }
+
+  // ============================================
+  // B-42: Enhanced Vision Playback Functions
+  // Uses 4 strategies for maximum compatibility
+  // ============================================
+  
+  async function simulateTypingForComplexEditor(text: string, targetElement: HTMLElement): Promise<boolean> {
+    console.log('[TestFlow Vision] Attempting complex editor typing:', text.substring(0, 30));
+    
+    // Strategy 1: execCommand insertText
+    try {
+      targetElement.focus();
+      await new Promise(r => setTimeout(r, 100));
+      if (document.queryCommandSupported && document.queryCommandSupported('insertText')) {
+        const success = document.execCommand('insertText', false, text);
+        if (success) {
+          console.log('[TestFlow Vision] execCommand succeeded');
+          return true;
+        }
+      }
+    } catch (e) { console.warn('[TestFlow Vision] execCommand failed:', e); }
+    
+    // Strategy 2: Clipboard paste (works for Monaco)
+    try {
+      targetElement.focus();
+      await new Promise(r => setTimeout(r, 100));
+      await navigator.clipboard.writeText(text);
+      
+      // Simulate Ctrl+V
+      targetElement.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'v', code: 'KeyV', keyCode: 86, which: 86, ctrlKey: true, bubbles: true, cancelable: true
+      }));
+      
+      const pasteEvent = new ClipboardEvent('paste', {
+        bubbles: true,
+        cancelable: true,
+        clipboardData: new DataTransfer()
+      });
+      (pasteEvent.clipboardData as DataTransfer).setData('text/plain', text);
+      targetElement.dispatchEvent(pasteEvent);
+      
+      console.log('[TestFlow Vision] Clipboard paste attempted');
+      await new Promise(r => setTimeout(r, 200));
+      
+      // Check if it worked
+      const editorContent = targetElement.closest('.monaco-editor, .cm-editor, [contenteditable]')?.textContent || '';
+      if (editorContent.includes(text.substring(0, Math.min(20, text.length)))) {
+        return true;
+      }
+    } catch (err) { console.warn('[TestFlow Vision] Clipboard failed:', err); }
+    
+    // Strategy 3: Direct contenteditable injection
+    try {
+      const editableElement = targetElement.closest('[contenteditable="true"]') as HTMLElement;
+      if (editableElement) {
+        editableElement.focus();
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          range.deleteContents();
+          const textNode = document.createTextNode(text);
+          range.insertNode(textNode);
+          range.setStartAfter(textNode);
+          range.setEndAfter(textNode);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        } else {
+          editableElement.textContent = (editableElement.textContent || '') + text;
+        }
+        editableElement.dispatchEvent(new InputEvent('input', {
+          data: text, inputType: 'insertText', bubbles: true, cancelable: true
+        }));
+        console.log('[TestFlow Vision] Direct injection succeeded');
+        return true;
+      }
+    } catch (e) { console.warn('[TestFlow Vision] Direct injection failed:', e); }
+    
+    // Strategy 4: Character-by-character with beforeinput/input
+    try {
+      targetElement.focus();
+      await new Promise(r => setTimeout(r, 50));
+      for (const char of text) {
+        targetElement.dispatchEvent(new InputEvent('beforeinput', {
+          data: char, inputType: 'insertText', bubbles: true, cancelable: true, composed: true
+        }));
+        targetElement.dispatchEvent(new InputEvent('input', {
+          data: char, inputType: 'insertText', bubbles: true, cancelable: false, composed: true
+        }));
+        await new Promise(r => setTimeout(r, 10));
+      }
+      console.log('[TestFlow Vision] Char-by-char completed');
+      return true;
+    } catch (e) { console.warn('[TestFlow Vision] Char-by-char failed:', e); }
+    
+    console.error('[TestFlow Vision] All strategies failed');
+    return false;
   }
 
   // ---------------------- Play Action ----------------------
@@ -1823,6 +1923,50 @@ const Layout: React.FC = () => {
             return false;
           }
 
+          // B-42: Detect complex editors that need special handling
+          const isVisionStep = bundle.recordedVia === 'vision' || bundle.visionCapture === true;
+          const isComplexEditor = el && (
+            el.closest('.monaco-editor') ||
+            el.closest('.CodeMirror') ||
+            el.closest('.cm-editor') ||
+            el.closest('.xterm') ||
+            el.closest('.ace_editor') ||
+            el.closest('[contenteditable="true"]') ||
+            el.closest('.ProseMirror')
+          );
+          
+          if (isVisionStep || isComplexEditor) {
+            console.log('[TestFlow] Using Vision playback for complex editor');
+            
+            let targetEl = el;
+            
+            // If we have coordinates, find element and click to focus
+            if (bundle.coordinates) {
+              const clickTarget = document.elementFromPoint(bundle.coordinates.x, bundle.coordinates.y) as HTMLElement;
+              if (clickTarget) {
+                clickTarget.click();
+                clickTarget.focus();
+                await new Promise(r => setTimeout(r, 300));
+                targetEl = clickTarget;
+              }
+            } else if (targetEl) {
+              targetEl.click();
+              targetEl.focus();
+              await new Promise(r => setTimeout(r, 300));
+            }
+            
+            if (targetEl) {
+              const success = await simulateTypingForComplexEditor(value, targetEl);
+              if (success) {
+                console.log('[TestFlow Vision] Typing succeeded');
+                return true;
+              }
+            }
+            // Fall through to standard handling if all strategies fail
+            console.warn('[TestFlow Vision] Vision typing failed, trying standard approach');
+          }
+
+          // Standard input handling
           await focusAndSetValue(el, value);
 
           // Handle Select2 special case

@@ -114,30 +114,73 @@ function isMatchingPreviousInput(
     return { isMatch: false };
   }
   
-  const clickedText = (currentStep.value || currentStep.label || '').toLowerCase();
-  if (!clickedText || clickedText.length < 3) {
+  // B-42: Clean and normalize clicked text - remove special chars, normalize spaces
+  let clickedText = (currentStep.value || currentStep.label || '').toLowerCase();
+  // Remove special characters from start (□, •, ▪, ○, ●, etc.)
+  clickedText = clickedText.replace(/^[^\w\d]+/, '').trim();
+  // Remove all non-alphanumeric except spaces, normalize spaces
+  const clickedNormalized = clickedText
+    .replace(/[^\w\d\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  if (!clickedNormalized || clickedNormalized.length < 3) {
     return { isMatch: false };
   }
   
-  // Look at last 5 steps for matching input
+  // Look at last 5 input steps for matching
   const recentInputs = previousSteps
     .map((step, idx) => ({ step, idx }))
     .filter(({ step }) => step.event === 'input' && step.value)
     .slice(-5);
   
   for (const { step: inputStep, idx } of recentInputs) {
-    const inputValue = (inputStep.value || '').toLowerCase();
-    if (!inputValue || inputValue.length < 2) continue;
+    // Normalize input the same way
+    const inputNormalized = (inputStep.value || '').toLowerCase()
+      .replace(/[^\w\d\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
     
-    // Check if clicked text contains the input value
-    const inputWords = inputValue.split(/\s+/);
-    const firstWord = inputWords[0];
+    if (!inputNormalized || inputNormalized.length < 2) continue;
     
-    if (
-      clickedText.includes(inputValue) ||
-      clickedText.startsWith(firstWord) ||
-      inputValue.includes(clickedText.substring(0, 10))
-    ) {
+    // B-42: Multiple matching strategies for reliability
+    const inputWords = inputNormalized.split(' ');
+    const clickedWords = clickedNormalized.split(' ');
+    
+    // Strategy 1: First word matches (most reliable for addresses)
+    // "14006" === "14006"
+    if (inputWords[0] && clickedWords[0] && 
+        inputWords[0] === clickedWords[0] && 
+        inputWords[0].length >= 3) {
+      console.log(`[Cleanup] Match by first word: "${inputWords[0]}"`);
+      return { isMatch: true, matchedStepIndex: idx };
+    }
+    
+    // Strategy 2: Significant word overlap (at least 2 words match)
+    const matchingWords = inputWords.filter(word => 
+      word.length > 2 && clickedWords.some(cw => 
+        cw.includes(word) || word.includes(cw)
+      )
+    );
+    if (matchingWords.length >= 2) {
+      console.log(`[Cleanup] Match by word overlap: ${matchingWords.join(', ')}`);
+      return { isMatch: true, matchedStepIndex: idx };
+    }
+    
+    // Strategy 3: Space-agnostic prefix match
+    // "14006planterswalk" contains "14006planterswalk"
+    const inputNoSpaces = inputNormalized.replace(/\s/g, '');
+    const clickedNoSpaces = clickedNormalized.replace(/\s/g, '');
+    const compareLength = Math.min(inputNoSpaces.length, 12);
+    if (compareLength >= 5 && 
+        clickedNoSpaces.substring(0, compareLength) === inputNoSpaces.substring(0, compareLength)) {
+      console.log(`[Cleanup] Match by prefix: "${inputNoSpaces.substring(0, compareLength)}"`);
+      return { isMatch: true, matchedStepIndex: idx };
+    }
+    
+    // Strategy 4: Input is contained in clicked (space-agnostic)
+    if (inputNoSpaces.length >= 5 && clickedNoSpaces.includes(inputNoSpaces)) {
+      console.log(`[Cleanup] Match by containment: "${inputNoSpaces}" in "${clickedNoSpaces}"`);
       return { isMatch: true, matchedStepIndex: idx };
     }
   }
@@ -273,8 +316,8 @@ export default function Recorder() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
   
-  // VISION: Added state for loop start index (B-39: Changed default to 0)
-  const [loopStartIndex, setLoopStartIndex] = useState<number>(0);
+  // VISION: Added state for loop start index (B-39: Changed default to -1 for no loop)
+  const [loopStartIndex, setLoopStartIndex] = useState<number>(-1);
   // VISION: Added state for global delay
   const [globalDelayMs, setGlobalDelayMs] = useState<number>(0);
   // FIX 7C: Conditional Click modal state
@@ -321,8 +364,8 @@ export default function Recorder() {
           setCurrentProject(project);
           setRecordedSteps(steps);
           
-          // VISION: Load Vision fields from project (B-39: Default 0)
-          setLoopStartIndex(project.loopStartIndex ?? 0);
+          // VISION: Load Vision fields from project (B-39: Default -1 for no loop)
+          setLoopStartIndex(project.loopStartIndex ?? -1);
           setGlobalDelayMs(project.globalDelayMs ?? 0);
         } else {
           //console.error("Failed to load project:", response?.error);
@@ -485,9 +528,9 @@ export default function Recorder() {
 
     // VISION: Adjust loopStartIndex if needed
     if (index < loopStartIndex) {
-      setLoopStartIndex(Math.max(0, loopStartIndex - 1));
+      setLoopStartIndex(Math.max(-1, loopStartIndex - 1));
     } else if (index === loopStartIndex && loopStartIndex >= updatedSteps.length) {
-      setLoopStartIndex(Math.max(0, updatedSteps.length - 1));
+      setLoopStartIndex(Math.max(-1, updatedSteps.length - 1));
     }
 
     updateProjectSteps(

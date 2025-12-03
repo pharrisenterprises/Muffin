@@ -42,6 +42,8 @@ interface RecorderToolbarProps {
   onLoopStartChange?: (index: number) => void;
   globalDelayMs?: number;
   onGlobalDelayChange?: (delayMs: number) => void;
+  delayMode?: 'static' | 'dynamic';
+  onDelayModeChange?: (mode: 'static' | 'dynamic') => void;
   // FIX 7C: Conditional Click handler
   onAddConditionalClick?: () => void;
 }
@@ -58,6 +60,8 @@ export default function RecorderToolbar({
   onLoopStartChange,
   globalDelayMs = 0,
   onGlobalDelayChange,
+  delayMode = 'static',
+  onDelayModeChange,
   // FIX 7C: Conditional Click handler
   onAddConditionalClick,
 }: RecorderToolbarProps) {
@@ -165,7 +169,7 @@ export default function RecorderToolbar({
           className="w-16 h-8 bg-slate-700 border-slate-600"
           min={0}
         />
-        <Select defaultValue="static">
+        <Select value={delayMode} onValueChange={(val) => onDelayModeChange?.(val as 'static' | 'dynamic')}>
           <SelectTrigger className="w-28 h-8 bg-slate-700 border-slate-600">
             <SelectValue />
           </SelectTrigger>
