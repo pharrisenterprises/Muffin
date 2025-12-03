@@ -41,6 +41,10 @@ interface Bundle {
   iframeChain?: IframeInfo[];
   shadowHosts?: string[];
   isClosedShadow?: boolean;
+  // B-40: Vision recording support
+  coordinates?: { x: number; y: number };
+  visionCapture?: boolean;
+  recordedVia?: string;
 }
 
 interface IframeInfo {
@@ -82,6 +86,223 @@ const Layout: React.FC = () => {
     labelCounts.set(key, count + 1);
     return count === 0 ? baseLabel : `${baseLabel}_${count}`;
   };
+
+  // ============================================
+  // BATCH B-40: Vision Recording for Complex Editors
+  // Enables recording from Monaco, CodeMirror, Terminal, etc.
+  // ============================================
+
+  /**
+   * Detects if an element is a complex editor that doesn't expose .value
+   * These editors store text in JS memory, not DOM properties
+   */
+  function isComplexEditor(element: HTMLElement | null): boolean {
+    if (!element) return false;
+    
+    return !!(
+      // Monaco Editor (GitHub Copilot, VS Code Web, Azure DevOps)
+      element.closest('.monaco-editor') ||
+      element.closest('.monaco-mouse-cursor-text') ||
+      element.closest('[data-mprt="7"]') || // Monaco input area
+      
+      // CodeMirror (Jupyter, Observable, many code playgrounds)
+      element.closest('.CodeMirror') ||
+      element.closest('.cm-editor') ||
+      element.closest('.cm-content') ||
+      
+      // Terminal emulators
+      element.closest('.xterm') ||
+      element.closest('.terminal') ||
+      element.closest('[data-terminal]') ||
+      
+      // Ace Editor
+      element.closest('.ace_editor') ||
+      element.closest('.ace_text-input') ||
+      
+      // ProseMirror (Notion, Confluence, many rich text editors)
+      element.closest('.ProseMirror') ||
+      
+      // Quill Editor
+      element.closest('.ql-editor') ||
+      
+      // TinyMCE
+      element.closest('.mce-content-body') ||
+      
+      // Generic contenteditable that's NOT a simple input
+      (element.getAttribute('contenteditable') === 'true' &&
+       element.closest('[class*="editor"]')) ||
+      
+      // Slack message input
+      element.closest('[data-qa="message_input"]') ||
+      
+      // Discord message input  
+      element.closest('[class*="slateTextArea"]')
+    );
+  }
+
+  /**
+   * Gets the visible text content from a complex editor
+   * Tries multiple strategies
+   */
+  function getComplexEditorText(element: HTMLElement): string | null {
+    // Strategy 1: Try to find text content in view lines (Monaco)
+    const viewLines = element.closest('.monaco-editor')?.querySelectorAll('.view-line');
+    if (viewLines && viewLines.length > 0) {
+      const text = Array.from(viewLines)
+        .map(line => line.textContent || '')
+        .join('\n')
+        .trim();
+      if (text) return text;
+    }
+    
+    // Strategy 2: Try CodeMirror content
+    const cmContent = element.closest('.cm-editor')?.querySelector('.cm-content');
+    if (cmContent) {
+      const text = cmContent.textContent?.trim();
+      if (text) return text;
+    }
+    
+    // Strategy 3: Try contenteditable innerText
+    const editable = element.closest('[contenteditable="true"]');
+    if (editable) {
+      const text = (editable as HTMLElement).innerText?.trim();
+      if (text) return text;
+    }
+    
+    // Strategy 4: Try active element's text
+    const activeEl = document.activeElement as HTMLElement;
+    if (activeEl?.innerText) {
+      const text = activeEl.innerText.trim();
+      if (text) return text;
+    }
+    
+    return null;
+  }
+
+  // Vision recording state
+  let visionRecordingDebounce: NodeJS.Timeout | null = null;
+  let lastVisionRecordedText: string = '';
+
+  /**
+   * Captures text from complex editor using Vision OCR
+   * Called when DOM-based recording fails
+   */
+  async function captureVisionInput(target: HTMLElement): Promise<{
+    text: string;
+    bounds: DOMRect;
+    screenshot?: string;
+  } | null> {
+    try {
+      // First try DOM-based text extraction (faster, no screenshot needed)
+      const domText = getComplexEditorText(target);
+      if (domText && domText !== lastVisionRecordedText) {
+        const bounds = target.getBoundingClientRect();
+        return { text: domText, bounds };
+      }
+      
+      // Fall back to screenshot + OCR
+      const editorElement = target.closest('.monaco-editor, .CodeMirror, .cm-editor, .xterm, .ace_editor, [contenteditable="true"]') as HTMLElement;
+      if (!editorElement) return null;
+      
+      const bounds = editorElement.getBoundingClientRect();
+      
+      // Request screenshot from background script
+      const response = await chrome.runtime.sendMessage({
+        type: 'VISION_CAPTURE_FOR_RECORDING',
+        bounds: {
+          x: bounds.x,
+          y: bounds.y,
+          width: bounds.width,
+          height: bounds.height
+        }
+      });
+      
+      if (response?.error) {
+        console.error('[TestFlow Vision] Screenshot failed:', response.error);
+        return null;
+      }
+      
+      if (response?.text) {
+        return {
+          text: response.text,
+          bounds: bounds,
+          screenshot: response.screenshot
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('[TestFlow Vision] Capture failed:', error);
+      return null;
+    }
+  }
+
+  // Keyboard buffer for complex editors
+  let keyboardBuffer: string = '';
+  let keyboardDebounce: NodeJS.Timeout | null = null;
+
+  function handleKeydownForComplexEditor(event: KeyboardEvent) {
+    const target = event.target as HTMLElement;
+    
+    // Only for complex editors
+    if (!isComplexEditor(target)) return;
+    
+    // Skip modifier-only keys
+    if (['Control', 'Alt', 'Shift', 'Meta', 'CapsLock'].includes(event.key)) return;
+    
+    // Build buffer from keystrokes
+    if (event.key === 'Backspace') {
+      keyboardBuffer = keyboardBuffer.slice(0, -1);
+    } else if (event.key === 'Enter' && !event.shiftKey) {
+      // Enter without shift = submit, trigger immediate recording
+      if (keyboardBuffer.trim()) {
+        recordComplexEditorInput(target, keyboardBuffer);
+        keyboardBuffer = '';
+      }
+    } else if (event.key === 'Enter' && event.shiftKey) {
+      keyboardBuffer += '\n';
+    } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
+      keyboardBuffer += event.key;
+    }
+    
+    // Debounced recording after typing stops
+    if (keyboardDebounce) clearTimeout(keyboardDebounce);
+    keyboardDebounce = setTimeout(() => {
+      if (keyboardBuffer.trim()) {
+        recordComplexEditorInput(target, keyboardBuffer);
+        // Don't clear buffer - might be partial
+      }
+    }, 2000);
+  }
+
+  function recordComplexEditorInput(target: HTMLElement, text: string) {
+    if (text === lastVisionRecordedText) return; // Avoid duplicates
+    lastVisionRecordedText = text;
+    
+    const bounds = target.getBoundingClientRect();
+    const xpath = getXPath(target);
+    const bundle = recordElement(target);
+    
+    logEvent({
+      eventType: 'input',
+      xpath: xpath,
+      value: text,
+      label: generateSequentialLabel('prompt_input'),
+      page: window.location.href,
+      bundle: {
+        ...bundle,
+        coordinates: {
+          x: bounds.x + bounds.width / 2,
+          y: bounds.y + bounds.height / 2
+        },
+        recordedVia: 'keyboard'
+      },
+      x: bounds.x + bounds.width / 2,
+      y: bounds.y + bounds.height / 2
+    });
+    
+    console.log('[TestFlow Keyboard] Recorded:', text.substring(0, 100) + '...');
+  }
   
   // VISION: Generate unique labels for similar elements (e.g., search, search_1, search_2)
   const generateUniqueLabel = (baseLabel: string | undefined): string | undefined => {
@@ -637,7 +858,7 @@ const Layout: React.FC = () => {
     }, 30);
   };
 
-  const handleInput = (event: Event): void => {
+  const handleInput = async (event: Event): Promise<void> => {
     const target = event.target as HTMLElement;
     if (!target) return;
 
@@ -648,46 +869,143 @@ const Layout: React.FC = () => {
 
     let value = '';
     let xpathTarget: HTMLElement = target;
+    let coordinates: { x: number; y: number } | undefined;
 
-    // Handle contenteditable
-    const contentEditable = target.closest('[contenteditable="true"]') as HTMLElement | null;
-    if (contentEditable) {
-      xpathTarget = contentEditable;
-      value = contentEditable.innerText || contentEditable.textContent || '';
-    }
-    // Input or textarea
-    else if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+    // === STANDARD INPUT/TEXTAREA (DOM Recording) ===
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
       xpathTarget = target;
 
       if (target instanceof HTMLInputElement && (target.type === 'checkbox' || target.type === 'radio')) {
         value = target.checked.toString();
-      } else if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+      } else {
         value = target.value;
       }
+
+      if (value) {
+        const focusedEl = getFocusedElement(target);
+        let bundle;
+        if (focusedEl) bundle = recordElement(focusedEl);
+
+        logEvent({
+          eventType: 'input',
+          xpath: getXPath(xpathTarget),
+          bundle,
+          value,
+          label: generateUniqueLabel(getLabelForTarget(target)),
+          page: window.location.href,
+        });
+      }
+      return;
     }
-    // Select element
-    else if (target instanceof HTMLSelectElement) {
+
+    // === SELECT ELEMENT ===
+    if (target instanceof HTMLSelectElement) {
       xpathTarget = target;
       value = target.selectedOptions[0]?.textContent?.trim() || target.value;
-    }
-    // Fallback text
-    else {
-      xpathTarget = target;
-      value = (target.textContent || '').trim();
+
+      if (value) {
+        const focusedEl = getFocusedElement(target);
+        let bundle;
+        if (focusedEl) bundle = recordElement(focusedEl);
+
+        logEvent({
+          eventType: 'input',
+          xpath: getXPath(xpathTarget),
+          bundle,
+          value,
+          label: generateUniqueLabel(getLabelForTarget(target)),
+          page: window.location.href,
+        });
+      }
+      return;
     }
 
-    const focusedEl = getFocusedElement(target);
-    let bundle;
-    if (focusedEl) bundle = recordElement(focusedEl);
+    // === COMPLEX EDITOR (Vision Recording) ===
+    if (isComplexEditor(target)) {
+      // Debounce Vision recording (wait for user to stop typing)
+      if (visionRecordingDebounce) {
+        clearTimeout(visionRecordingDebounce);
+      }
+      
+      visionRecordingDebounce = setTimeout(async () => {
+        console.log('[TestFlow] Complex editor detected, attempting Vision recording...');
+        
+        const visionResult = await captureVisionInput(target);
+        
+        if (visionResult && visionResult.text && visionResult.text !== lastVisionRecordedText) {
+          lastVisionRecordedText = visionResult.text;
+          
+          const bounds = visionResult.bounds;
+          const xpath = getXPath(target);
+          const bundle = recordElement(target);
+          
+          // Add coordinates for Vision playback
+          coordinates = {
+            x: bounds.x + bounds.width / 2,
+            y: bounds.y + bounds.height / 2
+          };
+          
+          logEvent({
+            eventType: 'input',
+            xpath: xpath,
+            value: visionResult.text,
+            label: generateSequentialLabel('prompt_input'),
+            page: window.location.href,
+            bundle: {
+              ...bundle,
+              coordinates: coordinates,
+              visionCapture: true
+            },
+            x: coordinates.x,
+            y: coordinates.y
+          });
+          
+          console.log('[TestFlow Vision] Recorded:', visionResult.text.substring(0, 100) + '...');
+        }
+      }, 1500); // Wait 1.5s after typing stops
+      
+      return;
+    }
 
-    logEvent({
-      eventType: 'input',
-      xpath: getXPath(xpathTarget),
-      bundle,
-      value,
-      label: generateUniqueLabel(getLabelForTarget(target)),
-      page: window.location.href,
-    });
+    // === CONTENTEDITABLE (Try both) ===
+    const contentEditable = target.closest('[contenteditable="true"]') as HTMLElement | null;
+    if (contentEditable) {
+      xpathTarget = contentEditable;
+      value = contentEditable.innerText?.trim() || '';
+      
+      if (value) {
+        const focusedEl = getFocusedElement(target);
+        let bundle;
+        if (focusedEl) bundle = recordElement(focusedEl);
+
+        logEvent({
+          eventType: 'input',
+          xpath: getXPath(xpathTarget),
+          bundle,
+          value,
+          label: generateSequentialLabel(getLabelForTarget(target) || 'editor_input'),
+          page: window.location.href,
+        });
+      }
+      return;
+    }
+
+    // === FALLBACK ===
+    value = (target.textContent || '').trim();
+    if (value) {
+      const focusedEl = getFocusedElement(target);
+      let bundle;
+      if (focusedEl) bundle = recordElement(focusedEl);
+
+      logEvent({
+        eventType: 'input',
+        xpath: getXPath(target),
+        bundle,
+        value,
+        label: generateUniqueLabel(getLabelForTarget(target)),
+        page: window.location.href,
+      });
+    }
   };
 
   // ---------------------- Runtime Message Handler ----------------------
@@ -718,6 +1036,14 @@ const Layout: React.FC = () => {
     // FIX 2: Reset label counters for fresh sequential numbering
     resetLabelCounters();
     
+    // B-40: Reset Vision recording state
+    lastVisionRecordedText = '';
+    keyboardBuffer = '';
+    if (visionRecordingDebounce) clearTimeout(visionRecordingDebounce);
+    if (keyboardDebounce) clearTimeout(keyboardDebounce);
+    
+    console.log('[TestFlow] Content script initialized, Vision recording enabled');
+    
     logOpenPageEvent();
 
     // main doc
@@ -745,6 +1071,8 @@ const Layout: React.FC = () => {
 
     doc.addEventListener("input", handleInput, true);
     doc.addEventListener("keydown", handleKeyDown, true);
+    // B-40: Add keyboard listener for complex editors
+    doc.addEventListener("keydown", handleKeydownForComplexEditor, true);
   }
 
   // ---------------------- Remove listeners ----------------------
@@ -753,6 +1081,8 @@ const Layout: React.FC = () => {
     doc.removeEventListener("mousedown", handleClick, true);
     doc.removeEventListener("input", handleInput, true);
     doc.removeEventListener("keydown", handleKeyDown, true);
+    // B-40: Remove complex editor keyboard listener
+    doc.removeEventListener("keydown", handleKeydownForComplexEditor, true);
   }
 
   function injectScript(fileName: string) {

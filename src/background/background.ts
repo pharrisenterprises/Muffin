@@ -20,6 +20,44 @@ ensurePersistentStorage();
 
 let openedTabId: number | null = null;
 const trackedTabs = new Set<number>();
+
+// ============================================
+// BATCH B-40: Vision Recording Support
+// Captures screenshots for OCR during recording
+// ============================================
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'VISION_CAPTURE_FOR_RECORDING') {
+    (async () => {
+      try {
+        if (!sender.tab?.windowId) {
+          sendResponse({ error: 'No window context' });
+          return;
+        }
+        
+        // Capture the visible tab
+        const screenshot = await chrome.tabs.captureVisibleTab(
+          sender.tab.windowId,
+          { format: 'png' }
+        );
+        
+        // For now, return screenshot and let content script handle OCR
+        // (Tesseract works better in content script context)
+        sendResponse({
+          screenshot: screenshot,
+          bounds: message.bounds,
+          text: null // Content script will extract via DOM first
+        });
+        
+      } catch (error) {
+        console.error('[TestFlow Background] Screenshot capture failed:', error);
+        sendResponse({ error: String(error) });
+      }
+    })();
+    
+    return true; // Keep channel open for async response
+  }
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log("[Background] Message received:", message, "from sender:", sender);
   
