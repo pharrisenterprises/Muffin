@@ -121,8 +121,8 @@ function validateLoopStartIndex(
 
   if (typeof loopStartIndex !== 'number') {
     errors.push('loopStartIndex must be a number');
-  } else if (loopStartIndex < 0) {
-    errors.push('loopStartIndex cannot be negative');
+  } else if (loopStartIndex < -1) {
+    errors.push('loopStartIndex cannot be less than -1');
   } else if (stepCount > 0 && loopStartIndex >= stepCount) {
     errors.push(`loopStartIndex (${loopStartIndex}) exceeds step count (${stepCount})`);
   } else if (loopStartIndex > 0 && loopStartIndex === stepCount - 1) {

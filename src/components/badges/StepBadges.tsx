@@ -49,7 +49,7 @@ export interface StepBadgesProps {
 export function StepBadges({
   step,
   stepIndex,
-  loopStartIndex = 0,
+  loopStartIndex = -1,
   className = '',
   size = 'sm',
 }: StepBadgesProps): JSX.Element {

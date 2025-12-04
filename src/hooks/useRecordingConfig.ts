@@ -53,7 +53,7 @@ export interface UseRecordingConfigReturn {
 
 export const DEFAULT_RECORDING_CONFIG: RecordingConfig = {
   globalDelayMs: 0,
-  loopStartIndex: 0,
+  loopStartIndex: -1,
   conditionalDefaults: {
     searchTerms: ['Allow', 'Keep'],
     timeoutSeconds: 120,

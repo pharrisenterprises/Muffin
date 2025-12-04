@@ -204,7 +204,7 @@ class ProjectDB extends Dexie {
             project.schemaVersion = CURRENT_SCHEMA_VERSION;
 
             // Add Vision fields with defaults
-            project.loopStartIndex = project.loopStartIndex ?? 0;
+            project.loopStartIndex = project.loopStartIndex ?? -1;
             project.globalDelayMs = project.globalDelayMs ?? 0;
             project.conditionalDefaults = project.conditionalDefaults ?? {
               ...DEFAULT_CONDITIONAL_DEFAULTS,
@@ -239,7 +239,7 @@ class ProjectDB extends Dexie {
     const fullProject: Omit<Project, 'id'> = {
       ...project,
       schemaVersion: CURRENT_SCHEMA_VERSION,
-      loopStartIndex: 0,
+      loopStartIndex: -1,
       globalDelayMs: 0,
       conditionalDefaults: { ...DEFAULT_CONDITIONAL_DEFAULTS },
       recorded_steps: (project.recorded_steps || []).map(migrateStep),
@@ -299,7 +299,7 @@ class ProjectDB extends Dexie {
    */
   async setLoopStartIndex(projectId: number, loopStartIndex: number): Promise<number> {
     return await this.projects.update(projectId, {
-      loopStartIndex: Math.max(0, loopStartIndex),
+      loopStartIndex: loopStartIndex ?? -1,
       updated_date: new Date().toISOString(),
     });
   }
@@ -462,7 +462,7 @@ function ensureProjectDefaults(project: Partial<Project>): Project {
   return {
     ...project,
     schemaVersion: project.schemaVersion ?? CURRENT_SCHEMA_VERSION,
-    loopStartIndex: project.loopStartIndex ?? 0,
+    loopStartIndex: project.loopStartIndex ?? -1,
     globalDelayMs: project.globalDelayMs ?? 0,
     conditionalDefaults: project.conditionalDefaults ?? { ...DEFAULT_CONDITIONAL_DEFAULTS },
     recorded_steps: (project.recorded_steps || []).map(migrateStep),

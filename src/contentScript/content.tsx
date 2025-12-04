@@ -1883,37 +1883,225 @@ const Layout: React.FC = () => {
     const actionType = action.type ?? "";
 
     // B-43: Complex editor typing simulation
+    // B-48: Comprehensive typing function with xterm support
     const simulateTypingForComplexEditor = async (text: string, targetElement: HTMLElement): Promise<boolean> => {
-      console.log('[TestFlow Vision] Attempting complex editor typing:', text.substring(0, 30));
-      try { targetElement.focus(); await new Promise(r => setTimeout(r, 100));
-        if (document.queryCommandSupported?.('insertText')) { if (document.execCommand('insertText', false, text)) { console.log('[TestFlow Vision] execCommand succeeded'); return true; } }
-      } catch (e) { console.warn('[TestFlow Vision] execCommand failed:', e); }
-      try { targetElement.focus(); await new Promise(r => setTimeout(r, 100)); await navigator.clipboard.writeText(text);
-        targetElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', code: 'KeyV', keyCode: 86, which: 86, ctrlKey: true, bubbles: true, cancelable: true }));
-        const pasteEvent = new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: new DataTransfer() });
+      console.log('[TestFlow Vision] Attempting complex editor typing:', text.substring(0, 30), 'length:', text.length);
+      
+      // ========================================
+      // STRATEGY 0: xterm Terminal (MUST BE FIRST)
+      // ========================================
+      const xtermTextarea = document.querySelector('.xterm-helper-textarea') as HTMLTextAreaElement;
+      const isXterm = xtermTextarea || targetElement.closest('.xterm') || targetElement.closest('[class*="xterm"]');
+      
+      if (isXterm) {
+        console.log('[TestFlow Vision] Strategy 0: xterm character-by-character');
+        const target = xtermTextarea || targetElement;
+        
+        try {
+          target.focus();
+          await new Promise(r => setTimeout(r, 50));
+          
+          for (const char of text) {
+            const keyCode = char.charCodeAt(0);
+            const code = char === ' ' ? 'Space' : char === '\n' ? 'Enter' : `Key${char.toUpperCase()}`;
+            
+            target.dispatchEvent(new KeyboardEvent('keydown', {
+              key: char,
+              code: code,
+              keyCode: keyCode,
+              which: keyCode,
+              bubbles: true,
+              cancelable: true
+            }));
+            
+            target.dispatchEvent(new KeyboardEvent('keypress', {
+              key: char,
+              code: code,
+              keyCode: keyCode,
+              which: keyCode,
+              charCode: keyCode,
+              bubbles: true,
+              cancelable: true
+            }));
+            
+            // For xterm, also try input event
+            if (xtermTextarea) {
+              const inputEvent = new InputEvent('input', {
+                data: char,
+                inputType: 'insertText',
+                bubbles: true,
+                cancelable: true
+              });
+              target.dispatchEvent(inputEvent);
+            }
+            
+            target.dispatchEvent(new KeyboardEvent('keyup', {
+              key: char,
+              code: code,
+              keyCode: keyCode,
+              which: keyCode,
+              bubbles: true,
+              cancelable: true
+            }));
+            
+            await new Promise(r => setTimeout(r, 15)); // Small delay between chars
+          }
+          
+          console.log('[TestFlow Vision] xterm typing complete');
+          return true;
+        } catch (e) {
+          console.warn('[TestFlow Vision] xterm strategy failed:', e);
+        }
+      }
+      
+      // ========================================
+      // STRATEGY 1: execCommand (contenteditable)
+      // ========================================
+      try {
+        targetElement.focus();
+        await new Promise(r => setTimeout(r, 100));
+        
+        if (document.queryCommandSupported?.('insertText')) {
+          const success = document.execCommand('insertText', false, text);
+          if (success) {
+            console.log('[TestFlow Vision] Strategy 1: execCommand succeeded');
+            return true;
+          }
+        }
+      } catch (e) {
+        console.warn('[TestFlow Vision] Strategy 1 (execCommand) failed:', e);
+      }
+      
+      // ========================================
+      // STRATEGY 2: Clipboard paste (Monaco, etc.)
+      // ========================================
+      try {
+        targetElement.focus();
+        await new Promise(r => setTimeout(r, 100));
+        
+        await navigator.clipboard.writeText(text);
+        
+        // Simulate Ctrl+V
+        targetElement.dispatchEvent(new KeyboardEvent('keydown', {
+          key: 'v',
+          code: 'KeyV',
+          keyCode: 86,
+          which: 86,
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true
+        }));
+        
+        // Create paste event
+        const pasteEvent = new ClipboardEvent('paste', {
+          bubbles: true,
+          cancelable: true,
+          clipboardData: new DataTransfer()
+        });
         (pasteEvent.clipboardData as DataTransfer).setData('text/plain', text);
         targetElement.dispatchEvent(pasteEvent);
-        console.log('[TestFlow Vision] Clipboard paste attempted'); await new Promise(r => setTimeout(r, 200));
+        
+        console.log('[TestFlow Vision] Strategy 2: Clipboard paste attempted');
+        await new Promise(r => setTimeout(r, 200));
+        
+        // Verify paste worked
         const editorContent = targetElement.closest('.monaco-editor, .cm-editor, [contenteditable]')?.textContent || '';
-        if (editorContent.includes(text.substring(0, Math.min(20, text.length)))) { return true; }
-      } catch (err) { console.warn('[TestFlow Vision] Clipboard failed:', err); }
-      try { const editableElement = targetElement.closest('[contenteditable="true"]') as HTMLElement;
-        if (editableElement) { editableElement.focus(); const selection = window.getSelection();
-          if (selection && selection.rangeCount > 0) { const range = selection.getRangeAt(0); range.deleteContents();
-            const textNode = document.createTextNode(text); range.insertNode(textNode);
-            range.setStartAfter(textNode); range.setEndAfter(textNode);
-            selection.removeAllRanges(); selection.addRange(range); }
-          else { editableElement.textContent = (editableElement.textContent || '') + text; }
-          editableElement.dispatchEvent(new InputEvent('input', { data: text, inputType: 'insertText', bubbles: true, cancelable: true }));
-          console.log('[TestFlow Vision] Direct injection succeeded'); return true; }
-      } catch (e) { console.warn('[TestFlow Vision] Direct injection failed:', e); }
-      try { targetElement.focus(); await new Promise(r => setTimeout(r, 50));
-        for (const char of text) { targetElement.dispatchEvent(new InputEvent('beforeinput', { data: char, inputType: 'insertText', bubbles: true, cancelable: true, composed: true }));
-          targetElement.dispatchEvent(new InputEvent('input', { data: char, inputType: 'insertText', bubbles: true, cancelable: false, composed: true }));
-          await new Promise(r => setTimeout(r, 10)); }
-        console.log('[TestFlow Vision] Char-by-char completed'); return true;
-      } catch (e) { console.warn('[TestFlow Vision] Char-by-char failed:', e); }
-      console.error('[TestFlow Vision] All strategies failed'); return false;
+        if (editorContent.includes(text.substring(0, Math.min(20, text.length)))) {
+          console.log('[TestFlow Vision] Strategy 2: Clipboard paste verified');
+          return true;
+        }
+      } catch (e) {
+        console.warn('[TestFlow Vision] Strategy 2 (clipboard) failed:', e);
+      }
+      
+      // ========================================
+      // STRATEGY 3: Selection/Range (contenteditable)
+      // ========================================
+      try {
+        const editableElement = targetElement.closest('[contenteditable="true"]') as HTMLElement;
+        
+        if (editableElement) {
+          editableElement.focus();
+          const selection = window.getSelection();
+          
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            
+            const textNode = document.createTextNode(text);
+            range.insertNode(textNode);
+            
+            range.setStartAfter(textNode);
+            range.setEndAfter(textNode);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          } else {
+            editableElement.textContent = (editableElement.textContent || '') + text;
+          }
+          
+          editableElement.dispatchEvent(new InputEvent('input', {
+            data: text,
+            inputType: 'insertText',
+            bubbles: true,
+            cancelable: true
+          }));
+          
+          console.log('[TestFlow Vision] Strategy 3: Selection/Range succeeded');
+          return true;
+        }
+      } catch (e) {
+        console.warn('[TestFlow Vision] Strategy 3 (selection) failed:', e);
+      }
+      
+      // ========================================
+      // STRATEGY 4: Character-by-character InputEvents (fallback)
+      // ========================================
+      try {
+        targetElement.focus();
+        await new Promise(r => setTimeout(r, 100));
+        
+        for (const char of text) {
+          targetElement.dispatchEvent(new InputEvent('beforeinput', {
+            data: char,
+            inputType: 'insertText',
+            bubbles: true,
+            cancelable: true
+          }));
+          
+          targetElement.dispatchEvent(new InputEvent('input', {
+            data: char,
+            inputType: 'insertText',
+            bubbles: true,
+            cancelable: true
+          }));
+          
+          await new Promise(r => setTimeout(r, 10));
+        }
+        
+        console.log('[TestFlow Vision] Strategy 4: Character InputEvents complete');
+        return true;
+      } catch (e) {
+        console.warn('[TestFlow Vision] Strategy 4 (char input) failed:', e);
+      }
+      
+      // ========================================
+      // STRATEGY 5: Direct value set (last resort)
+      // ========================================
+      try {
+        if (targetElement instanceof HTMLInputElement || targetElement instanceof HTMLTextAreaElement) {
+          targetElement.focus();
+          targetElement.value = text;
+          targetElement.dispatchEvent(new Event('input', { bubbles: true }));
+          targetElement.dispatchEvent(new Event('change', { bubbles: true }));
+          console.log('[TestFlow Vision] Strategy 5: Direct value set');
+          return true;
+        }
+      } catch (e) {
+        console.warn('[TestFlow Vision] Strategy 5 (direct value) failed:', e);
+      }
+      
+      console.error('[TestFlow Vision] All strategies failed for:', targetElement.tagName, targetElement.className);
+      return false;
     };
 
     if (bundleTag.toLowerCase() === "gmp-place-autocomplete") {
@@ -2062,21 +2250,40 @@ const Layout: React.FC = () => {
             return false;
           }
 
-          // B-43: Vision playback with complex editor support
+          // B-48: Check for terminal first, then other complex editors
+          const xtermTextarea = document.querySelector('.xterm-helper-textarea') as HTMLElement;
+          const isTerminal = xtermTextarea || el?.closest('.xterm') || el?.closest('[class*="terminal"]');
           const isVisionStep = bundle.recordedVia === 'vision' || bundle.visionCapture === true;
-          const isComplexEditor = el && (el.closest('.monaco-editor') || el.closest('.CodeMirror') || el.closest('.cm-editor') || el.closest('.xterm') || el.closest('[contenteditable="true"]'));
-          console.log('[TestFlow] Input:', { isVisionStep, isComplexEditor });
+          const isComplexEditor = el && (
+            el.closest('.monaco-editor') || 
+            el.closest('.CodeMirror') || 
+            el.closest('.cm-editor') || 
+            el.closest('.xterm') || 
+            el.closest('.ace_editor') ||
+            el.closest('[contenteditable="true"]')
+          );
           
-          if (isVisionStep || isComplexEditor) {
-            console.log('[TestFlow Vision] Using complex editor typing');
-            el.click();
-            el.focus();
+          console.log('[TestFlow] Input step:', { 
+            value: value.substring(0, 30),
+            isTerminal: !!isTerminal,
+            isVisionStep, 
+            isComplexEditor: !!isComplexEditor 
+          });
+          
+          // B-48: For terminals, override element to use xterm textarea
+          const typingTarget = isTerminal ? (xtermTextarea || el) : el;
+          
+          if (isTerminal || isVisionStep || isComplexEditor) {
+            console.log('[TestFlow Vision] Using complex editor typing, target:', typingTarget?.className);
+            typingTarget.click();
+            typingTarget.focus();
             await new Promise(r => setTimeout(r, 300));
-            const success = await simulateTypingForComplexEditor(value, el);
+            const success = await simulateTypingForComplexEditor(value, typingTarget);
             if (success) {
               console.log('[TestFlow Vision] Complex editor typing succeeded');
               return true;
             }
+            console.warn('[TestFlow Vision] Complex editor typing failed, trying standard');
           }
 
           // Standard input handling
@@ -2105,32 +2312,51 @@ const Layout: React.FC = () => {
         case "enter": {
           const value = action.value ?? "";
           
-          // B-46: Terminal special handling
-          const terminalTextarea = document.querySelector('.xterm-helper-textarea') as HTMLTextAreaElement;
-          if (terminalTextarea || el.closest('.xterm') || el.closest('[class*="terminal"]')) {
-            const target = terminalTextarea || el as HTMLTextAreaElement;
-            console.log('[TestFlow] Terminal Enter');
+          // B-48: Terminal special handling
+          const xtermTextarea = document.querySelector('.xterm-helper-textarea') as HTMLElement;
+          const isTerminal = xtermTextarea || el?.closest('.xterm') || el?.closest('[class*="terminal"]');
+          
+          if (isTerminal) {
+            const target = xtermTextarea || el;
+            console.log('[TestFlow] Terminal Enter detected');
+            
             target.focus();
+            await new Promise(r => setTimeout(r, 50));
+            
+            // If there's text to type first, use the typing function
             if (value) {
-              // Type the value first
-              target.value = value;
-              target.dispatchEvent(new Event('input', { bubbles: true }));
+              console.log('[TestFlow] Terminal: typing value before Enter:', value);
+              await simulateTypingForComplexEditor(value, target);
+              await new Promise(r => setTimeout(r, 100));
             }
-            // Send Enter key
+            
+            // Send Enter key - use global KeyboardEvent (NOT frameWin)
+            console.log('[TestFlow] Terminal: sending Enter key');
             ['keydown', 'keypress', 'keyup'].forEach(type => {
-              target.dispatchEvent(new frameWin.KeyboardEvent(type, {
-                key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true
+              target.dispatchEvent(new KeyboardEvent(type, {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true,
+                cancelable: true
               }));
             });
+            
             return true;
           }
           
-          // Standard handling
+          // Standard Enter handling
           if (value) await focusAndSetValue(el, value);
 
-          ["keydown", "keypress", "keyup"].forEach(type => {
-            el.dispatchEvent(new frameWin.KeyboardEvent(type, {
-              key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true
+          ['keydown', 'keypress', 'keyup'].forEach(type => {
+            el.dispatchEvent(new KeyboardEvent(type, {
+              key: 'Enter',
+              code: 'Enter',
+              keyCode: 13,
+              which: 13,
+              bubbles: true,
+              cancelable: true
             }));
           });
 

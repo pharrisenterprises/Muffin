@@ -192,7 +192,7 @@ export function createRecording(
     projectId,
     steps: [],
     schemaVersion: CURRENT_SCHEMA_VERSION,
-    loopStartIndex: 0,
+    loopStartIndex: -1,
     globalDelayMs: 0,
     conditionalDefaults: { ...DEFAULT_RECORDING_CONDITIONAL },
     createdAt: now,

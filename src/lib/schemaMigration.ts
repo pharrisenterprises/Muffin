@@ -29,7 +29,7 @@ export const CURRENT_SCHEMA_VERSION = 3;
 /** Default values for migration */
 export const MIGRATION_DEFAULTS = {
   recordedVia: 'dom' as RecordedVia,
-  loopStartIndex: 0,
+  loopStartIndex: -1,
   globalDelayMs: 0,
   conditionalDefaults: {
     searchTerms: ['Allow', 'Keep'],
