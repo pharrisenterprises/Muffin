@@ -1,4 +1,5 @@
 import "../src/css/InputAiPopup.css";
+import "../src/css/dashboard.css";
 import { useEffect } from "react";
 import Router from "./routes/Router";
 // Check if chrome.runtime is available
