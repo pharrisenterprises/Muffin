@@ -276,6 +276,60 @@ export default function TestRunner() {
               await new Promise(r => setTimeout(r, perStepDelay * 1000));
             }
 
+            // B-47: Handle conditional-click steps with polling loop
+            if (step.event === 'conditional-click') {
+              const config = step.conditionalConfig || {
+                searchTerms: ['Allow', 'Keep', 'Continue'],
+                timeoutSeconds: step.delaySeconds || 300,
+                pollIntervalMs: 500
+              };
+              
+              addLog('info', '🔍 Starting conditional click: ' + config.searchTerms.join(', '));
+              addLog('info', '⏱️ Timeout: ' + config.timeoutSeconds + 's, Poll: ' + config.pollIntervalMs + 'ms');
+              addLog('info', '👀 Watching for buttons... (this will take up to ' + config.timeoutSeconds + ' seconds)');
+              
+              try {
+                const result = await new Promise<{ buttonsClicked: number; timedOut: boolean; pollCount: number }>((resolve) => {
+                  // Set a safety timeout slightly longer than the configured timeout
+                  const safetyTimeout = setTimeout(() => {
+                    resolve({ buttonsClicked: 0, timedOut: true, pollCount: 0 });
+                  }, (config.timeoutSeconds + 60) * 1000);
+                  
+                  chrome.tabs.sendMessage(tabId, {
+                    type: 'CONDITIONAL_CLICK_START',
+                    config
+                  }, (response) => {
+                    clearTimeout(safetyTimeout);
+                    if (chrome.runtime.lastError) {
+                      console.error('Conditional click error:', chrome.runtime.lastError);
+                      resolve({ buttonsClicked: 0, timedOut: true, pollCount: 0 });
+                    } else {
+                      resolve(response || { buttonsClicked: 0, timedOut: true, pollCount: 0 });
+                    }
+                  });
+                });
+                
+                addLog('success', '✅ Conditional complete: ' + result.buttonsClicked + ' buttons clicked after ' + result.pollCount + ' polls');
+                
+                if (result.buttonsClicked > 0) {
+                  addLog('info', '🎉 Successfully clicked ' + result.buttonsClicked + ' button(s)');
+                }
+                
+                step.status = "passed";
+                updateStepStatus(stepIndex, "passed", 0);
+              } catch (error) {
+                addLog('error', '❌ Conditional click error: ' + String(error));
+                step.status = "failed";
+                updateStepStatus(stepIndex, "failed", 0, String(error));
+              }
+              
+              setProgress(((stepIndex + 1) / testSteps.length) * 100);
+              prev_step = { ...step, bundle: step.bundle || {} } as any;
+              
+              // Continue to next step after conditional completes
+              continue;
+            }
+
             if (step.event === "input" || step.event === "click") {
               let inputValue: string | undefined;
 

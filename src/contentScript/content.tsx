@@ -69,6 +69,12 @@ interface RunStepMessage {
     value?: string;
     label?: string;
   };
+  // B-47: Conditional click config
+  config?: {
+    searchTerms: string[];
+    timeoutSeconds: number;
+    pollIntervalMs: number;
+  };
 }
 
 
@@ -1069,6 +1075,100 @@ const Layout: React.FC = () => {
     if (message.type === 'checkPageReady') {
       const isReady = document.readyState === 'complete' && !document.querySelector('.loading, .spinner, [aria-busy="true"]');
       sendResponse({ ready: isReady });
+      return true;
+    }
+    
+    // B-47: Conditional click polling loop
+    if (message.type === 'CONDITIONAL_CLICK_START') {
+      const config = message.config || {
+        searchTerms: ['Allow', 'Keep', 'Continue'],
+        timeoutSeconds: 300,
+        pollIntervalMs: 500
+      };
+      
+      console.log('[TestFlow] 🔍 Conditional click starting');
+      console.log('[TestFlow] Search terms:', config.searchTerms.join(', '));
+      console.log('[TestFlow] Timeout:', config.timeoutSeconds, 's');
+      console.log('[TestFlow] Poll interval:', config.pollIntervalMs, 'ms');
+      
+      let lastClickTime = Date.now();
+      let buttonsClicked = 0;
+      let pollCount = 0;
+      let isComplete = false;
+      
+      const runPoll = async (): Promise<void> => {
+        if (isComplete) return;
+        
+        pollCount++;
+        const secondsSinceLastClick = (Date.now() - lastClickTime) / 1000;
+        
+        // Check timeout
+        if (secondsSinceLastClick >= config.timeoutSeconds) {
+          isComplete = true;
+          console.log('[TestFlow] ⏱️ Timeout reached after', config.timeoutSeconds, 's');
+          console.log('[TestFlow] 📊 Final:', buttonsClicked, 'buttons clicked in', pollCount, 'polls');
+          sendResponse({ buttonsClicked, timedOut: true, pollCount });
+          return;
+        }
+        
+        // Search for matching buttons/links in DOM
+        const clickables = document.querySelectorAll(
+          'button, [role="button"], a, input[type="submit"], input[type="button"], [class*="btn"], [class*="button"]'
+        );
+        
+        let foundAndClicked = false;
+        
+        for (const element of clickables) {
+          const el = element as HTMLElement;
+          // Skip hidden/disabled elements
+          if (el.offsetParent === null || el.hasAttribute('disabled')) continue;
+          
+          const text = (el.textContent || el.getAttribute('aria-label') || '').toLowerCase().trim();
+          
+          for (const term of config.searchTerms) {
+            if (text.includes(term.toLowerCase())) {
+              console.log('[TestFlow] 🎯 Found "' + term + '" in: "' + text.substring(0, 40) + '"');
+              
+              // Click the element
+              try {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                await new Promise(r => setTimeout(r, 100));
+                
+                el.focus();
+                el.click();
+                el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                
+                buttonsClicked++;
+                lastClickTime = Date.now(); // RESET TIMER ON CLICK
+                foundAndClicked = true;
+                
+                console.log('[TestFlow] ✅ Clicked! Total:', buttonsClicked);
+              } catch (clickError) {
+                console.error('[TestFlow] Click error:', clickError);
+              }
+              break;
+            }
+          }
+          if (foundAndClicked) break;
+        }
+        
+        if (!foundAndClicked) {
+          const remaining = Math.round(config.timeoutSeconds - secondsSinceLastClick);
+          if (pollCount % 20 === 0) { // Log every 20th poll (every 10s at 500ms interval)
+            console.log('[TestFlow] 👀 Poll #' + pollCount + ': No buttons. Timeout in ' + remaining + 's');
+          }
+        }
+        
+        // Schedule next poll
+        if (!isComplete) {
+          setTimeout(runPoll, config.pollIntervalMs);
+        }
+      };
+      
+      // Start the polling loop
+      runPoll();
+      
+      // Return true to keep the message channel open for async response
       return true;
     }
     
