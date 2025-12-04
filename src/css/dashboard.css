@@ -780,38 +780,3 @@ span.begins-count-in-two:before,
         opacity: 0.2;
     }
 }
-
-/* ============================================
-   FIX 6: Zoom Fix - Scale UI to 75%
-   B-41: Changed from 85% to 75% per user request
-   ============================================ */
-
-/* Base scaling for extension pages */
-html {
-    font-size: 11px; /* Reduced from 12px for 75% scale */
-}
-
-/* Scale the entire app container */
-#root {
-    transform: scale(0.70);
-    transform-origin: top left;
-    width: 142.86%; /* Compensate: 100 / 0.70 = 142.86 */
-    min-height: 142.86vh;
-    font-size: 11px;
-}
-
-/* Ensure scrolling works correctly */
-body {
-    overflow-x: hidden;
-    min-height: 100vh;
-}
-
-/* Keep modals at normal scale for readability */
-[role="dialog"],
-.modal,
-.dialog,
-[data-radix-popper-content-wrapper],
-.fixed[role="dialog"] {
-    transform: scale(1.4286) !important; /* Counter the parent scaling: 1/0.70 = 1.4286 */
-    transform-origin: top left;
-}

@@ -1,7 +1,7 @@
 {
-  "name": "TestFlow",
+  "name": "TestFlow B55 (Dec4)",
   "description": "Browser automation with Vision/OCR capabilities",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "manifest_version": 3,
   "icons": {
     "128": "icon/128.png",

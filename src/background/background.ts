@@ -410,10 +410,3 @@ chrome.webNavigation.onCommitted.addListener((details) => {
     injectMain(details.tabId);
   }
 });
-
-// Optional: handle iframe load (for Jotform dynamic frames)
-chrome.webNavigation.onCompleted.addListener((details) => {
-  if (trackedTabs.has(details.tabId)) {
-    injectMain(details.tabId);
-  }
-});

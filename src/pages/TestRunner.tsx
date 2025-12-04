@@ -333,6 +333,10 @@ export default function TestRunner() {
             if (step.event === "input" || step.event === "click") {
               let inputValue: string | undefined;
 
+                console.log("[CSV DEBUG] Row keys:", Object.keys(row));
+                console.log("[CSV DEBUG] Step label:", step.label);
+                console.log("[CSV DEBUG] Direct lookup:", row[step.label]);
+                console.log("[CSV DEBUG] MappingLookup:", mappingLookup);
               if (csv_data && csv_data.length > 0) {
                 // ✅ CSV mode → mapping se value nikalna
                 if (row[step.label] !== undefined) {

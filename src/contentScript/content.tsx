@@ -297,6 +297,8 @@ const Layout: React.FC = () => {
   // Keyboard buffer for complex editors
   let keyboardBuffer: string = '';
   let keyboardDebounce: NodeJS.Timeout | null = null;
+  // B-51: Track last target to reset buffer when element changes
+  let lastKeyboardTarget: HTMLElement | null = null;
 
   function handleKeydownForComplexEditor(event: KeyboardEvent) {
     const target = event.target as HTMLElement;
@@ -304,6 +306,18 @@ const Layout: React.FC = () => {
     // Only for complex editors
     if (!isComplexEditor(target)) return;
     
+    // B-51: Reset buffer when switching to a different element
+    if (lastKeyboardTarget && target !== lastKeyboardTarget) {
+      console.log('[TestFlow] Target changed, resetting keyboard buffer');
+      // Save any pending text for the OLD target before switching
+      if (keyboardBuffer.trim() && lastKeyboardTarget) {
+        recordComplexEditorInput(lastKeyboardTarget, keyboardBuffer);
+      }
+      keyboardBuffer = '';
+      lastVisionRecordedText = '';
+    }
+    lastKeyboardTarget = target;
+
     // Skip modifier-only keys
     if (['Control', 'Alt', 'Shift', 'Meta', 'CapsLock'].includes(event.key)) return;
     
@@ -316,6 +330,17 @@ const Layout: React.FC = () => {
         recordComplexEditorInput(target, keyboardBuffer);
         keyboardBuffer = '';
       }
+      // B-54: Log Enter as separate step for playback
+      const bounds = target.getBoundingClientRect();
+      logEvent({
+        eventType: 'Enter',
+        xpath: getXPath(target),
+        value: '',
+        label: generateSequentialLabel('submit'),
+        page: window.location.href,
+        x: bounds.x + bounds.width / 2,
+        y: bounds.y + bounds.height / 2,
+      });
     } else if (event.key === 'Enter' && event.shiftKey) {
       keyboardBuffer += '\n';
     } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
@@ -327,7 +352,7 @@ const Layout: React.FC = () => {
     keyboardDebounce = setTimeout(() => {
       if (keyboardBuffer.trim()) {
         recordComplexEditorInput(target, keyboardBuffer);
-        // Don't clear buffer - might be partial
+        keyboardBuffer = '';
       }
     }, 2000);
   }
@@ -1905,6 +1930,8 @@ const Layout: React.FC = () => {
             const keyCode = char.charCodeAt(0);
             const code = char === ' ' ? 'Space' : char === '\n' ? 'Enter' : `Key${char.toUpperCase()}`;
             
+            // B-52: Only dispatch keydown - xterm listens to this
+            // Sending keypress/input causes double characters
             target.dispatchEvent(new KeyboardEvent('keydown', {
               key: char,
               code: code,
@@ -1914,37 +1941,7 @@ const Layout: React.FC = () => {
               cancelable: true
             }));
             
-            target.dispatchEvent(new KeyboardEvent('keypress', {
-              key: char,
-              code: code,
-              keyCode: keyCode,
-              which: keyCode,
-              charCode: keyCode,
-              bubbles: true,
-              cancelable: true
-            }));
-            
-            // For xterm, also try input event
-            if (xtermTextarea) {
-              const inputEvent = new InputEvent('input', {
-                data: char,
-                inputType: 'insertText',
-                bubbles: true,
-                cancelable: true
-              });
-              target.dispatchEvent(inputEvent);
-            }
-            
-            target.dispatchEvent(new KeyboardEvent('keyup', {
-              key: char,
-              code: code,
-              keyCode: keyCode,
-              which: keyCode,
-              bubbles: true,
-              cancelable: true
-            }));
-            
-            await new Promise(r => setTimeout(r, 15)); // Small delay between chars
+            await new Promise(r => setTimeout(r, 30)); // Slightly longer delay
           }
           
           console.log('[TestFlow Vision] xterm typing complete');
