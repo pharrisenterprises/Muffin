@@ -1,4 +1,22 @@
 import React, { useEffect } from 'react';
+// import { CDPClient } from '../orchestrator/CDPClient';
+// import { decisionEngine } from '../orchestrator/DecisionEngine';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEW MODULAR ENGINE IMPORTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Recording Engine (replaces inline recording handlers)
+import { recordingEngine } from '../recording';
+
+// Playback Engine (with context validation)
+import { playbackEngine } from '../playback';
+
+// Evidence Aggregator (Batch 10-11: Evidence scoring)
+import { evidenceAggregator } from '../playback/evidence';
+
+// Automation Orchestrator (tiered fallback system)
+import { automationOrchestrator, cdpClient } from '../automation';
 
 // B-46: Safe querySelector that handles special characters in selectors
 function safeQuerySelector(doc: Document | ShadowRoot, selector: string): Element | null {
@@ -300,7 +318,9 @@ const Layout: React.FC = () => {
   // B-51: Track last target to reset buffer when element changes
   let lastKeyboardTarget: HTMLElement | null = null;
 
-  function handleKeydownForComplexEditor(event: KeyboardEvent) {
+  // LEGACY: Old recording handler - replaced by RecordingEngine (kept for reference)
+  // @ts-ignore - TS6133: Declared but never used (intentional - legacy code)
+  function _handleKeydownForComplexEditor_LEGACY(event: KeyboardEvent) {
     const target = event.target as HTMLElement;
     
     // Only for complex editors
@@ -736,7 +756,9 @@ const Layout: React.FC = () => {
     chrome.runtime.sendMessage({ type: "logEvent", data });
   };
 
-  const handleKeyDown = (event: KeyboardEvent): void => {
+  // LEGACY: Old recording handler - replaced by RecordingEngine (kept for reference)
+  // @ts-ignore - TS6133: Declared but never used (intentional - legacy code)
+  const _handleKeyDown_LEGACY = (event: KeyboardEvent): void => {
     const target = event.target as HTMLElement;
     if (!target) return;
 
@@ -789,7 +811,9 @@ const Layout: React.FC = () => {
   };
 
 
-  const handleClick = (event: Event) => {
+  // LEGACY: Old recording handler - replaced by RecordingEngine (kept for reference)
+  // @ts-ignore - TS6133: Declared but never used (intentional - legacy code)
+  const _handleClick_LEGACY = (event: Event) => {
     //const target = event.target as HTMLElement;
     const path = event.composedPath() as EventTarget[];
     const target = path.find(el => el instanceof HTMLElement) as HTMLElement;
@@ -940,7 +964,9 @@ const Layout: React.FC = () => {
     }, 30);
   };
 
-  const handleInput = async (event: Event): Promise<void> => {
+  // LEGACY: Old recording handler - replaced by RecordingEngine (kept for reference)
+  // @ts-ignore - TS6133: Declared but never used (intentional - legacy code)
+  const _handleInput_LEGACY = async (event: Event): Promise<void> => {
     const target = event.target as HTMLElement;
     if (!target) return;
 
@@ -1096,6 +1122,140 @@ const Layout: React.FC = () => {
     _sender: chrome.runtime.MessageSender,
     sendResponse: (response?: any) => void
   ): Promise<boolean> => {
+    // ═══════════════════════════════════════════════════════════════════════
+    // RECORDING CONTROLS
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    if (message.type === 'START_RECORDING' || (message as any).action === 'startRecording') {
+      console.log('[TestFlow] ▶️ Starting modular recording engine');
+      recordingEngine.start();
+      evidenceAggregator.startRecordingTracking(); // Batch 10-11: Start evidence tracking
+      sendResponse({ success: true, message: 'Recording started' });
+      return true;
+    }
+
+    if (message.type === 'STOP_RECORDING' || (message as any).action === 'stopRecording') {
+      console.log('[TestFlow] ⏹️ Stopping modular recording engine');
+      recordingEngine.stop();
+      evidenceAggregator.stopRecordingTracking(); // Batch 10-11: Stop evidence tracking
+      sendResponse({ 
+        success: true, 
+        message: 'Recording stopped',
+        stepCount: recordingEngine.getStepCount()
+      });
+      return true;
+    }
+    
+    if (message.type === 'GET_RECORDING_STATE' || (message as any).action === 'getRecordingState') {
+      sendResponse({
+        isRecording: recordingEngine.isRecording(),
+        stepCount: recordingEngine.getStepCount(),
+      });
+      return true;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // PLAYBACK CONTROLS (NEW - Automation Orchestrator)
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    if (message.type === 'EXECUTE_STEP' || (message as any).action === 'executeStep') {
+      const step = (message.data as any)?.step || (message as any).step || message.data;
+      
+      if (!step) {
+        sendResponse({ success: false, error: 'No step provided' });
+        return true;
+      }
+      
+      console.log('[TestFlow] 🎬 Executing step via Automation Orchestrator:', step.label);
+      
+      // Use orchestrator for tiered fallback
+      automationOrchestrator.executeStep(step)
+        .then(result => {
+          console.log(`[TestFlow] ✓ Step completed via ${result.usedTier} in ${result.totalDuration}ms`);
+          sendResponse({
+            success: result.success,
+            tier: result.usedTier,
+            duration: result.totalDuration,
+            error: result.error,
+          });
+        })
+        .catch(error => {
+          console.error('[TestFlow] ✗ Step execution error:', error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+      
+      return true; // Async response
+    }
+    
+    if (message.type === 'EXECUTE_ALL_STEPS' || (message as any).action === 'executeAllSteps') {
+      const steps = (message as any).steps || message.data;
+      
+      if (!steps || !Array.isArray(steps)) {
+        sendResponse({ success: false, error: 'No steps array provided' });
+        return true;
+      }
+      
+      console.log(`[TestFlow] 🎬 Executing ${steps.length} steps via Automation Orchestrator`);
+      
+      automationOrchestrator.executeAll(steps)
+        .then(results => {
+          const passed = results.filter(r => r.success).length;
+          const failed = results.filter(r => !r.success).length;
+          
+          console.log(`[TestFlow] 📊 Playback complete: ${passed}/${steps.length} passed, ${failed} failed`);
+          
+          sendResponse({
+            success: failed === 0,
+            passed,
+            failed,
+            total: steps.length,
+            results,
+          });
+        })
+        .catch(error => {
+          console.error('[TestFlow] ✗ Playback error:', error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+      
+      return true; // Async response
+    }
+    
+    if (message.type === 'STOP_PLAYBACK' || (message as any).action === 'stopPlayback') {
+      console.log('[TestFlow] ⏹️ Stopping playback');
+      playbackEngine.stop();
+      sendResponse({ success: true });
+      return true;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // CDP CONTROLS
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    if (message.type === 'CDP_ATTACH' || (message as any).action === 'cdpAttach') {
+      console.log('[TestFlow] 🔌 Attaching CDP client');
+      cdpClient.attach()
+        .then(success => {
+          console.log('[TestFlow] CDP attach result:', success);
+          sendResponse({ success });
+        })
+        .catch(error => sendResponse({ success: false, error: String(error) }));
+      return true;
+    }
+    
+    if (message.type === 'CDP_DETACH' || (message as any).action === 'cdpDetach') {
+      console.log('[TestFlow] 🔌 Detaching CDP client');
+      cdpClient.detach()
+        .then(() => sendResponse({ success: true }))
+        .catch(error => sendResponse({ success: false, error: String(error) }));
+      return true;
+    }
+
     // B-43: Page ready check
     if (message.type === 'checkPageReady') {
       const isReady = document.readyState === 'complete' && !document.querySelector('.loading, .spinner, [aria-busy="true"]');
@@ -1246,26 +1406,34 @@ const Layout: React.FC = () => {
 
   // Attach listeners into a document (main or iframe)
   // ---------------------- Attach listeners to a document (main or iframe) ----------------------
-  function attachListeners(doc: Document) {
-    ["mousedown"].forEach(eventType => {
-      // Capture phase ensures we see the event before inner handlers can stop it
-      doc.addEventListener(eventType, handleClick, true);
-    });
-
-    doc.addEventListener("input", handleInput, true);
-    doc.addEventListener("keydown", handleKeyDown, true);
-    // B-40: Add keyboard listener for complex editors
-    doc.addEventListener("keydown", handleKeydownForComplexEditor, true);
+  function attachListeners(_doc: Document) {
+    // ⚠️ OLD RECORDING HANDLERS - DISABLED
+    // The modular RecordingEngine now handles all event capture
+    // These are kept for legacy playback support only
+    
+    // DISABLED: Old recording event listeners (replaced by RecordingEngine)
+    // ["mousedown"].forEach(eventType => {
+    //   doc.addEventListener(eventType, handleClick, true);
+    // });
+    // doc.addEventListener("input", handleInput, true);
+    // doc.addEventListener("keydown", handleKeyDown, true);
+    // doc.addEventListener("keydown", handleKeydownForComplexEditor, true);
+    
+    console.log('[content.tsx] attachListeners called (old handlers disabled, using RecordingEngine)');
   }
 
   // ---------------------- Remove listeners ----------------------
-  function removeListeners(doc: Document) {
-    // doc.removeEventListener("click", handleClick, true);
-    doc.removeEventListener("mousedown", handleClick, true);
-    doc.removeEventListener("input", handleInput, true);
-    doc.removeEventListener("keydown", handleKeyDown, true);
-    // B-40: Remove complex editor keyboard listener
-    doc.removeEventListener("keydown", handleKeydownForComplexEditor, true);
+  function removeListeners(_doc: Document) {
+    // ⚠️ OLD RECORDING HANDLERS - DISABLED
+    // No longer needed since RecordingEngine handles cleanup via AbortController
+    
+    // DISABLED: Old recording event removal (replaced by RecordingEngine)
+    // doc.removeEventListener("mousedown", handleClick, true);
+    // doc.removeEventListener("input", handleInput, true);
+    // doc.removeEventListener("keydown", handleKeyDown, true);
+    // doc.removeEventListener("keydown", handleKeydownForComplexEditor, true);
+    
+    console.log('[content.tsx] removeListeners called (old handlers disabled)');
   }
 
   function injectScript(fileName: string) {
