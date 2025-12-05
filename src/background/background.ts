@@ -59,6 +59,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('[BACKGROUND] Message:', (message as any).action || message.type);
   console.log("[Background] Message received:", message, "from sender:", sender);
   
   // Handle Vision messages first
@@ -68,6 +69,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Return true to indicate async response
     Promise.resolve(visionResponse).then(sendResponse);
     return true;
+  }
+  
+  // B-60: Handle logEvent messages from content script
+  // Let the message pass through to Recorder dashboard - don't consume it
+  if (message.type === "logEvent") {
+    // FIX 9-9: Removed debug log (fires for every recorded event)
+    // Return false to allow other listeners (Recorder page) to receive the message
+    return false;
   }
   
   if (!message.action) {

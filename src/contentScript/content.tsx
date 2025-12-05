@@ -1122,6 +1122,7 @@ const Layout: React.FC = () => {
     _sender: chrome.runtime.MessageSender,
     sendResponse: (response?: any) => void
   ): Promise<boolean> => {
+    console.log('[CONTENT] Message received:', (message as any).action || message.type);
     // ═══════════════════════════════════════════════════════════════════════
     // RECORDING CONTROLS
     // ═══════════════════════════════════════════════════════════════════════
@@ -1130,6 +1131,7 @@ const Layout: React.FC = () => {
       console.log('[TestFlow] ▶️ Starting modular recording engine');
       recordingEngine.start();
       evidenceAggregator.startRecordingTracking(); // Batch 10-11: Start evidence tracking
+      console.log('[CONTENT] Recording STARTED, isRecording now:', recordingEngine.isRecording());
       sendResponse({ success: true, message: 'Recording started' });
       return true;
     }

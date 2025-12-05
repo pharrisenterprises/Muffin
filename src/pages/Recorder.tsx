@@ -558,6 +558,7 @@ export default function Recorder() {
 
   useEffect(() => {
     const listener = (message: any, _sender: any, _sendResponse: any) => {
+      console.log('[RECORDER] Message received:', message.type || (message as any).action, message);
       if (message.type === "logEvent" && isRecording && currentProject) {
         const { eventType, xpath, value, label, x, y, bundle} = message.data;
         console.log("message.data >>>>",message.data);
