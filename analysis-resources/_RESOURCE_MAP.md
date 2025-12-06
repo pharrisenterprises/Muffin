@@ -94,6 +94,9 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 | test-run-repository_breakdown.md | Dexie CRUD wrapper managing test execution history in IndexedDB |
 - **analysis-resources/references/**
   Contains external and internal reference material required for accurate code generation.
+  
+  **Files:**
+  - `AI_COLLABORATION_PROTOCOL.md` ⭐ **NEW** — Bidirectional AI collaboration protocol defining synchronized knowledge base structure and communication workflow for Claude ↔ GitHub Copilot. Includes smart prompt format, implementation workflow, file reference map, verification protocol, and setup checklists for both AI systems.
 
 - **SOURCE_CODE_ROLLUP.md** — Key source code examples from critical files (type definitions, IndexedDB schema, Chrome Storage Helper, background message router, Redux store, React Router, build configs, and Phase 3 Vision type specifications). Provides implementation context and patterns for code generation.
 
