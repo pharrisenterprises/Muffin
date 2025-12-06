@@ -1,5 +1,4 @@
 ﻿// src/components/recorder/StrategyIndicator.tsx
-import React from "react";
 import type { StrategyType } from "../../types/strategy";
 
 interface StrategyIndicatorProps {

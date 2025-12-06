@@ -1,7 +1,7 @@
 ﻿// src/lib/visionEngine.ts
 import Tesseract from "tesseract.js";
-import type { VisionConfig, TextResult, ClickTarget, ConditionalConfig, ConditionalClickResult, Screenshot, OcrResult, VisionData } from "../types/vision";
-import { DEFAULT_VISION_CONFIG, DEFAULT_CONDITIONAL_CONFIG } from "../types/vision";
+import type { VisionConfig, TextResult, ClickTarget, ConditionalConfig, ConditionalClickResult, Screenshot, OcrResult } from "../types/vision";
+import { DEFAULT_VISION_CONFIG } from "../types/vision";
 
 class VisionEngine {
   private worker: Tesseract.Worker | null = null;
@@ -31,15 +31,19 @@ class VisionEngine {
   }
 
   async captureScreenshot(tabId?: number): Promise<Screenshot> {
-    const targetTabId = tabId ?? (await this.getActiveTabId());
-    const dataUrl = await chrome.tabs.captureVisibleTab(undefined, { format: "png", quality: Math.round(this.config.screenshotQuality * 100) });
+    // Capture visible tab (windowId is optional, defaults to current window)
+    const dataUrl = await chrome.tabs.captureVisibleTab({ format: "png" });
+    
+    // Load image to get dimensions
     const img = new Image();
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
       img.onerror = reject;
       img.src = dataUrl;
     });
-    return { dataUrl, width: img.width, height: img.height, timestamp: Date.now() };
+    const screenshot = { dataUrl, width: img.width, height: img.height, timestamp: Date.now() };
+    this.lastScreenshot = screenshot;
+    return screenshot;
   }
 
   async recognizeText(imageData: string): Promise<OcrResult> {
@@ -51,8 +55,13 @@ class VisionEngine {
       confidence: word.confidence,
       bbox: { x: word.bbox.x0, y: word.bbox.y0, width: word.bbox.x1 - word.bbox.x0, height: word.bbox.y1 - word.bbox.y0 }
     }));
-    return { results, duration: Date.now() - start, timestamp: Date.now() };
+    const ocrResult = { results, duration: Date.now() - start, timestamp: Date.now() };
+    this.lastOcrResults = ocrResult;
+    return ocrResult;
   }
+  
+  private lastScreenshot?: Screenshot;
+  private lastOcrResults?: OcrResult;
 
   async findText(searchText: string, screenshot?: Screenshot): Promise<ClickTarget | null> {
     const ss = screenshot ?? await this.captureScreenshot();
@@ -137,6 +146,84 @@ class VisionEngine {
 
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Additional methods required by tests and stepExecutor
+  async clickAtCoordinates(x: number, y: number, tabId: number): Promise<{ success: boolean; error?: string }> {
+    try {
+      await chrome.tabs.sendMessage(tabId, {
+        action: 'vision-click-coordinates',
+        coordinates: { x, y }
+      });
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  async typeText(text: string, tabId: number): Promise<{ success: boolean; error?: string }> {
+    try {
+      await chrome.tabs.sendMessage(tabId, {
+        action: 'vision-type',
+        text
+      });
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  async quickDetectAndClick(searchTerms: string[], tabId: number): Promise<ConditionalClickResult> {
+    // Quick version without full conditional logic
+    const screenshot = await this.captureScreenshot(tabId);
+    const clickTargets: ClickTarget[] = [];
+    
+    for (const term of searchTerms) {
+      const target = await this.findText(term, screenshot);
+      if (target) {
+        const result = await this.clickAtCoordinates(target.center.x, target.center.y, tabId);
+        if (result.success) {
+          clickTargets.push(target);
+          return {
+            success: true,
+            attempts: 1,
+            totalWaitMs: 0,
+            buttonsClicked: 1,
+            clickTargets,
+            clickedTexts: [term],
+            duration: 0,
+            timedOut: false
+          };
+        }
+      }
+    }
+    
+    return {
+      success: false,
+      attempts: searchTerms.length,
+      totalWaitMs: 0,
+      buttonsClicked: 0,
+      clickTargets: [],
+      clickedTexts: [],
+      duration: 0,
+      timedOut: true
+    };
+  }
+
+  getLastScreenshot(): Screenshot | undefined {
+    return this.lastScreenshot;
+  }
+
+  getLastOcrResults(): OcrResult | undefined {
+    return this.lastOcrResults;
+  }
+
+  getConfig(): VisionConfig {
+    return { ...this.config };
+  }
+
+  setConfig(partial: Partial<VisionConfig>): void {
+    this.config = { ...this.config, ...partial };
   }
 }
 

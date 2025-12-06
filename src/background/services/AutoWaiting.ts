@@ -45,7 +45,7 @@ class AutoWaiting {
     });
   }
 
-  async waitForNetworkIdle(tabId: number, options?: { timeout?: number; idleTime?: number }): Promise<boolean> {
+  async waitForNetworkIdle(_tabId: number, options?: { timeout?: number; idleTime?: number }): Promise<boolean> {
     const timeout = options?.timeout || 30000;
     const idleTime = options?.idleTime || 500;
     const start = Date.now();

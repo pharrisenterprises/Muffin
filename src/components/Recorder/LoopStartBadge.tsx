@@ -1,6 +1,4 @@
 ﻿// src/components/recorder/LoopStartBadge.tsx
-import React from "react";
-
 interface LoopStartBadgeProps {
   className?: string;
 }

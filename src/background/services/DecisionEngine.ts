@@ -1,7 +1,6 @@
 ﻿// src/background/services/DecisionEngine.ts
 import { cdpService } from "./CDPService";
 import { playwrightLocators } from "./PlaywrightLocators";
-import { autoWaiting } from "./AutoWaiting";
 import type { StrategyType, LocatorStrategy, FallbackChain, StrategyAttempt, StrategyTelemetry } from "../../types/strategy";
 import type { LocatorResult } from "../../types/cdp";
 
@@ -14,7 +13,7 @@ export interface DecisionResult {
 }
 
 class DecisionEngine {
-  private readonly strategyOrder: StrategyType[] = [
+  private readonly _strategyOrder: StrategyType[] = [
     "dom_selector",
     "css_selector",
     "cdp_semantic",

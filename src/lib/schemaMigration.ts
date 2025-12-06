@@ -24,7 +24,10 @@ export interface MigratedStep {
 export interface MigratedRecording {
   id?: number;
   projectId: number;
+  name?: string;
+  projectName?: string;
   steps: MigratedStep[];
+  recorded_steps: MigratedStep[]; // alias for compatibility
   schemaVersion: number;
   loopStartIndex: number;
   globalDelayMs: number;
@@ -33,6 +36,10 @@ export interface MigratedRecording {
     timeoutSeconds: number;
     pollIntervalMs: number;
   };
+  createdAt?: number;
+  updatedAt?: number;
+  parsedFields?: unknown[];
+  csvData?: string[][];
 }
 
 export function migrateStep(step: Record<string, unknown>): MigratedStep {
@@ -55,12 +62,20 @@ export function migrateStep(step: Record<string, unknown>): MigratedStep {
   };
 }
 
-export function migrateRecording(recording: Record<string, unknown>): MigratedRecording {
-  const steps = Array.isArray(recording.steps) ? recording.steps.map(migrateStep) : [];
-  return {
+export function migrateRecording(recording: Record<string, unknown>, projectId?: number): MigratedRecording {
+  const steps = Array.isArray(recording.steps) 
+    ? recording.steps.map(migrateStep) 
+    : Array.isArray(recording.recorded_steps)
+    ? recording.recorded_steps.map(migrateStep)
+    : [];
+  
+  const migrated: MigratedRecording = {
     id: recording.id as number | undefined,
-    projectId: (recording.projectId as number) || 0,
+    projectId: projectId ?? (recording.projectId as number) ?? 0,
+    name: recording.name as string | undefined,
+    projectName: recording.projectName as string | undefined,
     steps,
+    recorded_steps: steps, // alias
     schemaVersion: 3,
     loopStartIndex: (recording.loopStartIndex as number) ?? 0,
     globalDelayMs: (recording.globalDelayMs as number) ?? 0,
@@ -68,8 +83,14 @@ export function migrateRecording(recording: Record<string, unknown>): MigratedRe
       searchTerms: DEFAULT_CONDITIONAL_CONFIG.searchTerms,
       timeoutSeconds: DEFAULT_CONDITIONAL_CONFIG.timeoutSeconds,
       pollIntervalMs: DEFAULT_CONDITIONAL_CONFIG.pollIntervalMs
-    }
+    },
+    createdAt: recording.createdAt as number ?? recording.created_date as number ?? Date.now(),
+    updatedAt: Date.now(),
+    parsedFields: recording.parsedFields as unknown[] ?? recording.parsed_fields as unknown[],
+    csvData: recording.csvData as string[][] ?? recording.csv_data as string[][]
   };
+  
+  return migrated;
 }
 
 export function isLegacyRecording(recording: Record<string, unknown>): boolean {

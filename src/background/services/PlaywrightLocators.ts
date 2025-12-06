@@ -1,7 +1,7 @@
 ﻿// src/background/services/PlaywrightLocators.ts
 import { cdpService } from "./CDPService";
 import { accessibilityService } from "./AccessibilityService";
-import type { LocatorResult, WaitOptions, DEFAULT_WAIT_OPTIONS } from "../../types/cdp";
+import type { LocatorResult } from "../../types/cdp";
 
 class PlaywrightLocators {
   async getByRole(tabId: number, role: string, options?: { name?: string; exact?: boolean }): Promise<LocatorResult> {

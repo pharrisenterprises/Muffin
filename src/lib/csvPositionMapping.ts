@@ -49,6 +49,21 @@ export function getColumnValueForStep(
   return rowData[columnName] ?? null;
 }
 
+// Additional exports needed by other modules
+export function substituteSearchTerms(
+  searchTerms: string[],
+  rowData: Record<string, string>,
+  mapping: Record<number, string>,
+  stepIndex: number
+): string[] {
+  return searchTerms.map(term => {
+    const value = getColumnValueForStep(stepIndex, rowData, mapping);
+    return value ? term.replace(/\{\{.*?\}\}/g, value) : term;
+  });
+}
+
+export { StepColumnMapping as LabelToColumnsMapping };
+
 export function getMappingDetails(
   steps: Array<{ label?: string; event?: string }>,
   csvFields: ParsedField[]

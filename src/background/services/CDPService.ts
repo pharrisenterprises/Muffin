@@ -1,5 +1,5 @@
 ﻿// src/background/services/CDPService.ts
-import type { CDPNode, AXNode, CDPCommandResult, BoxModel } from "../../types/cdp";
+import type { CDPNode, AXNode, BoxModel } from "../../types/cdp";
 
 class CDPService {
   private attachedTabs: Set<number> = new Set();

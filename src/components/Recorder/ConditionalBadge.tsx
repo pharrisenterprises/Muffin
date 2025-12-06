@@ -1,6 +1,4 @@
 ﻿// src/components/recorder/ConditionalBadge.tsx
-import React from "react";
-
 interface ConditionalBadgeProps {
   timeoutSeconds?: number;
   className?: string;

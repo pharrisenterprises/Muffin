@@ -1,6 +1,4 @@
 ﻿// src/components/recorder/VisionBadge.tsx
-import React from "react";
-
 interface VisionBadgeProps {
   className?: string;
   showTooltip?: boolean;

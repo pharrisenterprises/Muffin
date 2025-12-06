@@ -1,4 +1,32 @@
 ﻿// src/types/vision.ts
+
+// Re-export common types from indexedDB
+export type {
+  RecordedStep as Step,
+  Project as Recording,
+  ConditionalConfig,
+  ConditionalDefaults as RecordingConditionalDefaults,
+  ParsedField
+} from '../common/services/indexedDB';
+
+// Step event types
+export type StepEventType = 
+  | 'click' 
+  | 'type' 
+  | 'navigate' 
+  | 'conditional-click' 
+  | 'dropdown' 
+  | 'wait';
+
+// Step coordinates
+export interface StepCoordinates {
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+}
+
+// Vision-specific configuration
 export interface VisionConfig {
   enabled: boolean;
   confidenceThreshold: number;
@@ -34,14 +62,8 @@ export interface ClickTarget {
   center: { x: number; y: number };
 }
 
-export interface ConditionalConfig {
-  enabled: boolean;
-  searchTerms: string[];
-  timeoutSeconds: number;
-  pollIntervalMs: number;
-  interactionType: "click" | "type" | "dropdown";
-  successText?: string;
-}
+// ConditionalConfig is re-exported from indexedDB above
+// It includes: enabled, searchTerms, timeoutSeconds, pollIntervalMs, interactionType, dropdownOption, inputValue
 
 export interface ConditionalClickResult {
   success: boolean;
@@ -49,6 +71,9 @@ export interface ConditionalClickResult {
   totalWaitMs: number;
   buttonsClicked: number;
   clickTargets: ClickTarget[];
+  clickedTexts: string[];
+  duration: number;
+  timedOut: boolean;
   error?: string;
 }
 
@@ -84,6 +109,23 @@ export const DEFAULT_VISION_CONFIG: VisionConfig = {
   devicePixelRatio: 1,
   fuzzyMatchThreshold: 0.7
 };
+
+// Vision message types for content script communication
+export interface VisionMessage {
+  action: 'vision-click' | 'vision-type' | 'vision-ocr' | 'vision-screenshot';
+  tabId?: number;
+  searchTerms?: string[];
+  text?: string;
+  coordinates?: { x: number; y: number };
+}
+
+export interface VisionResponse {
+  success: boolean;
+  error?: string;
+  result?: unknown;
+  coordinates?: { x: number; y: number };
+  confidence?: number;
+}
 
 export const DEFAULT_CONDITIONAL_CONFIG: ConditionalConfig = {
   enabled: false,

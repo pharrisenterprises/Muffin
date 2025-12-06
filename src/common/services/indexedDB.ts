@@ -77,7 +77,7 @@ export interface ConditionalConfig {
   searchTerms: string[];
   timeoutSeconds: number;
   pollIntervalMs: number;
-  interactionType: 'click' | 'dropdown' | 'input';
+  interactionType: 'click' | 'type' | 'dropdown';
   dropdownOption?: string;
   inputValue?: string;
 }

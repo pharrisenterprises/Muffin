@@ -1,6 +1,4 @@
 ﻿// src/components/recorder/DelayBadge.tsx
-import React from "react";
-
 interface DelayBadgeProps {
   delaySeconds: number | null | undefined;
   className?: string;
