@@ -1,13 +1,7 @@
-/**
- * Recorder Components Index
- * Re-exports all recorder components.
- */
-
-export { StepRow } from './StepRow';
-export type { StepRowProps } from './StepRow';
-
-export { StepRowMenu } from './StepRowMenu';
-export type { StepRowMenuProps } from './StepRowMenu';
-
-export { StepList } from './StepList';
-export type { StepListProps } from './StepList';
+﻿// src/components/recorder/index.ts
+export { VisionBadge } from "./VisionBadge";
+export { StrategyIndicator } from "./StrategyIndicator";
+export { DelayControls } from "./DelayControls";
+export { DelayBadge } from "./DelayBadge";
+export { LoopStartBadge } from "./LoopStartBadge";
+export { ConditionalBadge } from "./ConditionalBadge";
