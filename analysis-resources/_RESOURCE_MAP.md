@@ -95,11 +95,32 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 - **analysis-resources/references/**
   Contains external and internal reference material required for accurate code generation.
 
-- **SOURCE_CODE_ROLLUP.md** — Key source code examples from critical files (type definitions, IndexedDB schema, Chrome Storage Helper, background message router, Redux store, React Router, build configs, and Phase 3 Vision type specifications). Provides implementation context and patterns for code generation.and Tailwind CSS |
-| xpath-computation_breakdown.md | Position-based XPath generation algorithm for DOM element identification |
+- **SOURCE_CODE_ROLLUP.md** — Key source code examples from critical files (type definitions, IndexedDB schema, Chrome Storage Helper, background message router, Redux store, React Router, build configs, and Phase 3 Vision type specifications). Provides implementation context and patterns for code generation.
 
 - **analysis-resources/build-instructions/**
   Contains build pipeline designs and environment toolchain notes.
+
+- **analysis-resources/knowledge-base-export/** ⭐ **NEW**
+  **Phase 2 Knowledge Base Export for Claude Projects** — Complete set of 15 markdown files documenting Phase 2 multi-strategy intelligent recording system with CDP integration. Designed for upload to Claude Knowledge Base for AI-assisted code generation.
+  
+  **Files:**
+  - `_RESOURCE_MAP_UPDATED.md` — Directory index with file inventory, upload strategy, document relationships, AI prompt examples, and search keywords
+  - `00_masterplan-overview.md` — Executive summary, 7-tier arsenal, objectives, scope, architecture philosophy, success metrics
+  - `01_requirements.md` — Functional requirements (FR-100 to FR-400), non-functional requirements (NFR-100 to NFR-300), acceptance criteria
+  - `02_ux-flows.md` — 7 complete ASCII flow diagrams (Recording, Vision Fallback, Playback, Time Delay, CSV Loop, Conditional Click, UI States)
+  - `03_feature-specs.md` — 5 detailed feature specifications (Vision Engine, Time Delay, CSV Loop, Conditional Click, CDP Integration) with TypeScript code
+  - `04_architecture.md` — System architecture diagram, component details (CDPService, PlaywrightLocators, DecisionEngine), CDP domains, file structure
+  - `05_data-layer.md` — TypeScript types (StrategyType, RecordedVia, LocatorStrategy, FallbackChain), Dexie.js v3 schema, migration strategy
+  - `06_api-contracts.md` — Message protocol (MessageAction, Vision/CDP API contracts), message router, error codes
+  - `07_migration-notes.md` — Migration overview, Phase 7 CDP integration with 10 detailed steps, breaking changes, rollback strategy
+  - `08_testing-strategy.md` — Testing overview (Unit/Integration/E2E/Manual), coverage targets, CDP test examples, manual checklists
+  - `09_build-cards-cdp.md` — 10 implementation build cards (CDP-001 to CDP-010) with implementation code, dependencies, estimated time
+  - `10_deployment-checklist.md` — Pre-deployment checklist, deployment stages (Alpha/Beta/Production), post-deployment monitoring, rollback procedures
+  - `11_user-documentation.md` — Getting started, features guide (Recording, Playback, Time Delays, CSV Loop, Conditional Clicks, Vision Engine, Field Mapping), troubleshooting, FAQ
+  - `12_future-roadmap.md` — Phases 3-6 (Advanced Recording, Mobile/Cross-Browser, Collaboration/CI-CD, AI Features), technical debt, community requests
+  - `MASTER_ROLLUP_PHASE2.md` — Primary code generation reference with implementation recipes, TypeScript types, UI components, database schema, testing examples, common pitfalls
+  
+  **Total:** 15 files | ~217 KB | Ready for Claude Knowledge Base upload
 
 - **analysis-resources/implementation-guides/**
   Contains detailed instructions used during later code-generation phases.
