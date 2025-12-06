@@ -5,23 +5,24 @@ import { createHtmlPlugin } from "vite-plugin-html";
 import { viteStaticCopy } from "vite-plugin-static-copy";
  
 export default defineConfig({
+  base: './', // Chrome extension needs relative paths
   plugins: [
     react(),
     createHtmlPlugin({
       minify: true,
       pages: [
         {
-          entry: "../src/main.tsx",
+          entry: path.resolve(__dirname, "src/main.tsx"),
           filename: "index.html",
           template: "public/index.html",
         },
         {
-          entry: "../src/main.tsx",
+          entry: path.resolve(__dirname, "src/main.tsx"),
           filename: "popup.html",
           template: "public/popup.html",
         },
         {
-          entry: "../src/main.tsx",
+          entry: path.resolve(__dirname, "src/main.tsx"),
           filename: "pages.html",
           template: "public/pages.html",
         },

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Button } from '../Ui/button';
 import { GripVertical, MoreVertical, Clock, RotateCcw, Edit, Trash2, Target } from 'lucide-react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
+import SelectorAreaModal, { ManualSelector } from './SelectorAreaModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +57,19 @@ interface Step {
   label: string;
   // VISION: Added fields
   delaySeconds?: number;
+  // MANUAL SELECTOR: User-defined selector area
+  manualSelector?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    centerX: number;
+    centerY: number;
+    timestamp: number;
+    viewportWidth: number;
+    viewportHeight: number;
+    confidence: 'user-defined';
+  };
 }
 
 interface StepsTableProps {
@@ -75,9 +90,14 @@ export default function StepsTable({
   onSetStepDelay,
   onSetLoopStart 
 }: StepsTableProps) {
+  // Manual Selector Modal State
+  const [selectorModalOpen, setSelectorModalOpen] = useState(false);
+  const [selectorModalStepIndex, setSelectorModalStepIndex] = useState<number | null>(null);
+  const [selectorModalUrl, setSelectorModalUrl] = useState<string>('');
   const inputClass = "bg-slate-200 text-slate-900 border-slate-400 placeholder:text-slate-500 focus:bg-white focus:border-blue-500 focus:ring-blue-500";
 
   return (
+    <>
     <div className="h-full">
       <Table>
         <Droppable droppableId="steps-droppable">
@@ -134,6 +154,19 @@ export default function StepsTable({
                             <DropdownMenuSeparator className="bg-slate-700" />
                             <DropdownMenuItem
                               onClick={() => {
+                                setSelectorModalStepIndex(index);
+                                setSelectorModalUrl(step.path || window.location.href);
+                                setSelectorModalOpen(true);
+                              }}
+                              className="hover:bg-slate-700 cursor-pointer flex items-center gap-2"
+                            >
+                              <Target className="w-4 h-4 text-green-400" />
+                              Set Selector Area
+                              {step.manualSelector && <span className="ml-auto text-green-400">✓</span>}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-slate-700" />
+                            <DropdownMenuItem
+                              onClick={() => {
                                 // Focus on the label input for editing
                                 const labelInput = document.querySelector(`input[value="${step.label}"]`) as HTMLInputElement;
                                 labelInput?.focus();
@@ -173,6 +206,12 @@ export default function StepsTable({
                               <DelayBadge seconds={step.delaySeconds} />
                             )}
                             {step.event === 'conditional-click' && <ConditionalBadge />}
+                            {step.manualSelector && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
+                                <Target className="w-3 h-3" />
+                                Manual
+                              </span>
+                            )}
                           </div>
                         </div>
                       </TableCell>
@@ -237,5 +276,27 @@ export default function StepsTable({
         </Droppable>
       </Table>
     </div>
+    
+    {/* Manual Selector Modal */}
+    {selectorModalOpen && selectorModalStepIndex !== null && (
+      <SelectorAreaModal
+        open={selectorModalOpen}
+        onClose={() => {
+          setSelectorModalOpen(false);
+          setSelectorModalStepIndex(null);
+          setSelectorModalUrl('');
+        }}
+        onSave={(selector: ManualSelector) => {
+          onUpdateStep(selectorModalStepIndex, { manualSelector: selector });
+          setSelectorModalOpen(false);
+          setSelectorModalStepIndex(null);
+          setSelectorModalUrl('');
+        }}
+        stepLabel={steps[selectorModalStepIndex]?.label || ''}
+        stepIndex={selectorModalStepIndex}
+        targetUrl={selectorModalUrl}
+      />
+    )}
+    </>
   );
 }

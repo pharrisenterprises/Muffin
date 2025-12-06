@@ -1,7 +1,7 @@
 {
-  "name": "TestFlow B55 (Dec4)",
+  "name": "TestFlow v2.1.5 (FIX 9)",
   "description": "Browser automation with Vision/OCR capabilities",
-  "version": "2.1.1",
+  "version": "2.1.5",
   "manifest_version": 3,
   "icons": {
     "128": "icon/128.png",
@@ -12,8 +12,7 @@
     "16": "icon/16.png"
   },
   "background": {
-    "service_worker": "background/background.js",
-    "type": "module"
+    "service_worker": "background/background.js"
   },
   "action": {
     "default_title": "TestFlow"
@@ -24,7 +23,8 @@
     "offscreen",
     "scripting",
     "activeTab",
-    "webNavigation"
+    "webNavigation",
+    "debugger"
   ],
   "host_permissions": [
     "<all_urls>"

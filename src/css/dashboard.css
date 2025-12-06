@@ -476,9 +476,9 @@ select {
 @media screen and (max-width: 1600px),
 screen and (max-height: 700px) {
     .onboarding-r-box {
-        transform: scale(0.8);
-        margin-top: -30px;
-        margin-right: -40px !important;
+        /* Removed transform: scale(0.8) - causes zoom regression */
+        margin-top: -20px;
+        margin-right: -20px !important;
     }
 
     .first-screen.h-screen.py-12 {
@@ -495,9 +495,7 @@ screen and (max-height: 700px) {
         padding-right: 40px;
     }
 
-    .transform-scale-g {
-        transform: scale(0.8);
-    }
+    /* Removed .transform-scale-g rule - unused class causing zoom issues */
 
     .re-m-top-50 {
         margin-top: -50px;
@@ -563,7 +561,7 @@ screen and (max-height: 700px) {
     }
 
     form.transform-scale-g.breath-sec.w-\[1090px\] {
-        transform: scale(1);
+        /* Removed transform: scale(1) - no longer needed */
         margin-top: 100px;
     }
 

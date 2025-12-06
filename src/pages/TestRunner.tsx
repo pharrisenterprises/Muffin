@@ -19,6 +19,12 @@ import { format } from "date-fns";
 import TestConsole from "../components/Runner/TestConsole";
 import TestResults from "../components/Runner/TestResults";
 import TestSteps from "../components/Runner/TestSteps";
+import { 
+  buildLabelToColumnsMapping, 
+  buildStepToColumnMapping,
+  type LabelToColumnsMapping,
+  type StepToColumnMapping
+} from '../lib/csvPositionMapping';
 
 interface LogEntry {
   timestamp: string;
@@ -191,6 +197,15 @@ export default function TestRunner() {
       // Decide rows → either CSV rows or one empty row if no CSV
       const rowsToProcess: Record<string, any>[] = (Array.isArray(csv_data) && csv_data.length > 0) ? csv_data : [{}];
 
+      // B-57: Build position-based CSV column mappings
+      let labelToColumns: LabelToColumnsMapping = {};
+      let stepToColumn: StepToColumnMapping = {};
+      
+      if (csv_data && csv_data.length > 0) {
+        labelToColumns = buildLabelToColumnsMapping(parsed_fields as any);
+        stepToColumn = buildStepToColumnMapping(recorded_steps as any[], labelToColumns);
+      }
+
       for (let rowIndex = 0; rowIndex < rowsToProcess.length; rowIndex++) {
         if (!isRunningRef.current) break;
         
@@ -333,20 +348,24 @@ export default function TestRunner() {
             if (step.event === "input" || step.event === "click") {
               let inputValue: string | undefined;
 
-                console.log("[CSV DEBUG] Row keys:", Object.keys(row));
-                console.log("[CSV DEBUG] Step label:", step.label);
-                console.log("[CSV DEBUG] Direct lookup:", row[step.label]);
-                console.log("[CSV DEBUG] MappingLookup:", mappingLookup);
               if (csv_data && csv_data.length > 0) {
-                // ✅ CSV mode → mapping se value nikalna
-                if (row[step.label] !== undefined) {
+                // B-57: Use position-based column mapping
+                const columnName = stepToColumn[stepIndex];
+                if (columnName && row[columnName] !== undefined) {
+                  inputValue = row[columnName];
+
+                } else if (row[step.label] !== undefined) {
+                  // Fallback to direct label match
                   inputValue = row[step.label];
+
                 } else {
+                  // Try legacy mapping lookup as final fallback
                   const mappedKey = Object.keys(mappingLookup).find(
                     key => mappingLookup[key] === step.label
                   );
                   if (mappedKey && row[mappedKey] !== undefined) {
                     inputValue = row[mappedKey];
+
                   }
                 }
 

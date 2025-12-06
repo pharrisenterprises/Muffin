@@ -96,6 +96,7 @@ export class VisionEngine {
   private lastScreenshot: Screenshot | null = null;
   private lastOcrResults: TextResult[] = [];
   private eventListeners: Map<VisionEngineEvent, Set<(...args: unknown[]) => void>> = new Map();
+  private conditionalAbortController: AbortController | null = null;
 
   constructor(config?: Partial<VisionConfig>) {
     this.config = { ...DEFAULT_VISION_CONFIG, ...config };
@@ -664,24 +665,60 @@ export class VisionEngine {
       pollIntervalMs,
     } = config;
 
+    // Safe defaults to prevent NaN comparisons
+    const safeTimeoutSeconds = (typeof timeoutSeconds === 'number' && !isNaN(timeoutSeconds)) ? timeoutSeconds : 420;
+    const safePollIntervalMs = (typeof pollIntervalMs === 'number' && !isNaN(pollIntervalMs)) ? pollIntervalMs : 500;
+
+    // Cancel any previous conditional polling
+    if (this.conditionalAbortController) {
+      this.log('⚠️ Cancelling previous conditional polling');
+      this.conditionalAbortController.abort();
+    }
+    this.conditionalAbortController = new AbortController();
+
     const startTime = Date.now();
     let lastClickTime = Date.now();
     let buttonsClicked = 0;
     const clickedTexts: string[] = [];
 
     this.log(`Starting conditional polling for: ${searchTerms.join(', ')}`);
-    this.log(`Timeout: ${timeoutSeconds}s after last click, Poll interval: ${pollIntervalMs}ms`);
+    this.log(`Timeout: ${safeTimeoutSeconds}s after last click, Poll interval: ${safePollIntervalMs}ms`);
 
     // Emit start event
     this.emit('conditionalStart', {
       buttonTexts: searchTerms,
-      timeoutSeconds,
+      timeoutSeconds: safeTimeoutSeconds,
     });
 
+    // Failsafe: maximum poll limit
+    let pollCount = 0;
+    const MAX_POLLS = 10000;
+
     while (true) {
+      // Check poll count failsafe
+      pollCount++;
+      
+      // Warn at 80% of MAX_POLLS limit
+      if (pollCount === Math.floor(MAX_POLLS * 0.8)) {
+        this.log(`⚠️ Warning: Approaching max poll limit (${pollCount}/${MAX_POLLS})`);
+      }
+      
+      if (pollCount >= MAX_POLLS) {
+        this.log(`⚠️ Conditional stopped: max polls (${MAX_POLLS}) reached`);
+        this.conditionalAbortController = null;  // Clean up
+        return { buttonsClicked, timedOut: true, duration: Date.now() - startTime, clickedTexts };
+      }
+
+      // Check if polling was cancelled
+      if (this.conditionalAbortController.signal.aborted) {
+        this.log('Conditional polling cancelled');
+        this.conditionalAbortController = null;  // Clean up
+        return { buttonsClicked, timedOut: false, duration: Date.now() - startTime, clickedTexts };
+      }
+
       // Check timeout (time since last successful click)
       const timeSinceLastClick = (Date.now() - lastClickTime) / 1000;
-      if (timeSinceLastClick >= timeoutSeconds) {
+      if (timeSinceLastClick >= safeTimeoutSeconds) {
         this.log(`Conditional timeout after ${buttonsClicked} clicks`);
         
         // Emit complete event
@@ -691,6 +728,7 @@ export class VisionEngine {
           duration: Date.now() - startTime,
         });
         
+        this.conditionalAbortController = null;  // Clean up
         return {
           buttonsClicked,
           timedOut: true,
@@ -725,12 +763,12 @@ export class VisionEngine {
           await this.delay(500);
         }
       } else {
-        const remaining = Math.round(timeoutSeconds - timeSinceLastClick);
+        const remaining = Math.round(safeTimeoutSeconds - timeSinceLastClick);
         this.log(`No buttons found. Timeout in ${remaining}s`);
       }
 
       // Wait before next poll
-      await this.delay(pollIntervalMs);
+      await this.delay(safePollIntervalMs);
     }
   }
 

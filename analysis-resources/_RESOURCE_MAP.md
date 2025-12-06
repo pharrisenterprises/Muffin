@@ -16,7 +16,11 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 
 - **SOURCE_CODE_ROLLUP.md** — Key source code examples from critical files (type definitions, IndexedDB schema, Chrome Storage Helper, background message router, Redux store, React Router, build configs, and Phase 3 Vision type specifications). Provides implementation context and patterns for code generation.
 
-- **BIDIRECTIONAL_ANALYSIS.md** — Complete gap analysis between current system and Phase 2 target architecture (CDP integration, multi-strategy intelligence, Vision Engine). Documents what exists, what's missing, what must change, what must be replaced, what must be extended, dependency trees, build sequence (43-53 hours estimated), architecture gaps, integration risks, timing/race conditions, invention requirements (10 new services), new message actions (12+), new UI components (6), file inventory (20+ new files), and build card cross-reference. Essential for Phase 2 migration planning and Claude-Copilot collaboration.
+- **ARCHITECTURE_DECISIONS.md** ⭐ — **[FINALIZED DECISIONS]** Documents 8 approved architectural decisions for Phase 2: (1) Tesseract Loading Strategy (at recording start), (2) OCR Confidence Threshold (60%), (3) Conditional Click Timeout (120s), (4) Evidence Storage Architecture (50MB browser + Native Host Phase 3), (5) Strategy Degradation Policy (NONE - full multi-layer always), (6) Scoring Weight Configuration (fixed, not user-configurable), (7) Schema Migration Strategy (lazy on load), (8) Test Coverage Requirements (ALL sites full regression). Includes detailed rationale, implementation code examples, 7-tier tool arsenal specification, evidence-informed strategy selection algorithm, and Native Messaging Host API contracts. **Required reference for all Phase 2 build cards.**
+
+- **BIDIRECTIONAL_ANALYSIS.md** — Complete gap analysis between current system and Phase 2 target architecture referencing finalized architecture decisions. Documents current system inventory (15 working components needing verification), missing components (11 new), required interface extensions (Step, Recording), manifest changes, message router additions (12 new actions), dependency tree (8 phases), critical paths, risks/mitigations, test site status (5 sites requiring full regression). References ARCHITECTURE_DECISIONS.md for all decision-dependent implementations. Essential for Phase 2 migration planning and Claude-Copilot collaboration.
+
+- **BUILD_CARD_BACKLOG_PHASE2.md** ⭐ — **[87+ BUILD CARDS]** Complete implementation task breakdown for Phase 2 organized into 9 categories: Foundation (FND-001 to FND-012), Data Layer (DAT-001 to DAT-008), CDP Infrastructure (CDP-001 to CDP-010), Vision Engine (VIS-001 to VIS-015), Decision Engine (DEC-001 to DEC-008), Integration (INT-001 to INT-012), UI Components (UI-001 to UI-012), Testing (TST-001 to TST-010), Native Messaging Host Phase 3 (NMH-001 to NMH-005). Each card includes priority, dependencies, complexity, acceptance criteria, implementation code, and notes. Cross-references ARCHITECTURE_DECISIONS.md for decision-dependent cards. Defines sequential build dependencies and minimum viable Phase 2 path. **Primary task tracker for Phase 2 implementation.**
 
 - **PHASE_3_STATUS_TRACKER.md** — Progress tracker for Phase 3 Specification Generation. Lists all 74 specification files to be generated across 8 categories (FND 11, DAT 6, ENG 18, INT 9, UI 12, TST 10, MIG 5, DOC 3). Tracks completion status, commit status, category progress, and session notes. Used to maintain steady progress through the 4-5 hour specification generation workflow.
 
@@ -139,6 +143,18 @@ It must be updated automatically every time any analysis prompt, breakdown promp
   
   **Files:**
   - `AI_COLLABORATION_PROTOCOL.md` ⭐ — Bidirectional AI collaboration protocol defining synchronized knowledge base structure and communication workflow for Claude ↔ GitHub Copilot. Includes smart prompt format, implementation workflow, file reference map, verification protocol, and setup checklists for both AI systems.
+
+## QUICK REFERENCE: CLAUDE KB UPLOAD FILES
+
+**For Phase 2 Implementation:**
+1. **ARCHITECTURE_DECISIONS.md** — Finalized architectural decisions (8 key decisions)
+2. **BUILD_CARD_BACKLOG_PHASE2.md** — 87+ build cards with dependencies
+3. **knowledge-base-export/MASTER_ROLLUP_PHASE2.md** — Primary code generation reference
+4. **BIDIRECTIONAL_ANALYSIS.md** — Gap analysis and dependency tree
+
+**Total Upload Size:** ~300 KB | **Purpose:** Synchronized Claude-Copilot code generation
+
+---
 
 ## FUTURE SPECIFICATIONS
 

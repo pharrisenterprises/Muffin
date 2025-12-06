@@ -58,3 +58,15 @@ const newManifest = {
 
 fs.writeFileSync("./dist/manifest.json", JSON.stringify(newManifest, null, 2));
 console.log("🎉 Manifest updated successfully!");
+
+// Fix HTML paths: ../ -> ./ for Chrome extension compatibility
+const htmlFiles = ["index.html", "popup.html", "pages.html"];
+htmlFiles.forEach((file) => {
+  const filePath = `./dist/${file}`;
+  if (fs.existsSync(filePath)) {
+    let content = fs.readFileSync(filePath, "utf8");
+    content = content.replace(/\.\.\/(js|css)\//g, "./$1/");
+    fs.writeFileSync(filePath, content);
+    console.log(`✅ Fixed paths in ${file}`);
+  }
+});

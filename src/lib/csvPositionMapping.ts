@@ -100,25 +100,47 @@ export function buildStepToColumnMapping(
   labelToColumns: LabelToColumnsMapping
 ): StepToColumnMapping {
   const mapping: StepToColumnMapping = {};
-  const labelCounters: Record<string, number> = {};
+  const globalUsedColumns: Set<string> = new Set();  // Track ALL used columns globally
+  const labelUsageCount: Record<string, number> = {};  // Track per-label usage
 
   steps.forEach((step, index) => {
     const label = step.label?.toLowerCase().trim();
-    if (!label) return;
-
-    const columns = labelToColumns[label];
-    if (!columns || columns.length === 0) return;
-
-    // Get the current occurrence count for this label
-    const counter = labelCounters[label] || 0;
-
-    // Map this step to the column at the current occurrence position
-    if (counter < columns.length) {
-      mapping[index] = columns[counter];
+    if (!label) {
+      console.warn(`[CSV Mapping] Step ${index} has no label - skipping`);
+      return;
     }
 
-    // Increment the counter for this label
-    labelCounters[label] = counter + 1;
+    const availableColumns = labelToColumns[label] || [];
+    
+    if (availableColumns.length === 0) {
+      console.warn(`[CSV Mapping] No columns available for step ${index} (label: "${label}")`);
+      return;
+    }
+    
+    // Get current usage count for this label
+    const usageCount = labelUsageCount[label] || 0;
+    
+    // Find the next column that:
+    // 1. Belongs to this label's available columns
+    // 2. Hasn't been used globally yet
+    let columnToUse: string | null = null;
+    
+    for (let i = usageCount; i < availableColumns.length; i++) {
+      const candidateColumn = availableColumns[i];
+      if (!globalUsedColumns.has(candidateColumn)) {
+        columnToUse = candidateColumn;
+        labelUsageCount[label] = i + 1;  // Update for next use
+        break;
+      }
+    }
+    
+    if (columnToUse) {
+      mapping[index] = columnToUse;
+      globalUsedColumns.add(columnToUse);  // Mark as globally used
+      console.log(`[CSV Mapping] Step ${index} ("${label}") → column "${columnToUse}"`);
+    } else {
+      console.warn(`[CSV Mapping] No available column for step ${index} (label: "${label}") - all columns used`);
+    }
   });
 
   return mapping;
