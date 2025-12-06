@@ -1,24 +1,132 @@
-# BUILD CARD BACKLOG — PHASE 2
+# BUILD CARD BACKLOG: MUFFIN LITE PHASE 2
 
 **Generated:** December 6, 2025  
-**Total Cards:** 87+  
-**Status:** Approved with Architecture Decisions
+**Total Cards:** 87  
+**Estimated Total Effort:** 55-65 hours  
+**Scope:** Complete Phase 2 implementation including CDP, Vision, Decision Engine
 
 ---
 
-## QUICK REFERENCE
+## MASTER INDEX
 
-| Category | Cards | Complexity | Dependencies |
-|----------|-------|------------|--------------|
-| Foundation (FND) | 12 | Low-Medium | None |
-| Data Layer (DAT) | 8 | Medium | FND |
-| CDP Infrastructure (CDP) | 10 | Medium-High | FND, DAT |
-| Vision Engine (VIS) | 15 | High | FND |
-| Decision Engine (DEC) | 8 | High | CDP, VIS |
-| Integration (INT) | 12 | Medium-High | ALL |
-| UI Components (UI) | 12 | Medium | FND, DAT |
-| Testing (TST) | 10 | Medium-High | ALL |
-| **Phase 3** Native Host (NMH) | 5 | Medium | ALL Phase 2 |
+### Category 1: Foundation / Architecture (FND) — 12 cards
+| ID | Title | Priority | Effort | Dependencies |
+|----|-------|----------|--------|--------------|
+| FND-001 | Install Tesseract.js | P0 | 10 min | None |
+| FND-002 | Update Manifest Permissions | P0 | 10 min | None |
+| FND-003 | Create Services Directory Structure | P0 | 5 min | None |
+| FND-004 | Create StrategyType Enum | P0 | 15 min | None |
+| FND-005 | Create RecordedVia Type | P0 | 10 min | None |
+| FND-006 | Create VisionConfig Interface | P0 | 15 min | None |
+| FND-007 | Create TextResult Interface | P0 | 10 min | None |
+| FND-008 | Create ClickTarget Interface | P0 | 10 min | None |
+| FND-009 | Create ConditionalConfig Interface | P0 | 15 min | None |
+| FND-010 | Create LocatorStrategy Interface | P0 | 15 min | FND-004 |
+| FND-011 | Create FallbackChain Interface | P0 | 15 min | FND-010 |
+| FND-012 | Extend Step Interface | P0 | 30 min | FND-005, FND-011 |
+
+### Category 2: Data Layer (DAT) — 8 cards
+| ID | Title | Priority | Effort | Dependencies |
+|----|-------|----------|--------|--------------|
+| DAT-001 | Define Dexie Schema v3 | P0 | 30 min | FND-012 |
+| DAT-002 | Implement v1→v3 Migration | P0 | 45 min | DAT-001 |
+| DAT-003 | Create Recording Repository | P1 | 30 min | DAT-001 |
+| DAT-004 | Create Telemetry Repository | P1 | 30 min | DAT-001 |
+| DAT-005 | Create Evidence Buffer Repository | P1 | 30 min | DAT-001 |
+| DAT-006 | Implement Default Values Factory | P1 | 20 min | FND-012 |
+| DAT-007 | Add Step Validation Utility | P2 | 30 min | FND-012 |
+| DAT-008 | Add Migration Rollback Support | P2 | 45 min | DAT-002 |
+
+### Category 3: CDP Infrastructure (CDP) — 10 cards
+| ID | Title | Priority | Effort | Dependencies |
+|----|-------|----------|--------|--------------|
+| CDP-001 | Add Debugger Permission to Manifest | P0 | 10 min | FND-002 |
+| CDP-002 | Create CDPService Skeleton | P0 | 2 hrs | CDP-001 |
+| CDP-003 | Implement DOM Commands | P0 | 1 hr | CDP-002 |
+| CDP-004 | Implement Accessibility Tree Access | P0 | 1.5 hrs | CDP-002 |
+| CDP-005 | Implement getByRole Locator | P0 | 2 hrs | CDP-004 |
+| CDP-006 | Implement Text/Label/Placeholder Locators | P0 | 1.5 hrs | CDP-003 |
+| CDP-007 | Implement Locator Chaining | P1 | 1.5 hrs | CDP-005, CDP-006 |
+| CDP-008 | Implement AutoWaiting Service | P0 | 1.5 hrs | CDP-003 |
+| CDP-009 | Implement DecisionEngine Core | P0 | 3 hrs | CDP-005, CDP-008 |
+| CDP-010 | Integrate CDP with Recording | P0 | 2 hrs | CDP-009 |
+
+### Category 4: Vision Engine (VIS) — 15 cards
+| ID | Title | Priority | Effort | Dependencies |
+|----|-------|----------|--------|--------------|
+| VIS-001 | Create VisionEngine Skeleton | P0 | 30 min | FND-001, FND-006 |
+| VIS-002 | Implement Tesseract Worker Init | P0 | 45 min | VIS-001 |
+| VIS-003 | Implement Screenshot Capture | P0 | 30 min | VIS-001 |
+| VIS-004 | Implement OCR Text Extraction | P0 | 1 hr | VIS-002, VIS-003 |
+| VIS-005 | Implement Text Search with Fuzzy Match | P0 | 45 min | VIS-004 |
+| VIS-006 | Implement Vision Click | P0 | 1 hr | VIS-005 |
+| VIS-007 | Implement Vision Type | P0 | 45 min | VIS-006 |
+| VIS-008 | Implement Vision Dropdown | P1 | 45 min | VIS-006 |
+| VIS-009 | Implement Conditional Click Polling | P0 | 1.5 hrs | VIS-006 |
+| VIS-010 | Add Vision Fallback Trigger Detection | P0 | 1 hr | VIS-001 |
+| VIS-011 | Implement Vision Recording Capture | P0 | 1.5 hrs | VIS-010 |
+| VIS-012 | Add Coordinate Storage | P0 | 30 min | VIS-011 |
+| VIS-013 | Implement Worker Lifecycle Management | P1 | 45 min | VIS-002 |
+| VIS-014 | Add Screenshot Caching | P2 | 30 min | VIS-003 |
+| VIS-015 | Implement Vision Cleanup | P1 | 30 min | VIS-013 |
+
+### Category 5: Decision Engine (DEC) — 8 cards
+| ID | Title | Priority | Effort | Dependencies |
+|----|-------|----------|--------|--------------|
+| DEC-001 | Create Strategy Evaluator Interface | P0 | 30 min | FND-010 |
+| DEC-002 | Implement DOM Strategy Evaluator | P0 | 45 min | DEC-001 |
+| DEC-003 | Implement CDP Strategy Evaluator | P0 | 1 hr | DEC-001, CDP-005 |
+| DEC-004 | Implement Vision Strategy Evaluator | P0 | 1 hr | DEC-001, VIS-006 |
+| DEC-005 | Implement Coordinates Strategy Evaluator | P0 | 30 min | DEC-001 |
+| DEC-006 | Implement Parallel Strategy Scoring | P0 | 1.5 hrs | DEC-002 to DEC-005 |
+| DEC-007 | Implement Fallback Chain Executor | P0 | 1.5 hrs | DEC-006 |
+| DEC-008 | Add Telemetry Logging to Engine | P1 | 45 min | DEC-007, DAT-004 |
+
+### Category 6: Integration Points (INT) — 12 cards
+| ID | Title | Priority | Effort | Dependencies |
+|----|-------|----------|--------|--------------|
+| INT-001 | Add CDP Message Handlers | P0 | 1 hr | CDP-002 |
+| INT-002 | Add Vision Message Handlers | P0 | 1 hr | VIS-006 |
+| INT-003 | Add Telemetry Message Handlers | P1 | 30 min | DAT-004 |
+| INT-004 | Integrate Recording with FallbackChain | P0 | 2 hrs | CDP-010, VIS-011 |
+| INT-005 | Integrate Playback with DecisionEngine | P0 | 2 hrs | DEC-007 |
+| INT-006 | Add Time Delay Execution | P0 | 45 min | None |
+| INT-007 | Add CSV Loop Execution | P0 | 1 hr | None |
+| INT-008 | Add Conditional Click Execution | P0 | 1 hr | VIS-009 |
+| INT-009 | Wire Vision Fallback to Recording | P0 | 1 hr | VIS-010 |
+| INT-010 | Add CDP Cleanup on Tab Close | P1 | 30 min | CDP-002 |
+| INT-011 | Add Vision Cleanup on Recording Stop | P1 | 30 min | VIS-015 |
+| INT-012 | Implement Evidence Pruning | P2 | 45 min | DAT-005 |
+
+### Category 7: UI Components (UI) — 12 cards
+| ID | Title | Priority | Effort | Dependencies |
+|----|-------|----------|--------|--------------|
+| UI-001 | Create Vision Badge Component | P0 | 30 min | None |
+| UI-002 | Create Strategy Indicator Component | P1 | 30 min | None |
+| UI-003 | Create Delay Controls Component | P0 | 45 min | None |
+| UI-004 | Create Conditional Click Config Panel | P0 | 1 hr | FND-009 |
+| UI-005 | Create Telemetry Panel Component | P2 | 1 hr | None |
+| UI-006 | Create Fallback Chain Viewer | P2 | 45 min | None |
+| UI-007 | Add Vision Badge to StepsTable | P0 | 30 min | UI-001 |
+| UI-008 | Add Delay Controls to Recorder | P0 | 30 min | UI-003 |
+| UI-009 | Add Conditional Config to Step Menu | P0 | 45 min | UI-004 |
+| UI-010 | Add Strategy Indicator to TestRunner | P1 | 30 min | UI-002 |
+| UI-011 | Add Telemetry Panel to TestRunner | P2 | 30 min | UI-005 |
+| UI-012 | Add Recording Overlay Updates | P1 | 30 min | VIS-011 |
+
+### Category 8: Testing & Validation (TST) — 10 cards
+| ID | Title | Priority | Effort | Dependencies |
+|----|-------|----------|--------|--------------|
+| TST-001 | Unit Tests: CDPService | P0 | 1.5 hrs | CDP-002 |
+| TST-002 | Unit Tests: PlaywrightLocators | P0 | 2 hrs | CDP-007 |
+| TST-003 | Unit Tests: VisionEngine | P0 | 1.5 hrs | VIS-006 |
+| TST-004 | Unit Tests: DecisionEngine | P0 | 2 hrs | DEC-007 |
+| TST-005 | Unit Tests: Schema Migration | P0 | 1 hr | DAT-002 |
+| TST-006 | Integration Test: Recording Flow | P0 | 2 hrs | INT-004 |
+| TST-007 | Integration Test: Playback Flow | P0 | 2 hrs | INT-005 |
+| TST-008 | E2E Test: Full Workflow | P1 | 3 hrs | TST-006, TST-007 |
+| TST-009 | Manual Test: Complex Sites | P1 | 2 hrs | TST-008 |
+| TST-010 | Performance Benchmark Suite | P2 | 2 hrs | TST-008 |
 
 ---
 

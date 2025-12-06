@@ -1,9 +1,4 @@
-/**
- * Type Definitions Index
- * Re-exports all types for convenient importing.
- * 
- * Usage:
- *   import { VisionConfig, TextResult } from '../types';
- */
-
-export * from './vision';
+﻿// src/types/index.ts
+export * from "./strategy";
+export * from "./vision";
+export * from "./cdp";

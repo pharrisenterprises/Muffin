@@ -24,10 +24,11 @@ This protocol enables **bidirectional AI collaboration** where:
 #### Core Master Documents
 | File | Purpose | Claude Equivalent |
 |------|---------|-------------------|
+| `ARCHITECTURE_DECISIONS.md` ⭐ | 8 finalized architectural decisions | Upload to Claude Project |
+| `BUILD_CARD_BACKLOG_PHASE2.md` | 87 build cards with dependencies | Upload to Claude Project |
+| `BIDIRECTIONAL_ANALYSIS.md` | Gap analysis (current vs. Phase 2) | Upload to Claude Project |
 | `MASTER_ROLLUP.md` | Complete system reference (Phase 1-3) | Upload to Claude Project |
 | `TECHNICAL_REFERENCE.md` | TypeScript interfaces, conventions | Upload to Claude Project |
-| `BIDIRECTIONAL_ANALYSIS.md` | Gap analysis (current vs. future) | Upload to Claude Project |
-| `BUILD_CARD_BACKLOG.md` | 67 build cards with dependencies | Upload to Claude Project |
 | `SOURCE_CODE_ROLLUP.md` | Key source code examples | Upload to Claude Project |
 
 #### Phase-Specific Documents
@@ -151,12 +152,13 @@ Next Task: CDP-003 (DOM Commands) - Ready to implement
 
 ### For Claude (User to Do)
 - [ ] Create Claude Project: "Muffin Lite V2 - Phase 2"
-- [ ] Upload core master documents:
-  - [ ] `MASTER_ROLLUP.md`
-  - [ ] `TECHNICAL_REFERENCE.md`
-  - [ ] `BIDIRECTIONAL_ANALYSIS.md`
-  - [ ] `BUILD_CARD_BACKLOG.md`
-  - [ ] `SOURCE_CODE_ROLLUP.md`
+- [ ] Upload core master documents (Priority Order):
+  - [ ] `ARCHITECTURE_DECISIONS.md` ⭐ (REQUIRED - 8 finalized decisions)
+  - [ ] `BUILD_CARD_BACKLOG_PHASE2.md` ⭐ (REQUIRED - 87 build cards)
+  - [ ] `BIDIRECTIONAL_ANALYSIS.md` (Gap analysis)
+  - [ ] `MASTER_ROLLUP.md` (System reference)
+  - [ ] `TECHNICAL_REFERENCE.md` (TypeScript conventions)
+  - [ ] `SOURCE_CODE_ROLLUP.md` (Code examples)
 - [ ] Upload Phase 2 knowledge base (15 files):
   - [ ] `knowledge-base-export/MASTER_ROLLUP_PHASE2.md`
   - [ ] `knowledge-base-export/00_masterplan-overview.md`
@@ -208,11 +210,12 @@ Code Standards:
 - Follow conventions from TECHNICAL_REFERENCE.md
 
 Reference Priority:
-1. MASTER_ROLLUP_PHASE2.md (primary code reference)
-2. 09_build-cards-cdp.md (build order and dependencies)
-3. 05_data-layer.md (TypeScript types)
-4. 04_architecture.md (system design)
-5. Other knowledge base files as needed
+1. ARCHITECTURE_DECISIONS.md (finalized architectural decisions - MUST READ FIRST)
+2. BUILD_CARD_BACKLOG_PHASE2.md (87 build cards with dependencies)
+3. MASTER_ROLLUP_PHASE2.md (primary code reference)
+4. 05_data-layer.md (TypeScript types)
+5. 04_architecture.md (system design)
+6. Other knowledge base files as needed
 
 When Copilot completes a task, review and generate next smart prompt.
 ```
@@ -227,23 +230,26 @@ When generating prompts, Claude should reference these files:
 
 | Task Type | Reference Files |
 |-----------|-----------------|
-| CDP Service Implementation | `MASTER_ROLLUP_PHASE2.md`, `09_build-cards-cdp.md` (CDP-002), `05_data-layer.md` |
-| Playwright Locators | `MASTER_ROLLUP_PHASE2.md` (Recipe 3), `09_build-cards-cdp.md` (CDP-005 to CDP-007) |
-| Decision Engine | `04_architecture.md`, `09_build-cards-cdp.md` (CDP-009), `MASTER_ROLLUP_PHASE2.md` (Recipe 4) |
-| Vision Engine | `03_feature-specs.md`, `MASTER_ROLLUP_PHASE2.md` (Recipe 5), `future-spec/03_feature-specs.md` |
-| Database Schema | `05_data-layer.md`, `MASTER_ROLLUP.md`, `TECHNICAL_REFERENCE.md` |
-| UI Components | `03_feature-specs.md`, `MASTER_ROLLUP_PHASE2.md`, `ui-design-system_breakdown.md` |
-| Testing | `08_testing-strategy.md`, `MASTER_ROLLUP_PHASE2.md`, `PHASE_4_MANUAL.md` |
+| **Any Build Card** | `ARCHITECTURE_DECISIONS.md` (ALWAYS CHECK FIRST) |
+| CDP Service Implementation | `BUILD_CARD_BACKLOG_PHASE2.md` (CDP-002), `MASTER_ROLLUP_PHASE2.md`, `05_data-layer.md` |
+| Playwright Locators | `BUILD_CARD_BACKLOG_PHASE2.md` (CDP-005 to CDP-007), `MASTER_ROLLUP_PHASE2.md` (Recipe 3) |
+| Decision Engine | `ARCHITECTURE_DECISIONS.md` (Decision 5), `BUILD_CARD_BACKLOG_PHASE2.md` (CDP-009), `04_architecture.md` |
+| Vision Engine | `ARCHITECTURE_DECISIONS.md` (Decisions 1, 2), `BUILD_CARD_BACKLOG_PHASE2.md` (VIS-001 to VIS-015), `03_feature-specs.md` |
+| Database Schema | `ARCHITECTURE_DECISIONS.md` (Decision 7), `05_data-layer.md`, `MASTER_ROLLUP.md` |
+| UI Components | `BUILD_CARD_BACKLOG_PHASE2.md` (UI-001 to UI-012), `03_feature-specs.md`, `ui-design-system_breakdown.md` |
+| Testing | `ARCHITECTURE_DECISIONS.md` (Decision 8), `BUILD_CARD_BACKLOG_PHASE2.md` (TST-001 to TST-010), `08_testing-strategy.md` |
 
 ### For Implementation by GitHub Copilot
 
 When receiving prompts, I will reference:
 
 | Information Needed | Reference Files in Workspace |
-|--------------------|-----------------------------|
+|--------------------|------------------------------|
+| **Architecture Decisions** | `ARCHITECTURE_DECISIONS.md` (READ FIRST - 8 decisions) |
+| Build Cards & Dependencies | `BUILD_CARD_BACKLOG_PHASE2.md` (87 cards with effort estimates) |
+| Gap Analysis | `BIDIRECTIONAL_ANALYSIS.md` (current vs Phase 2) |
 | TypeScript Types | `knowledge-base-export/05_data-layer.md`, `TECHNICAL_REFERENCE.md` |
 | Architecture | `knowledge-base-export/04_architecture.md`, `MASTER_ROLLUP.md` |
-| Build Order | `knowledge-base-export/09_build-cards-cdp.md`, `BUILD_CARD_BACKLOG.md` |
 | Code Examples | `knowledge-base-export/MASTER_ROLLUP_PHASE2.md`, `SOURCE_CODE_ROLLUP.md` |
 | Conventions | `TECHNICAL_REFERENCE.md` |
 | Testing Patterns | `knowledge-base-export/08_testing-strategy.md` |
@@ -252,7 +258,20 @@ When receiving prompts, I will reference:
 
 ## 🚨 Critical Alignment Points
 
-### 1. TypeScript Types Must Match
+### 1. Architecture Decisions Must Be Followed
+**Source of Truth:** `ARCHITECTURE_DECISIONS.md`
+
+Both AIs must follow these 8 finalized decisions:
+1. **Tesseract Loading:** At Recording Start (~2s during setup)
+2. **OCR Confidence:** 60%
+3. **Conditional Timeout:** 120 seconds
+4. **Evidence Storage:** 50MB browser + Native Host (Phase 3)
+5. **Strategy Degradation:** NONE - Full multi-layer always
+6. **Scoring Weights:** Fixed (not configurable)
+7. **Schema Migration:** Lazy on load
+8. **Test Coverage:** ALL sites - full regression required
+
+### 2. TypeScript Types Must Match
 **Source of Truth:** `knowledge-base-export/05_data-layer.md`
 
 Both AIs must reference same type definitions:
@@ -262,20 +281,25 @@ Both AIs must reference same type definitions:
 - `LocatorStrategy`
 - `LocatorResult`
 
-### 2. Build Order Must Follow Dependencies
-**Source of Truth:** `knowledge-base-export/09_build-cards-cdp.md`
+### 3. Build Order Must Follow Dependencies
+**Source of Truth:** `BUILD_CARD_BACKLOG_PHASE2.md`
 
-Build order: CDP-001 → CDP-002 → CDP-003 → CDP-004 → CDP-005 → CDP-006 → CDP-007 → CDP-008 → CDP-009 → CDP-010
+Critical path: FND-001 → FND-012 → DAT-001 → DAT-002 → CDP-001 → CDP-002 → CDP-009 → INT-005
 
-### 3. Architecture Principles Must Be Consistent
-**Source of Truth:** `knowledge-base-export/00_masterplan-overview.md`
+Full build order: FND (12 cards) → DAT (8 cards) → CDP (10 cards) → VIS (15 cards) → DEC (8 cards) → INT (12 cards) → UI (12 cards) → TST (10 cards)
 
-- 7-tier tool arsenal is **NOT hierarchical** (parallel evaluation)
-- Decision Engine scores all strategies by confidence
+### 4. Architecture Principles Must Be Consistent
+**Source of Truth:** `ARCHITECTURE_DECISIONS.md` + `knowledge-base-export/00_masterplan-overview.md`
+
+- 7-tier tool arsenal is **NOT hierarchical** (parallel evaluation per Decision 5)
+- Decision Engine scores ALL strategies via Promise.all
+- NO degradation - all 7 strategies always evaluated (Decision 5)
+- Recording captures ALL evidence types (DOM + CDP + Vision + Coordinates)
 - Fallback chains generated at **recording time** (not playback)
-- CDP locators are highest confidence
+- CDP semantic locators are highest confidence (0.95)
+- Tesseract loads at recording start, not startup (Decision 1)
 
-### 4. File Structure Must Match
+### 5. File Structure Must Match
 **Source of Truth:** `knowledge-base-export/04_architecture.md`
 
 New files for Phase 2:
@@ -284,6 +308,11 @@ New files for Phase 2:
 - `src/background/services/PlaywrightLocators.ts`
 - `src/background/services/DecisionEngine.ts`
 - `src/background/services/AutoWaiting.ts`
+- `src/lib/visionEngine.ts`
+- `src/lib/migrations/v3.ts`
+- `src/types/strategy.ts`
+- `src/types/vision.ts`
+- `src/types/cdp.ts`
 
 ---
 
@@ -414,14 +443,21 @@ When knowledge base changes:
 ## ✅ Setup Complete
 
 **GitHub Copilot Status:** ✅ Ready
-- All 15 knowledge base files committed and indexed
+- ARCHITECTURE_DECISIONS.md committed (8 finalized decisions)
+- BUILD_CARD_BACKLOG_PHASE2.md committed (87 build cards)
+- BIDIRECTIONAL_ANALYSIS.md committed (gap analysis)
+- All 15 knowledge base export files committed and indexed
 - Can reference via workspace paths
 - Protocol documented in this file
 
 **Claude Status:** ⏳ Pending User Action
 - User needs to create Claude Project
-- User needs to upload knowledge base files (listed above)
-- User needs to add custom instructions
+- User needs to upload 4 priority files:
+  1. ARCHITECTURE_DECISIONS.md ⭐
+  2. BUILD_CARD_BACKLOG_PHASE2.md ⭐
+  3. knowledge-base-export/MASTER_ROLLUP_PHASE2.md
+  4. BIDIRECTIONAL_ANALYSIS.md
+- User needs to add custom instructions (see CLAUDE_UPLOAD_CHECKLIST.md)
 
 Once Claude setup is complete, collaboration can begin!
 

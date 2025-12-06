@@ -1,44 +1,13 @@
-{
-  "name": "TestFlow v2.1.5 (FIX 9)",
-  "description": "Browser automation with Vision/OCR capabilities",
-  "version": "2.1.5",
+﻿{
   "manifest_version": 3,
-  "icons": {
-    "128": "icon/128.png",
-    "64": "icon/64.png",
-    "48": "icon/48.png",
-    "32": "icon/32.png",
-    "24": "icon/24.png",
-    "16": "icon/16.png"
-  },
-  "background": {
-    "service_worker": "background/background.js"
-  },
-  "action": {
-    "default_title": "TestFlow"
-  },
-  "permissions": [
-    "tabs",
-    "storage",
-    "offscreen",
-    "scripting",
-    "activeTab",
-    "webNavigation",
-    "debugger"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "*",
-        "*.wasm",
-        "*.traineddata"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
-    }
-  ]
+  "name": "TestFlow",
+  "version": "2.1.0",
+  "description": "Web Testing Automation with Vision OCR and CDP Integration",
+  "permissions": ["debugger","activeTab","tabs","storage","scripting"],
+  "host_permissions": ["<all_urls>"],
+  "web_accessible_resources": [{"resources": ["*.wasm", "*.traineddata"],"matches": ["<all_urls>"]}],
+  "action": {"default_popup": "index.html","default_icon": {"16": "icons/icon16.png","48": "icons/icon48.png","128": "icons/icon128.png"}},
+  "background": {"service_worker": "src/background/background.ts","type": "module"},
+  "content_scripts": [{"matches": ["<all_urls>"],"js": ["src/content/content.ts"],"run_at": "document_idle"}],
+  "icons": {"16": "icons/icon16.png","48": "icons/icon48.png","128": "icons/icon128.png"}
 }
