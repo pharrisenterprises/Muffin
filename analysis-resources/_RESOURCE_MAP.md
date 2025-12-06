@@ -14,26 +14,28 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 
 - **TECHNICAL_REFERENCE.md** — Detailed technical deep-dive with complete TypeScript interfaces, import patterns, code conventions, error handling, state management, Chrome extension architecture, database schema, file paths, utilities inventory, and integration checklists. Complements MASTER_ROLLUP with implementation-level detail.
 
-- **BIDIRECTIONAL_ANALYSIS.md** — Complete gap analysis between current system and Phase 2 target architecture (CDP integration, multi-strategy intelligence, Vision Engine). Documents what exists, what's missing, what must change, what must be replaced, what must be extended, dependency trees, build sequence (43-53 hours estimated), architecture gaps, integration risks, timing/race conditions, invention requirements (10 new services), new message actions (12+), new UI components (6), file inventory (20+ new files), and build card cross-reference. Essential for Phase 2 migration planning and Claude-Copilot collaboration.
+- **SOURCE_CODE_ROLLUP.md** — Key source code examples from critical files (type definitions, IndexedDB schema, Chrome Storage Helper, background message router, Redux store, React Router, build configs, and Phase 3 Vision type specifications). Provides implementation context and patterns for code generation.
 
-- **BUILD_CARD_BACKLOG.md** — Comprehensive backlog of 67 build cards organized into 8 categories (Foundation, Data Layer, Core Engine, Integration, UI, Testing, Migration, Documentation). Each card includes purpose, inputs, outputs, acceptance criteria, dependencies, and risk level. Provides recommended execution order and parallelization opportunities for ~4-5 hour build timeline.
+- **BIDIRECTIONAL_ANALYSIS.md** — Complete gap analysis between current system and Phase 2 target architecture (CDP integration, multi-strategy intelligence, Vision Engine). Documents what exists, what's missing, what must change, what must be replaced, what must be extended, dependency trees, build sequence (43-53 hours estimated), architecture gaps, integration risks, timing/race conditions, invention requirements (10 new services), new message actions (12+), new UI components (6), file inventory (20+ new files), and build card cross-reference. Essential for Phase 2 migration planning and Claude-Copilot collaboration.
 
 - **PHASE_3_STATUS_TRACKER.md** — Progress tracker for Phase 3 Specification Generation. Lists all 74 specification files to be generated across 8 categories (FND 11, DAT 6, ENG 18, INT 9, UI 12, TST 10, MIG 5, DOC 3). Tracks completion status, commit status, category progress, and session notes. Used to maintain steady progress through the 4-5 hour specification generation workflow.
 
 - **PHASE_4_STATUS_TRACKER.md** — Progress tracker for Phase 4 Code Implementation. Lists all 74 implementations to be generated across 11 dependency layers (Layer 0: Foundation 4, Layer 1: Types 5, Layer 2: Extended 2, Layer 3: Data Foundation 2, Layer 4: Data Complete 4, Layer 5: Engine Foundation 3, Layer 6: Engine Methods 16, Layer 7: Integration 9, Layer 8: UI 11, Layer 9: Testing 10, Layer 10: Migration 5, Layer 11: Documentation 3). Tracks implementation status, test results, commit status, and layer progress. Used to ensure strict dependency ordering during 4-5 hour implementation workflow.
+
+## PROJECT ANALYSIS
 
 - **analysis-resources/project-analysis/**
   Holds outputs from the initial repo analysis phase.
   
   **Files:**
   - `00_meta-analysis.md` — Master repo analysis: comprehensive overview, tech stack, architecture, directory structure, dependencies, complexity hotspots, and subsystem boundaries for future rebuild.
+  - `00_project-summary.md` — Project summary
+  - `01_stack-breakdown.md` — Technology stack breakdown
+  - `02_architecture-map.md` — Architecture mapping
+  - `03_folder-structure.md` — Directory structure analysis
+  - `04_dependencies.md` — Dependency analysis
 
-- **analysis-resources/component-breakdowns/**
-  Contains deep-dive documents for specific components/subsystems.
-  Format: `<component-name>_breakdown.md`
-  
-  **Files:**
-  - `00_VERIFICATION_REPORT.md` — Verification report confirming all 32 component breakdowns are current and accurately reflect the codebase (verified 2025-12-01).
+## MODULARIZATION PLANS
 
 - **analysis-resources/modularization-plans/**
   Holds modular re-architecture blueprints defining module boundaries, dependencies, build order, and contracts.
@@ -41,15 +43,16 @@ It must be updated automatically every time any analysis prompt, breakdown promp
   **Files:**
   - `00_modularization-overview.md` — Complete modularization blueprint defining 9 modules with clear boundaries, dependency map, 18-week build order (30 components), risks/constraints, and 7 architecture contracts (ElementBundle, Step, FieldMapping, Action Messages, TestConfig, Repository Operations, UI Props).
 
-## Component Breakdowns
+## COMPONENT BREAKDOWNS
+
+- **analysis-resources/component-breakdowns/**
+  Contains deep-dive documents for specific components/subsystems. Format: `<component-name>_breakdown.md`
 
 | File | Description |
 |------|-------------|
 | background-service-worker_breakdown.md | Central message routing hub in service worker managing lifecycle and cross-context communication |
 | build-pipeline_breakdown.md | Dual Vite build configuration for React UI and ES module service worker |
 | chrome-storage-helper_breakdown.md | Promise-based wrapper around Chrome storage.sync API for persistent key-value storage |
-| conditional-click-ui_breakdown.md | UI components for conditional click configuration (AddConditionalClickMenu, ConfigureConditionalPanel, ConditionalBadge) |
-| csv-position-mapping_breakdown.md | CSV variable substitution algorithm with {{var}} syntax and loop start implementation |
 | content-script-recorder_breakdown.md | Event capture system that records user interactions with full element metadata |
 | content-script-replayer_breakdown.md | Playback engine that replays recorded steps with multi-strategy element finding |
 | csv-parser_breakdown.md | PapaParse integration for parsing CSV files into structured test data |
@@ -65,45 +68,31 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 | notification-overlay_breakdown.md | In-page visual feedback system displaying temporary notifications during playback |
 | page-interceptor_breakdown.md | Shadow DOM monkey patch enabling access to closed shadow roots |
 | project-crud_breakdown.md | UI components for creating, editing, and deleting projects via modal dialogs |
+| recorder-ui_breakdown.md | Recording interface UI component |
 | redux-state-management_breakdown.md | Minimal Redux store managing theme state (dark/light mode toggle) |
 | router-navigation_breakdown.md | React Router hash-based routing configuration for extension pages |
-| schema-migration_breakdown.md | v1 → v3 migration pipeline with repair functions and backward compatibility verification |
 | shadow-dom-handler_breakdown.md | Shadow DOM traversal system with workarounds for closed shadow roots |
 | step-capture-engine_breakdown.md | Event-to-step transformation logic enriching events with XPath, labels, and metadata |
-| step-executor_breakdown.md | Routes step execution between DOM and Vision pathways with delay logic and CSV substitution |
-| shadow-dom-handler_breakdown.md | Shadow DOM traversal system with workarounds for closed shadow roots |
-| step-capture-engine_breakdown.md | Event-to-step transformation logic enriching events with XPath, labels, and metadata |
+| step-table-management_breakdown.md | Step table management component |
+| tab-manager_breakdown.md | Tab management utilities |
+| test-logger_breakdown.md | Test execution logging system |
+| test-orchestrator_breakdown.md | Test orchestration engine |
 | test-run-repository_breakdown.md | Dexie CRUD wrapper managing test execution history in IndexedDB |
 | test-runner-ui_breakdown.md | Test execution interface with real-time progress, console logs, and results |
 | ui-design-system_breakdown.md | Reusable component library built on Radix UI primitives and Tailwind CSS |
-| vision-content-handlers_breakdown.md | Content script handlers for Vision interactions (VISION_CLICK, TYPE, KEY, SCROLL, GET_ELEMENT) |
-| vision-engine_breakdown.md | Tesseract.js OCR wrapper with screenshot capture, text recognition, and conditional click polling |
+| xpath-computation_breakdown.md | XPath generation and computation utilities |
+
+## BUILD INSTRUCTIONS
+
 - **analysis-resources/build-instructions/**
   Contains build pipeline designs and environment toolchain notes.
-  
-  **Phase 3 Specifications (build-instructions/masterplan/):**
-  Complete implementation specifications for Vision/OCR system (74 files across 8 categories):
-  - `01-foundation/` — Foundation (FND-001 to FND-011): 11 specs for Tesseract setup, type definitions, interfaces
-  - `02-data-layer/` — Data Layer (DAT-001 to DAT-006): 6 specs for schema v3, migration, repositories
-  - `03-engine/` — Core Engine (ENG-001 to ENG-018): 18 specs for VisionEngine, OCR, text finding, clicking, CSV mapping, delays
-  - `04-integration/` — Integration (INT-001 to INT-009): 9 specs for Vision content handlers and DOM/Vision switching
-  - `05-ui-components/` — UI Components (UI-001 to UI-012): 12 specs for badges, dropdowns, config panels
-  - `06-testing/` — Testing (TST-001 to TST-010): 10 specs for unit, integration, and E2E tests
-  - `07-migration/` — Migration (MIG-001 to MIG-005): 5 specs for schema migration and backward compatibility
-  - `08-documentation/` — Documentation (DOC-001 to DOC-003): 3 specs for README, API docs, troubleshooting algorithm for DOM element identification | step playback |
-| test-run-repository_breakdown.md | Dexie CRUD wrapper managing test execution history in IndexedDB |
-- **analysis-resources/references/**
-  Contains external and internal reference material required for accurate code generation.
   
   **Files:**
-  - `AI_COLLABORATION_PROTOCOL.md` ⭐ **NEW** — Bidirectional AI collaboration protocol defining synchronized knowledge base structure and communication workflow for Claude ↔ GitHub Copilot. Includes smart prompt format, implementation workflow, file reference map, verification protocol, and setup checklists for both AI systems.
+  - `BUILD_DEPENDENCY_MAP.md` — Build dependency mapping
+  - `BUILD_PLAN.md` — Build execution plan
+## KNOWLEDGE BASE EXPORT
 
-- **SOURCE_CODE_ROLLUP.md** — Key source code examples from critical files (type definitions, IndexedDB schema, Chrome Storage Helper, background message router, Redux store, React Router, build configs, and Phase 3 Vision type specifications). Provides implementation context and patterns for code generation.
-
-- **analysis-resources/build-instructions/**
-  Contains build pipeline designs and environment toolchain notes.
-
-- **analysis-resources/knowledge-base-export/** ⭐ **NEW**
+- **analysis-resources/knowledge-base-export/** ⭐
   **Phase 2 Knowledge Base Export for Claude Projects** — Complete set of 15 markdown files documenting Phase 2 multi-strategy intelligent recording system with CDP integration. Designed for upload to Claude Knowledge Base for AI-assisted code generation.
   
   **Files:**
@@ -125,34 +114,52 @@ It must be updated automatically every time any analysis prompt, breakdown promp
   
   **Total:** 15 files | ~217 KB | Ready for Claude Knowledge Base upload
 
+## IMPLEMENTATION GUIDES
+
 - **analysis-resources/implementation-guides/**
   Contains detailed instructions used during later code-generation phases.
   
   **Files:**
-  - `PHASE_3_MANUAL.md` — Complete guide for Phase 3 Specification Generation. Defines workflow for creating 67 implementation-ready specification files (400-600 lines each, NO placeholders). Includes Smart Prompt template, dependency layers, quality gates, and execution sequence. Documents all categories: Foundation (FND 11 specs), Data Layer (DAT 6 specs), Core Engine (ENG 18 specs), Integration (INT 9 specs), UI Components (UI 12 specs), Testing (TST 10 specs), Migration (MIG 5 specs), Documentation (DOC 3 specs). Total estimated duration: 4-5 hours.
-  - `PHASE_4_MANUAL.md` — Code generation manual for Phase 4 Implementation. Defines Claude/Copilot division of labor, 11-layer dependency graph, smart prompt template for all 67 build cards, code standards (relative imports, naming conventions, async patterns), testing requirements (unit/integration/E2E), status tracker template, and error handling procedures. Includes implementation details for all categories with acceptance criteria, verification commands, and rollback procedures. Total estimated duration: 4-5 hours.
+  - `CDP_BUILD_GUIDE.md` — CDP integration build guide
+  - `DECISION_ENGINE_BUILD_GUIDE.md` — Decision Engine implementation guide
+  - `VISION_BUILD_GUIDE.md` — Vision Engine build guide
+
+## PROMPTS
 
 - **analysis-resources/prompts/**
   Contains saved standardized prompts for the automated code-factory system.
+  
+  **Files:**
+  - `VISION_SMART_PROMPT.md` — Smart prompt template for Vision implementation
+
+## REFERENCES
 
 - **analysis-resources/references/**
   Contains external and internal reference material required for accurate code generation.
+  
+  **Files:**
+  - `AI_COLLABORATION_PROTOCOL.md` ⭐ — Bidirectional AI collaboration protocol defining synchronized knowledge base structure and communication workflow for Claude ↔ GitHub Copilot. Includes smart prompt format, implementation workflow, file reference map, verification protocol, and setup checklists for both AI systems.
 
-## Future Specs
+## FUTURE SPECIFICATIONS
 
 - **future-spec/**
   Contains complete technical specifications for Muffin Lite enhancement (Vision/OCR capabilities). Defines requirements, architecture, data models, API contracts, and migration strategy for adding Tesseract.js-based automation.
   
   **Files:**
-  - `_INDEX.md` — Master index with navigation by role (Product/Design/Dev/QA), feature summary, build phases, key interfaces, and file change summary. **Start here for Phase 3 implementation.**
-  - `00_future-overview.md` — Executive summary, vision statement ("Any element you can see, Muffin Lite can interact with"), project objectives, 5 feature summary (Vision Engine, Vision Recording, Time Delay, CSV Loop, Conditional Click), success criteria, technical constraints, build phases, dependencies, risk assessment, and glossary.
-  - `01_requirements.md` — Complete requirements specification: 29 functional requirements (FR-101 to FR-505 across 5 features), 14 non-functional requirements (NFR-101 to NFR-503), and requirements traceability matrix linking each requirement to architecture components.
-  - `02_ux-flows.md` — User experience flows and wireframes: 6 complete user journeys with ASCII diagrams (Recording with Vision Fallback, Time Delay Configuration, CSV Loop Configuration, Conditional Click Setup, Complete Playback, Step Editing). Includes screen state mockups and error states.
-  - `03_feature-specs.md` — Detailed technical specifications for all 5 features with class structures, method specifications, TypeScript interfaces, content script handlers, and testing requirements. Defines Vision Engine API, recording fallback logic, delay execution, position-based CSV mapping, and conditional polling loop.
-  - `04_architecture.md` — System architecture and component design: high-level diagram, 4-layer architecture (Extension Pages, Shared Libraries, Service Worker, Content Scripts), data flow diagrams, complete file structure with 14 new files and 10 modified files, manifest.json updates, package.json updates. Includes Tesseract.js integration architecture.
-  - `05_data-layer.md` — Data models, schemas, and storage patterns: IndexedDB schema v2 with migration, 8 TypeScript interface definitions (Project, Recording, Step, ConditionalConfig, ParsedField, TestRun, UserPreferences, LogEntry), repository pattern implementations (RecordingRepository with 15+ methods, TestRunRepository with 9+ methods), validation functions, and sample data with all new Vision fields.
-  - `06_api-contracts.md` — Internal APIs and message contracts: Chrome extension message architecture, 40+ message type definitions (Extension Page ↔ Background, Background ↔ Content Script, Content Script ↔ Background), VisionEngine class interface with 15+ methods, MessageRouter implementation, APIClient wrapper with type-safe methods, usage examples, and error codes.
-  - `07_migration-notes.md` — Migration strategy and rollback plan: current vs future state comparison, detailed file-by-file changes, 6-phase migration strategy (Foundation 60min, Recording 45min, Time Delay 30min, CSV Loop 45min, Conditional Click 45min, Integration Testing 30min), backward compatibility strategy, rollback procedures, testing checklist, known limitations, troubleshooting guide, and timeline.
+  - `_INDEX.md` — Master index with navigation by role (Product/Design/Dev/QA), feature summary, build phases, key interfaces, and file change summary
+  - `00_future-overview.md` — Executive summary, vision statement, project objectives, feature summary, success criteria, technical constraints
+  - `00_masterplan-overview.md` — Master plan overview
+  - `01_architecture-diagram.md` — Architecture diagram
+  - `01_requirements.md` — Complete requirements specification with functional and non-functional requirements
+  - `02_requirements.md` — Requirements (alternate version)
+  - `02_ux-flows.md` — User experience flows and wireframes with ASCII diagrams
+  - `03_feature-specs.md` — Detailed technical specifications for all features with TypeScript interfaces
+  - `03_ux-flows.md` — UX flows (alternate version)
+  - `04_architecture.md` — System architecture and component design with file structure
+  - `04_feature-specs.md` — Feature specifications (alternate version)
+  - `05_data-layer.md` — Data models, schemas, storage patterns, TypeScript interfaces, repository implementations
+  - `06_api-contracts.md` — Internal APIs and message contracts with Chrome extension message architecture
+  - `07_migration-notes.md` — Migration strategy and rollback plan with phase-by-phase implementation
 
 ## UPDATE RULES
 
