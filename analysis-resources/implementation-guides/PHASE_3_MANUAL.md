@@ -1,806 +1,668 @@
-# MUFFIN LITE - PHASE 3 MANUAL
-# SPECIFICATION GENERATION
+# PHASE 3 MANUAL: Muffin Lite V2 Vision Enhancement + Puppeteer
 
-> **Project:** Muffin Lite Vision Enhancement  
-> **Generated:** December 2025  
-> **Total Prompts:** 67 Smart Prompts  
-> **Estimated Duration:** ~4-5 hours  
-> **Status:** Ready for Execution
+**Version:** 1.0  
+**Generated:** December 6, 2025  
+**Project:** Muffin Lite V2.0 Phase 2  
+**Purpose:** Organize and plan content generation for all required files
 
 ---
 
-## 1. OVERVIEW
+## 1. EXECUTIVE SUMMARY
 
-### Purpose of Phase 3
+### What This Manual Does
+This manual defines the complete content generation plan for Phase 2 Vision Enhancement. It lists every file that needs content, organizes them into generation threads, and provides Smart Prompt templates for Phase 4 code generation.
 
-Phase 3 transforms the Build Card Backlog into **complete, implementation-ready specification files**. Each specification contains enough detail that a developer (or AI agent) can implement the feature without additional clarification.
+### Current State Assessment
+| Status | Count | Description |
+|--------|-------|-------------|
+| ✅ Working | 23 | No changes needed |
+| ⚠️ Has Errors | 6 | Need fixes |
+| ❌ Missing | 33 | Need creation |
+| 📝 Modify | 7 | Need additions |
+| **TOTAL** | **69** | **46 need content generation** |
 
-### What Will Be Produced
+### Content Generation Scope
+- 46 files require content generation
+- Organized into 8 logical sections
+- 3 generation threads
+- Estimated 12-15 continues total
 
-- **67 specification files** organized by category
-- Each file: 400-600 lines of complete, detailed content
-- NO placeholders, NO TODOs, NO "TBD" sections
-- All acceptance criteria explicit and testable
+---
 
-### Workflow
+## 2. COMPLETE FILE INVENTORY
+
+### Section A: Content Script Orchestration (7 files)
+
+| ID | File Path | Status | Purpose |
+|----|-----------|--------|---------|
+| A1 | `src/contentScript/RecordingOrchestrator.ts` | ❌ CREATE | Coordinates all 4 capture layers, generates FallbackChains |
+| A2 | `src/contentScript/EvidenceBuffer.ts` | ❌ CREATE | Temporary storage during recording (~70MB → 250KB) |
+| A3 | `src/contentScript/layers/DOMCapture.ts` | ❌ CREATE | DOM event capture (clicks, inputs, selects) |
+| A4 | `src/contentScript/layers/VisionCapture.ts` | ❌ CREATE | Screenshot + OCR capture for each step |
+| A5 | `src/contentScript/layers/MouseCapture.ts` | ❌ CREATE | Mouse trail tracking for evidence scoring |
+| A6 | `src/contentScript/layers/NetworkCapture.ts` | ❌ CREATE | Network request capture for context |
+| A7 | `src/contentScript/content.tsx` | 📝 MODIFY | Integrate RecordingOrchestrator and layers |
+
+### Section B: Background CDP Services (5 files)
+
+| ID | File Path | Status | Purpose |
+|----|-----------|--------|---------|
+| B1 | `src/background/services/CDPService.ts` | ⚠️ FIX | Chrome DevTools Protocol attach/detach/sendCommand |
+| B2 | `src/background/services/AccessibilityService.ts` | ⚠️ FIX | Accessibility tree access via CDP |
+| B3 | `src/background/services/PlaywrightLocators.ts` | ⚠️ FIX | getByRole, getByText, getByLabel, getByTestId |
+| B4 | `src/background/services/AutoWaiting.ts` | ⚠️ FIX | Wait for actionable, visible, stable |
+| B5 | `src/background/services/VisionService.ts` | ❌ CREATE | Background-side vision operations |
+
+### Section C: Decision Engine (10 files)
+
+| ID | File Path | Status | Purpose |
+|----|-----------|--------|---------|
+| C1 | `src/background/services/DecisionEngine.ts` | ⚠️ FIX | Core decision engine - parallel scoring |
+| C2 | `src/background/services/FallbackChainGenerator.ts` | ❌ CREATE | Build strategy chains at recording time |
+| C3 | `src/background/services/TelemetryLogger.ts` | ❌ CREATE | Log strategy attempts/success/failure |
+| C4 | `src/background/services/StrategyScorer.ts` | ❌ CREATE | Score strategies with confidence weights |
+| C5 | `src/background/services/StrategyChainBuilder.ts` | ❌ CREATE | Build ordered fallback chain from scores |
+| C6 | `src/background/services/strategies/StrategyEvaluator.ts` | ❌ CREATE | Interface for all strategy evaluators |
+| C7 | `src/background/services/strategies/DOMStrategy.ts` | ❌ CREATE | DOM selector evaluation |
+| C8 | `src/background/services/strategies/CDPStrategy.ts` | ❌ CREATE | CDP semantic evaluation |
+| C9 | `src/background/services/strategies/VisionStrategy.ts` | ❌ CREATE | Vision OCR evaluation |
+| C10 | `src/background/services/strategies/CoordinatesStrategy.ts` | ❌ CREATE | XY coordinates fallback |
+
+### Section D: Library Files (4 files)
+
+| ID | File Path | Status | Purpose |
+|----|-----------|--------|---------|
+| D1 | `src/lib/visionEngine.ts` | ⚠️ FIX | Tesseract.js integration, OCR, screenshot |
+| D2 | `src/lib/migrations/v3.ts` | ❌ CREATE | Schema v1→v3 migration logic |
+| D3 | `src/lib/mouseTrailAnalyzer.ts` | ❌ CREATE | Analyze mouse trails for evidence scoring |
+| D4 | `src/lib/schemaMigration.ts` | ⚠️ FIX | Add CURRENT_SCHEMA_VERSION export |
+
+### Section E: Existing Files to Modify (5 files)
+
+| ID | File Path | Status | Purpose |
+|----|-----------|--------|---------|
+| E1 | `src/common/services/indexedDB.ts` | 📝 MODIFY | Extend Step/Project interfaces, schema v3 |
+| E2 | `src/background/background.ts` | 📝 MODIFY | Add 15+ message handlers |
+| E3 | `src/pages/Recorder.tsx` | 📝 MODIFY | Add badges, delay controls, loop start, export button |
+| E4 | `src/pages/TestRunner.tsx` | 📝 MODIFY | Add telemetry, strategy indicators |
+| E5 | `public/manifest.json` | 📝 MODIFY | Add debugger permission |
+
+### Section F: Puppeteer Extension Integration (5 files)
+
+| ID | File Path | Status | Purpose |
+|----|-----------|--------|---------|
+| F1 | `src/lib/puppeteer/PuppeteerConnector.ts` | ❌ CREATE | Bridge to connect via puppeteer-core |
+| F2 | `src/lib/puppeteer/ScriptExporter.ts` | ❌ CREATE | Export recording to Puppeteer script |
+| F3 | `src/lib/puppeteer/LocatorTranslator.ts` | ❌ CREATE | Map strategies to Puppeteer locators |
+| F4 | `src/lib/puppeteer/ExportFormat.ts` | ❌ CREATE | JSON schema for exported recordings |
+| F5 | `src/lib/puppeteer/index.ts` | ❌ CREATE | Barrel exports |
+
+### Section G: Puppeteer External Runner (8 files)
+
+| ID | File Path | Status | Purpose |
+|----|-----------|--------|---------|
+| G1 | `puppeteer-runner/package.json` | ❌ CREATE | Standalone Node.js package definition |
+| G2 | `puppeteer-runner/tsconfig.json` | ❌ CREATE | TypeScript configuration |
+| G3 | `puppeteer-runner/src/index.ts` | ❌ CREATE | CLI entry point |
+| G4 | `puppeteer-runner/src/TestExecutor.ts` | ❌ CREATE | Runs recordings via Puppeteer |
+| G5 | `puppeteer-runner/src/RecordingLoader.ts` | ❌ CREATE | Loads exported recordings |
+| G6 | `puppeteer-runner/src/StrategyExecutor.ts` | ❌ CREATE | Executes each strategy type |
+| G7 | `puppeteer-runner/src/VisionAdapter.ts` | ❌ CREATE | Vision/OCR for Puppeteer |
+| G8 | `puppeteer-runner/src/types.ts` | ❌ CREATE | Shared types |
+
+### Section H: Puppeteer UI Components (2 files)
+
+| ID | File Path | Status | Purpose |
+|----|-----------|--------|---------|
+| H1 | `src/components/export/PuppeteerExportButton.tsx` | ❌ CREATE | "Export to Puppeteer" button |
+| H2 | `src/components/export/ExportOptionsDialog.tsx` | ❌ CREATE | Export configuration dialog |
+
+---
+
+## 3. DEPENDENCY GRAPH
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  CLAUDE (🟣)    │ ──▶ │  USER COPIES    │ ──▶ │  COPILOT (🟦)   │
-│ Generates Smart │     │  Smart Prompt   │     │  Creates file   │
-│ Prompt          │     │  to Copilot     │     │  and commits    │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-         │                                               │
-         └───────────── Say "continue" ◀─────────────────┘
-```
-
-**Repeat until all 67 prompts complete.**
-
----
-
-## 2. DIRECTORY STRUCTURE
-
-All Phase 3 outputs go to:
-
-```
-/build-instructions/masterplan/
-│
-├── _PHASE_3_STATUS_TRACKER.md          # Progress tracking
-├── _INDEX.md                            # Master index of all specs
-│
-├── 01-foundation/                       # FND-001 through FND-011
-│   ├── FND-001_tesseract-installation.md
-│   ├── FND-002_manifest-permissions.md
-│   ├── FND-003_vite-wasm-config.md
-│   ├── FND-004_type-definitions-file.md
-│   ├── FND-005_vision-config-interface.md
-│   ├── FND-006_text-result-interface.md
-│   ├── FND-007_click-target-interface.md
-│   ├── FND-008_conditional-config-interface.md
-│   ├── FND-009_conditional-result-interface.md
-│   ├── FND-010_step-interface-extension.md
-│   └── FND-011_recording-interface-extension.md
-│
-├── 02-data-layer/                       # DAT-001 through DAT-006
-│   ├── DAT-001_indexeddb-schema-v2.md
-│   ├── DAT-002_schema-migration-logic.md
-│   ├── DAT-003_recording-repository.md
-│   ├── DAT-004_step-validation-utility.md
-│   ├── DAT-005_recording-validation-utility.md
-│   └── DAT-006_default-values-factory.md
-│
-├── 03-engine/                           # ENG-001 through ENG-018
-│   ├── ENG-001_vision-engine-class.md
-│   ├── ENG-002_tesseract-initialization.md
-│   ├── ENG-003_screenshot-capture.md
-│   ├── ENG-004_ocr-recognition.md
-│   ├── ENG-005_confidence-filtering.md
-│   ├── ENG-006_find-text-function.md
-│   ├── ENG-007_find-all-text-function.md
-│   ├── ENG-008_click-at-coordinates.md
-│   ├── ENG-009_type-text-function.md
-│   ├── ENG-010_send-keys-function.md
-│   ├── ENG-011_scroll-function.md
-│   ├── ENG-012_dropdown-handler.md
-│   ├── ENG-013_input-handler.md
-│   ├── ENG-014_wait-and-click-buttons.md
-│   ├── ENG-015_auto-detection-failsafe.md
-│   ├── ENG-016_csv-position-mapping.md
-│   ├── ENG-017_step-executor-module.md
-│   └── ENG-018_delay-execution-logic.md
-│
-├── 04-integration/                      # INT-001 through INT-009
-│   ├── INT-001_vision-click-handler.md
-│   ├── INT-002_vision-type-handler.md
-│   ├── INT-003_vision-key-handler.md
-│   ├── INT-004_vision-scroll-handler.md
-│   ├── INT-005_vision-get-element-handler.md
-│   ├── INT-006_screenshot-message-handler.md
-│   ├── INT-007_inject-script-handler.md
-│   ├── INT-008_playback-dom-vision-switch.md
-│   └── INT-009_vision-fallback-recording.md
-│
-├── 05-ui-components/                    # UI-001 through UI-012
-│   ├── UI-001_vision-badge-component.md
-│   ├── UI-002_loop-start-badge-component.md
-│   ├── UI-003_delay-badge-component.md
-│   ├── UI-004_conditional-badge-component.md
-│   ├── UI-005_delay-dialog-component.md
-│   ├── UI-006_conditional-config-dialog.md
-│   ├── UI-007_loop-start-dropdown.md
-│   ├── UI-008_global-delay-input.md
-│   ├── UI-009_add-conditional-click-menu.md
-│   ├── UI-010_step-row-badge-display.md
-│   ├── UI-011_set-delay-menu-item.md
-│   └── UI-012_configure-conditional-menu.md
-│
-├── 06-testing/                          # TST-001 through TST-010
-│   ├── TST-001_vision-engine-init-test.md
-│   ├── TST-002_screenshot-capture-test.md
-│   ├── TST-003_ocr-recognition-test.md
-│   ├── TST-004_find-text-accuracy-test.md
-│   ├── TST-005_coordinate-click-test.md
-│   ├── TST-006_conditional-click-loop-test.md
-│   ├── TST-007_vision-recording-fallback-test.md
-│   ├── TST-008_schema-migration-test.md
-│   ├── TST-009_csv-position-mapping-test.md
-│   └── TST-010_full-copilot-workflow-test.md
-│
-├── 07-migration/                        # MIG-001 through MIG-005
-│   ├── MIG-001_recorded-via-default.md
-│   ├── MIG-002_loop-start-index-default.md
-│   ├── MIG-003_global-delay-default.md
-│   ├── MIG-004_conditional-defaults.md
-│   └── MIG-005_backward-compatibility-verify.md
-│
-└── 08-documentation/                    # DOC-001 through DOC-003
-    ├── DOC-001_readme-vision-features.md
-    ├── DOC-002_vision-engine-api-docs.md
-    └── DOC-003_troubleshooting-guide.md
+                    ┌─────────────────────────────────┐
+                    │         Types (Working)          │
+                    │  strategy.ts, vision.ts, cdp.ts │
+                    └───────────────┬─────────────────┘
+                                    │
+            ┌───────────────────────┼───────────────────────┐
+            │                       │                       │
+            ▼                       ▼                       ▼
+┌───────────────────┐   ┌───────────────────┐   ┌───────────────────┐
+│  Content Script   │   │  Background CDP   │   │   Library Files   │
+│  Orchestration    │   │    Services       │   │                   │
+│  (Section A)      │   │   (Section B)     │   │   (Section D)     │
+└─────────┬─────────┘   └─────────┬─────────┘   └─────────┬─────────┘
+          │                       │                       │
+          └───────────────────────┼───────────────────────┘
+                                  │
+                                  ▼
+                    ┌─────────────────────────────────┐
+                    │        Decision Engine          │
+                    │         (Section C)             │
+                    └───────────────┬─────────────────┘
+                                    │
+            ┌───────────────────────┼───────────────────────┐
+            │                       │                       │
+            ▼                       ▼                       ▼
+┌───────────────────┐   ┌───────────────────┐   ┌───────────────────┐
+│  Existing Files   │   │    Puppeteer      │   │   Puppeteer UI    │
+│   to Modify       │   │  External Runner  │   │    Components     │
+│  (Section E)      │   │   (Section G)     │   │   (Section H)     │
+└───────────────────┘   └───────────────────┘   └───────────────────┘
 ```
 
 ---
 
-## 3. COMPLETE FILE REGISTRY
+## 4. GENERATION THREADS
 
-### Category 1: Foundation / Architecture (FND)
+### Thread 1: Core Infrastructure (16 files)
+**Scope:** Sections A + B + C (partial)  
+**Focus:** Recording orchestration, CDP services, Decision Engine core  
+**Estimated Continues:** 5-6
 
-| Prompt ID | File Path | Description | References |
-|-----------|-----------|-------------|------------|
-| 3-FND-001 | `01-foundation/FND-001_tesseract-installation.md` | Install Tesseract.js dependency | package.json, 04_architecture.md |
-| 3-FND-002 | `01-foundation/FND-002_manifest-permissions.md` | Update manifest permissions | manifest.json, 04_architecture.md |
-| 3-FND-003 | `01-foundation/FND-003_vite-wasm-config.md` | Configure Vite for WASM assets | vite.config.ts, 04_architecture.md |
-| 3-FND-004 | `01-foundation/FND-004_type-definitions-file.md` | Create Vision types file | 05_data-layer.md |
-| 3-FND-005 | `01-foundation/FND-005_vision-config-interface.md` | VisionConfig interface | 05_data-layer.md, 06_api-contracts.md |
-| 3-FND-006 | `01-foundation/FND-006_text-result-interface.md` | TextResult interface | 05_data-layer.md |
-| 3-FND-007 | `01-foundation/FND-007_click-target-interface.md` | ClickTarget interface | 05_data-layer.md |
-| 3-FND-008 | `01-foundation/FND-008_conditional-config-interface.md` | ConditionalConfig interface | 05_data-layer.md, 03_feature-specs.md |
-| 3-FND-009 | `01-foundation/FND-009_conditional-result-interface.md` | ConditionalClickResult interface | 05_data-layer.md |
-| 3-FND-010 | `01-foundation/FND-010_step-interface-extension.md` | Extend Step interface with Vision fields | 05_data-layer.md, BIDIRECTIONAL_ANALYSIS.md |
-| 3-FND-011 | `01-foundation/FND-011_recording-interface-extension.md` | Extend Recording interface | 05_data-layer.md, BIDIRECTIONAL_ANALYSIS.md |
+| Order | ID | File | Priority |
+|-------|-----|------|----------|
+| 1 | A1 | RecordingOrchestrator.ts | P0 |
+| 2 | A2 | EvidenceBuffer.ts | P0 |
+| 3 | A3 | DOMCapture.ts | P0 |
+| 4 | A4 | VisionCapture.ts | P0 |
+| 5 | A5 | MouseCapture.ts | P0 |
+| 6 | A6 | NetworkCapture.ts | P1 |
+| 7 | B1 | CDPService.ts (FIX) | P0 |
+| 8 | B2 | AccessibilityService.ts (FIX) | P0 |
+| 9 | B3 | PlaywrightLocators.ts (FIX) | P0 |
+| 10 | B4 | AutoWaiting.ts (FIX) | P0 |
+| 11 | B5 | VisionService.ts | P0 |
+| 12 | C1 | DecisionEngine.ts (FIX) | P0 |
+| 13 | C2 | FallbackChainGenerator.ts | P0 |
+| 14 | C3 | TelemetryLogger.ts | P1 |
+| 15 | C4 | StrategyScorer.ts | P0 |
+| 16 | C5 | StrategyChainBuilder.ts | P0 |
 
-### Category 2: Data Layer (DAT)
+### Thread 2: Strategies + Library + Modifications (15 files)
+**Scope:** Section C (strategies) + D + E  
+**Focus:** Strategy evaluators, library utilities, existing file modifications  
+**Estimated Continues:** 4-5
 
-| Prompt ID | File Path | Description | References |
-|-----------|-----------|-------------|------------|
-| 3-DAT-001 | `02-data-layer/DAT-001_indexeddb-schema-v2.md` | IndexedDB schema version 2 | indexedDB.ts, 05_data-layer.md, 07_migration-notes.md |
-| 3-DAT-002 | `02-data-layer/DAT-002_schema-migration-logic.md` | Schema migration v1→v2 | 05_data-layer.md, 07_migration-notes.md |
-| 3-DAT-003 | `02-data-layer/DAT-003_recording-repository.md` | Recording data access layer | 05_data-layer.md, 06_api-contracts.md |
-| 3-DAT-004 | `02-data-layer/DAT-004_step-validation-utility.md` | Step validation utility | FND-010 |
-| 3-DAT-005 | `02-data-layer/DAT-005_recording-validation-utility.md` | Recording validation utility | FND-011 |
-| 3-DAT-006 | `02-data-layer/DAT-006_default-values-factory.md` | Default values factory | FND-010, FND-011 |
+| Order | ID | File | Priority |
+|-------|-----|------|----------|
+| 1 | C6 | StrategyEvaluator.ts | P0 |
+| 2 | C7 | DOMStrategy.ts | P0 |
+| 3 | C8 | CDPStrategy.ts | P0 |
+| 4 | C9 | VisionStrategy.ts | P0 |
+| 5 | C10 | CoordinatesStrategy.ts | P0 |
+| 6 | D1 | visionEngine.ts (FIX) | P0 |
+| 7 | D2 | migrations/v3.ts | P0 |
+| 8 | D3 | mouseTrailAnalyzer.ts | P1 |
+| 9 | D4 | schemaMigration.ts (FIX) | P0 |
+| 10 | E1 | indexedDB.ts (MODIFY) | P0 |
+| 11 | E2 | background.ts (MODIFY) | P0 |
+| 12 | E3 | Recorder.tsx (MODIFY) | P0 |
+| 13 | E4 | TestRunner.tsx (MODIFY) | P1 |
+| 14 | E5 | manifest.json (MODIFY) | P0 |
 
-### Category 3: Core Engine Components (ENG)
+### Thread 3: Puppeteer Integration (15 files)
+**Scope:** Sections F + G + H  
+**Focus:** Puppeteer export, external runner, UI components  
+**Estimated Continues:** 4-5
 
-| Prompt ID | File Path | Description | References |
-|-----------|-----------|-------------|------------|
-| 3-ENG-001 | `03-engine/ENG-001_vision-engine-class.md` | VisionEngine class structure | 04_architecture.md, 06_api-contracts.md |
-| 3-ENG-002 | `03-engine/ENG-002_tesseract-initialization.md` | Tesseract.js worker init | 04_architecture.md |
-| 3-ENG-003 | `03-engine/ENG-003_screenshot-capture.md` | captureScreen() function | 06_api-contracts.md |
-| 3-ENG-004 | `03-engine/ENG-004_ocr-recognition.md` | recognizeText() function | 06_api-contracts.md |
-| 3-ENG-005 | `03-engine/ENG-005_confidence-filtering.md` | Confidence threshold filtering | VisionConfig |
-| 3-ENG-006 | `03-engine/ENG-006_find-text-function.md` | findText() function | 06_api-contracts.md |
-| 3-ENG-007 | `03-engine/ENG-007_find-all-text-function.md` | findAllText() function | 06_api-contracts.md |
-| 3-ENG-008 | `03-engine/ENG-008_click-at-coordinates.md` | clickAtCoordinates() function | 06_api-contracts.md |
-| 3-ENG-009 | `03-engine/ENG-009_type-text-function.md` | typeText() function | 06_api-contracts.md |
-| 3-ENG-010 | `03-engine/ENG-010_send-keys-function.md` | sendKeys() function | 06_api-contracts.md |
-| 3-ENG-011 | `03-engine/ENG-011_scroll-function.md` | scrollPage() function | 06_api-contracts.md |
-| 3-ENG-012 | `03-engine/ENG-012_dropdown-handler.md` | handleDropdown() function | 03_feature-specs.md |
-| 3-ENG-013 | `03-engine/ENG-013_input-handler.md` | handleInput() with Vision | 03_feature-specs.md |
-| 3-ENG-014 | `03-engine/ENG-014_wait-and-click-buttons.md` | waitAndClickButtons() polling | 03_feature-specs.md, 06_api-contracts.md |
-| 3-ENG-015 | `03-engine/ENG-015_auto-detection-failsafe.md` | Auto-detection during playback | 03_feature-specs.md |
-| 3-ENG-016 | `03-engine/ENG-016_csv-position-mapping.md` | Position-based CSV mapping | 03_feature-specs.md, 05_data-layer.md |
-| 3-ENG-017 | `03-engine/ENG-017_step-executor-module.md` | Unified step executor | 04_architecture.md |
-| 3-ENG-018 | `03-engine/ENG-018_delay-execution-logic.md` | Global and per-step delays | 03_feature-specs.md |
-
-### Category 4: Integration Points (INT)
-
-| Prompt ID | File Path | Description | References |
-|-----------|-----------|-------------|------------|
-| 3-INT-001 | `04-integration/INT-001_vision-click-handler.md` | VISION_CLICK message handler | content.tsx, 06_api-contracts.md |
-| 3-INT-002 | `04-integration/INT-002_vision-type-handler.md` | VISION_TYPE message handler | content.tsx, 06_api-contracts.md |
-| 3-INT-003 | `04-integration/INT-003_vision-key-handler.md` | VISION_KEY message handler | content.tsx, 06_api-contracts.md |
-| 3-INT-004 | `04-integration/INT-004_vision-scroll-handler.md` | VISION_SCROLL message handler | content.tsx, 06_api-contracts.md |
-| 3-INT-005 | `04-integration/INT-005_vision-get-element-handler.md` | VISION_GET_ELEMENT handler | content.tsx, 06_api-contracts.md |
-| 3-INT-006 | `04-integration/INT-006_screenshot-message-handler.md` | VISION_SCREENSHOT in background | background.ts, 04_architecture.md |
-| 3-INT-007 | `04-integration/INT-007_inject-script-handler.md` | VISION_INJECT_SCRIPT handler | background.ts |
-| 3-INT-008 | `04-integration/INT-008_playback-dom-vision-switch.md` | DOM/Vision execution switch | 04_architecture.md |
-| 3-INT-009 | `04-integration/INT-009_vision-fallback-recording.md` | Vision fallback during recording | 03_feature-specs.md, 02_ux-flows.md |
-
-### Category 5: UI Components (UI)
-
-| Prompt ID | File Path | Description | References |
-|-----------|-----------|-------------|------------|
-| 3-UI-001 | `05-ui-components/UI-001_vision-badge-component.md` | VisionBadge component | 02_ux-flows.md |
-| 3-UI-002 | `05-ui-components/UI-002_loop-start-badge-component.md` | LoopStartBadge component | 02_ux-flows.md |
-| 3-UI-003 | `05-ui-components/UI-003_delay-badge-component.md` | DelayBadge component | 02_ux-flows.md |
-| 3-UI-004 | `05-ui-components/UI-004_conditional-badge-component.md` | ConditionalBadge component | 02_ux-flows.md |
-| 3-UI-005 | `05-ui-components/UI-005_delay-dialog-component.md` | DelayDialog modal | 02_ux-flows.md |
-| 3-UI-006 | `05-ui-components/UI-006_conditional-config-dialog.md` | ConditionalConfigDialog modal | 02_ux-flows.md, 03_feature-specs.md |
-| 3-UI-007 | `05-ui-components/UI-007_loop-start-dropdown.md` | Loop start dropdown in toolbar | Recorder.tsx, 02_ux-flows.md |
-| 3-UI-008 | `05-ui-components/UI-008_global-delay-input.md` | Global delay input in toolbar | Recorder.tsx, 02_ux-flows.md |
-| 3-UI-009 | `05-ui-components/UI-009_add-conditional-click-menu.md` | Add Conditional Click menu item | Recorder.tsx |
-| 3-UI-010 | `05-ui-components/UI-010_step-row-badge-display.md` | StepRow badge rendering logic | StepRow component |
-| 3-UI-011 | `05-ui-components/UI-011_set-delay-menu-item.md` | "Set Delay Before Step" menu | StepRow three-dot menu |
-| 3-UI-012 | `05-ui-components/UI-012_configure-conditional-menu.md` | "Configure Conditional" menu | StepRow three-dot menu |
-
-### Category 6: Testing & Validation (TST)
-
-| Prompt ID | File Path | Description | References |
-|-----------|-----------|-------------|------------|
-| 3-TST-001 | `06-testing/TST-001_vision-engine-init-test.md` | VisionEngine initialization tests | ENG-002 |
-| 3-TST-002 | `06-testing/TST-002_screenshot-capture-test.md` | Screenshot capture tests | ENG-003 |
-| 3-TST-003 | `06-testing/TST-003_ocr-recognition-test.md` | OCR recognition tests | ENG-004 |
-| 3-TST-004 | `06-testing/TST-004_find-text-accuracy-test.md` | findText accuracy tests | ENG-006 |
-| 3-TST-005 | `06-testing/TST-005_coordinate-click-test.md` | Coordinate click tests | INT-002, ENG-008 |
-| 3-TST-006 | `06-testing/TST-006_conditional-click-loop-test.md` | Conditional click polling tests | ENG-014 |
-| 3-TST-007 | `06-testing/TST-007_vision-recording-fallback-test.md` | Vision fallback recording tests | INT-009 |
-| 3-TST-008 | `06-testing/TST-008_schema-migration-test.md` | Schema migration tests | DAT-002 |
-| 3-TST-009 | `06-testing/TST-009_csv-position-mapping-test.md` | CSV position mapping tests | ENG-016 |
-| 3-TST-010 | `06-testing/TST-010_full-copilot-workflow-test.md` | Full E2E Copilot workflow test | ALL |
-
-### Category 7: Migration Tasks (MIG)
-
-| Prompt ID | File Path | Description | References |
-|-----------|-----------|-------------|------------|
-| 3-MIG-001 | `07-migration/MIG-001_recorded-via-default.md` | Add recordedVia default to steps | DAT-002 |
-| 3-MIG-002 | `07-migration/MIG-002_loop-start-index-default.md` | Add loopStartIndex default | DAT-002 |
-| 3-MIG-003 | `07-migration/MIG-003_global-delay-default.md` | Add globalDelayMs default | DAT-002 |
-| 3-MIG-004 | `07-migration/MIG-004_conditional-defaults.md` | Add conditionalDefaults | DAT-002 |
-| 3-MIG-005 | `07-migration/MIG-005_backward-compatibility-verify.md` | Verify backward compatibility | MIG-001 to MIG-004 |
-
-### Category 8: Documentation (DOC)
-
-| Prompt ID | File Path | Description | References |
-|-----------|-----------|-------------|------------|
-| 3-DOC-001 | `08-documentation/DOC-001_readme-vision-features.md` | Update README with Vision | TST-010 |
-| 3-DOC-002 | `08-documentation/DOC-002_vision-engine-api-docs.md` | Vision Engine API documentation | ENG-001 to ENG-015 |
-| 3-DOC-003 | `08-documentation/DOC-003_troubleshooting-guide.md` | Troubleshooting guide | TST-010 |
+| Order | ID | File | Priority |
+|-------|-----|------|----------|
+| 1 | F1 | PuppeteerConnector.ts | P1 |
+| 2 | F2 | ScriptExporter.ts | P1 |
+| 3 | F3 | LocatorTranslator.ts | P1 |
+| 4 | F4 | ExportFormat.ts | P1 |
+| 5 | F5 | puppeteer/index.ts | P1 |
+| 6 | G1 | package.json | P1 |
+| 7 | G2 | tsconfig.json | P1 |
+| 8 | G3 | index.ts (CLI) | P1 |
+| 9 | G4 | TestExecutor.ts | P1 |
+| 10 | G5 | RecordingLoader.ts | P1 |
+| 11 | G6 | StrategyExecutor.ts | P1 |
+| 12 | G7 | VisionAdapter.ts | P1 |
+| 13 | G8 | types.ts | P1 |
+| 14 | H1 | PuppeteerExportButton.tsx | P2 |
+| 15 | H2 | ExportOptionsDialog.tsx | P2 |
 
 ---
 
-## 4. SMART PROMPT TEMPLATE
+## 5. CONTENT GENERATION FORMAT
 
-Every Smart Prompt generated by Claude will follow this exact format:
+Each file's content will be generated using this template:
 
----
+```
+────────────────────────────────────────
+FILE: [File Path]
+────────────────────────────────────────
 
-**COPY FROM HERE ↓**
+## Purpose
+[2-3 sentence description of what this file does]
 
----
+## Dependencies
+### Uses (imports from)
+- [file]: [what it imports]
 
-**PROMPT [ID]: [TITLE IN CAPS]**
+### Used By (exports to)
+- [file]: [what it exports]
 
-## Instructions for Copilot
+## Interfaces
+[Complete TypeScript interface definitions]
 
-Copy the content between the CONTENT START and CONTENT END markers below.
-Create the file at the specified path.
-Then run the commit command.
+## Functions
+[Complete function signatures with JSDoc comments]
 
-**File path:** `/build-instructions/masterplan/[category]/[filename].md`
+## Key Implementation Details
+[Critical logic, patterns, edge cases]
 
----
+## Integration Points
+[How this connects to other components]
 
-## CONTENT START
+## Acceptance Criteria
+- [ ] [Specific testable criterion]
+- [ ] [Specific testable criterion]
 
-```markdown
-# [SPECIFICATION TITLE]
-
-> **Build Card:** [ID]  
-> **Category:** [Category Name]  
-> **Dependencies:** [List of prerequisite card IDs]  
-> **Risk Level:** [Low/Medium/High]  
-> **Estimated Lines:** [400-600]
-
----
-
-## 1. PURPOSE
-
-[One-paragraph description of what this specification accomplishes]
-
----
-
-## 2. INPUTS / REQUIRED REFERENCES
-
-| Reference | Location | What to Extract |
-|-----------|----------|-----------------|
-| [Reference 1] | [File path] | [Specific section/data] |
-| [Reference 2] | [File path] | [Specific section/data] |
+## Estimated Lines
+[Number]
+```
 
 ---
 
-## 3. OUTPUT
+## 6. CRITICAL INTERFACES REFERENCE
 
-### Files Created/Modified
-
-| File | Action | Lines |
-|------|--------|-------|
-| [File path] | CREATE/MODIFY | ~[estimated] |
-
-### Artifacts
-
-- [List of artifacts produced]
-
----
-
-## 4. DETAILED SPECIFICATION
-
-### 4.1 [Major Section]
-
-[Detailed content - NO PLACEHOLDERS]
-
-### 4.2 [Major Section]
-
-[Detailed content - NO PLACEHOLDERS]
-
-### 4.3 [Major Section]
-
-[Detailed content - NO PLACEHOLDERS]
-
----
-
-## 5. CODE EXAMPLES
+### Core Types (Already Working - Reference Only)
 
 ```typescript
-// Complete, runnable code examples
-// NO PLACEHOLDERS like "// implement here"
-// All functions fully implemented
+// From src/types/strategy.ts
+type StrategyType = 
+  | 'dom_selector'
+  | 'css_selector'
+  | 'cdp_semantic'
+  | 'cdp_power'
+  | 'evidence_scoring'
+  | 'vision_ocr'
+  | 'coordinates';
+
+type RecordedVia = 'dom' | 'vision' | 'manual';
+
+interface LocatorStrategy {
+  type: StrategyType;
+  selector?: string;
+  confidence: number;
+  metadata?: {
+    role?: string;
+    text?: string;
+    label?: string;
+    placeholder?: string;
+    testId?: string;
+    coordinates?: { x: number; y: number };
+  };
+}
+
+interface FallbackChain {
+  strategies: LocatorStrategy[];
+  primaryStrategy: StrategyType;
+  recordedAt: number;
+}
+```
+
+```typescript
+// From src/types/vision.ts
+interface VisionConfig {
+  enabled: boolean;
+  confidenceThreshold: number; // 0-100, default 60
+  pollIntervalMs: number; // default 1000
+  language: string; // default 'eng'
+}
+
+interface ConditionalConfig {
+  enabled: boolean;
+  searchTerms: string[];
+  timeoutSeconds: number; // default 120
+  pollIntervalMs: number; // default 1000
+  interactionType: 'click' | 'type' | 'dropdown';
+}
+```
+
+```typescript
+// From src/types/cdp.ts
+interface CDPNode {
+  nodeId: number;
+  backendNodeId: number;
+  nodeType: number;
+  nodeName: string;
+  localName: string;
+  nodeValue: string;
+  attributes?: string[];
+}
+
+interface AXNode {
+  nodeId: string;
+  role: { type: string; value: string };
+  name?: { type: string; value: string };
+  description?: { type: string; value: string };
+  value?: { type: string; value: string };
+  properties?: AXProperty[];
+  backendDOMNodeId: number;
+}
+
+interface LocatorResult {
+  found: boolean;
+  element?: Element;
+  cdpNode?: CDPNode;
+  axNode?: AXNode;
+  confidence: number;
+  duration: number;
+}
+
+interface WaitOptions {
+  timeout?: number; // Default 30000
+  visible?: boolean; // Default true
+  enabled?: boolean; // Default true
+  stable?: boolean; // Default true
+}
 ```
 
 ---
 
-## 6. ACCEPTANCE CRITERIA
+## 7. MESSAGE HANDLERS REFERENCE
 
-- [ ] [Specific, testable criterion 1]
-- [ ] [Specific, testable criterion 2]
-- [ ] [Specific, testable criterion 3]
-- [ ] [Specific, testable criterion 4]
-- [ ] [Specific, testable criterion 5]
+### New Message Actions Required for background.ts
 
----
-
-## 7. IMPLEMENTATION NOTES
-
-### Constraints
-
-- [Constraint 1]
-- [Constraint 2]
-
-### Patterns to Follow
-
-- [Pattern 1]
-- [Pattern 2]
-
-### Edge Cases
-
-- [Edge case 1 and how to handle]
-- [Edge case 2 and how to handle]
+| Action | Handler Purpose | Section |
+|--------|-----------------|---------|
+| `CDP_ATTACH` | Attach chrome.debugger to tab | B |
+| `CDP_DETACH` | Detach chrome.debugger | B |
+| `CDP_COMMAND` | Send CDP command | B |
+| `PLAYWRIGHT_LOCATE` | Find element via Playwright locator | B |
+| `VISION_CLICK` | Click via OCR | B |
+| `VISION_TYPE` | Type via OCR | B |
+| `VISION_OCR` | Extract text via OCR | B |
+| `VISION_CONDITIONAL_CLICK` | Polling click with OCR | B |
+| `STRATEGY_TELEMETRY` | Log strategy usage | C |
+| `GENERATE_FALLBACK_CHAIN` | Build chain at recording | C |
+| `EVALUATE_STRATEGIES` | Score all strategies | C |
+| `WAIT_FOR_ACTIONABILITY` | Auto-wait checks | B |
+| `START_RECORDING_V2` | Start multi-layer recording | A |
+| `STOP_RECORDING_V2` | Stop and return evidence | A |
+| `EXPORT_PUPPETEER` | Generate Puppeteer script | F |
 
 ---
 
-## 8. VERIFICATION COMMANDS
+## 8. ARCHITECTURE DECISIONS (Must Follow)
+
+These 8 decisions are FINAL and must be followed:
+
+| # | Decision | Choice |
+|---|----------|--------|
+| 1 | Tesseract Loading | At Recording Start (~2s during setup) |
+| 2 | OCR Confidence Threshold | 60% |
+| 3 | Conditional Click Timeout | 120 seconds |
+| 4 | Evidence Storage | 50MB browser + Native Host (Phase 3) |
+| 5 | Strategy Degradation | NONE - Full 7-tier always evaluated |
+| 6 | Scoring Weights | Fixed (not user-configurable) |
+| 7 | Schema Migration | Lazy on load |
+| 8 | Test Coverage | ALL sites - full regression required |
+
+### Strategy Confidence Weights (Fixed)
+
+```typescript
+const STRATEGY_WEIGHTS = {
+  cdp_semantic: 0.95,    // Highest priority when available
+  cdp_power: 0.90,
+  dom_selector: 0.85,
+  evidence_scoring: 0.80,
+  css_selector: 0.75,
+  vision_ocr: 0.70,
+  coordinates: 0.60      // Last resort
+};
+```
+
+---
+
+## 9. PUPPETEER STRATEGY MAPPING
+
+| Muffin Strategy | Puppeteer Equivalent | Confidence |
+|-----------------|---------------------|------------|
+| `dom_selector` | `page.$('#id')`, `page.$('.class')` | 0.85 |
+| `css_selector` | `page.$(selector)` | 0.75 |
+| `cdp_semantic` | `page.getByRole('button', { name: 'X' })` | 0.95 |
+| `cdp_power` | `page.getByText()`, `page.getByLabel()` | 0.90 |
+| `evidence_scoring` | Custom: analyze DOM + coordinates | 0.80 |
+| `vision_ocr` | `page.screenshot()` + Tesseract.js | 0.70-0.90 |
+| `coordinates` | `page.mouse.click(x, y)` | 0.60 |
+
+---
+
+## 10. PUPPETEER RUNNER ARCHITECTURE
+
+```
+puppeteer-runner/
+├── package.json           # Dependencies: puppeteer, tesseract.js, commander
+├── tsconfig.json          # TypeScript config
+├── src/
+│   ├── index.ts           # CLI: muffin-run <recording.json> [options]
+│   ├── TestExecutor.ts    # Main execution loop
+│   ├── RecordingLoader.ts # Parse exported JSON
+│   ├── StrategyExecutor.ts # Execute each strategy type
+│   ├── VisionAdapter.ts   # Tesseract integration for Puppeteer
+│   └── types.ts           # Shared type definitions
+└── README.md              # Usage documentation
+```
+
+### CLI Usage
 
 ```bash
-# Commands to verify implementation
-npm run type-check
-npm run test -- [specific test]
+# Install
+npm install -g @muffin/puppeteer-runner
+
+# Run recording
+muffin-run recording.json --headless --timeout 30000
+
+# Run with CSV data
+muffin-run recording.json --csv data.csv --loop-start 3
+
+# Generate report
+muffin-run recording.json --report results.json
 ```
 
 ---
 
-## 9. ROLLBACK PROCEDURE
+## 11. CONTENT GENERATION EXECUTION
 
-[How to revert if something goes wrong]
+### Pre-Generation Checklist
 
----
+- [ ] This manual uploaded to Claude Knowledge Base
+- [ ] Start NEW Claude thread for content generation
+- [ ] Have Copilot ready in VS Code
 
-*End of Specification*
-```
-
-## CONTENT END
-
----
-
-## Commit Command
-
-```bash
-git add /build-instructions/masterplan/[category]/[filename].md
-git commit -m "Phase 3: Add [ID] - [Short description]"
-```
-
----
-
-**COPY TO HERE ↑**
-
----
-
-## 5. CONTENT REQUIREMENTS
-
-### For Type Definition Specs (FND-004 through FND-011)
-
-Each spec MUST contain:
-- Complete interface definition with JSDoc comments
-- All properties with types and descriptions
-- Default values documented
-- Export statements
-- Usage examples
-- Type guards if applicable
-
-### For Engine Component Specs (ENG-001 through ENG-018)
-
-Each spec MUST contain:
-- Complete function signatures
-- Algorithm description (step-by-step)
-- Error handling strategy
-- Timeout handling
-- Return value documentation
-- Integration points
-- Complete code examples (not stubs)
-
-### For Integration Specs (INT-001 through INT-009)
-
-Each spec MUST contain:
-- Message type definition
-- Handler function signature
-- Content script vs background script location
-- Message flow diagram (ASCII)
-- Complete implementation code
-- Error response format
-
-### For UI Component Specs (UI-001 through UI-012)
-
-Each spec MUST contain:
-- Component props interface
-- Complete JSX structure
-- Tailwind CSS classes
-- Event handlers
-- State management
-- Accessibility attributes
-- Complete code (not fragments)
-
-### For Testing Specs (TST-001 through TST-010)
-
-Each spec MUST contain:
-- Test file location
-- Test framework (Vitest)
-- Complete test cases
-- Mock setup
-- Assertion patterns
-- Coverage targets
-
-### For Migration Specs (MIG-001 through MIG-005)
-
-Each spec MUST contain:
-- Data transformation logic
-- Rollback procedure
-- Verification queries
-- Edge cases
-
-### For Documentation Specs (DOC-001 through DOC-003)
-
-Each spec MUST contain:
-- Complete markdown content
-- Code examples
-- Screenshots/diagrams (described)
-- User-facing language
-
----
-
-## 6. QUALITY GATES
-
-Every specification file must pass these checks:
-
-| Gate | Requirement |
-|------|-------------|
-| ☐ Line Count | 400-600 lines (complete content) |
-| ☐ No Placeholders | Zero instances of "TODO", "TBD", "implement here", "[...]" |
-| ☐ All Sections | Every required section is filled |
-| ☐ Code Complete | All code examples are runnable, not stubs |
-| ☐ References Valid | All referenced files exist |
-| ☐ Acceptance Criteria | 5+ specific, testable criteria |
-| ☐ Commit Command | Matches actual file path |
-| ☐ Dependencies Listed | All prerequisite cards identified |
-
-**If any gate fails, regenerate the prompt before proceeding.**
-
----
-
-## 7. EXECUTION SEQUENCE
-
-### Dependency Layers
-
-Prompts must be executed in dependency order. Execute all prompts in a layer before moving to the next.
+### Generation Prompt (Paste in NEW Thread)
 
 ```
-LAYER 0: No Dependencies (Execute First)
-├── FND-001  Tesseract Installation
-├── FND-002  Manifest Permissions
-├── FND-003  Vite WASM Config
-└── FND-004  Type Definitions File
+You are now executing Phase 3 Content Generation.
 
-LAYER 1: Depends on FND-004
-├── FND-005  VisionConfig Interface
-├── FND-006  TextResult Interface
-├── FND-007  ClickTarget Interface
-├── FND-008  ConditionalConfig Interface
-└── FND-009  ConditionalClickResult Interface
+Read PHASE_3_MANUAL.md from your Knowledge Base.
 
-LAYER 2: Depends on FND-008
-├── FND-010  Step Interface Extension
-└── FND-011  Recording Interface Extension
+Your task: Generate detailed content for each file listed in the manual.
 
-LAYER 3: Depends on FND-010, FND-011
-├── DAT-001  IndexedDB Schema v2
-└── DAT-004  Step Validation
+Rules:
+1. Generate content for 3-4 files per "continue"
+2. Use the content format from Section 5
+3. Follow dependency order from Section 4
+4. Include complete interface definitions
+5. Include complete function signatures
+6. Include implementation details for complex logic
+7. Do NOT write actual code - this is content specification
 
-LAYER 4: Depends on DAT-001
-├── DAT-002  Schema Migration
-├── DAT-003  Recording Repository
-├── DAT-005  Recording Validation
-└── DAT-006  Default Values Factory
+Start with Thread 1, files A1-A4.
 
-LAYER 5: Depends on Layer 4
-├── ENG-001  VisionEngine Class
-├── ENG-016  CSV Position Mapping
-└── UI-005   DelayDialog Component
-
-LAYER 6: Depends on ENG-001
-├── ENG-002 through ENG-015  (Engine methods)
-└── INT-001 through INT-007  (Message handlers)
-
-LAYER 7: Depends on Layer 6
-├── INT-008  DOM/Vision Switch
-├── INT-009  Vision Fallback
-└── ENG-017  Step Executor
-
-LAYER 8: UI Components (Depends on Interfaces)
-├── UI-001 through UI-004  (Badges)
-├── UI-006  ConditionalConfigDialog
-├── UI-007 through UI-012  (Toolbar/Menu)
-
-LAYER 9: Testing (Depends on Implementation)
-├── TST-001 through TST-010
-
-LAYER 10: Migration (Depends on DAT-002)
-├── MIG-001 through MIG-005
-
-LAYER 11: Documentation (Final)
-├── DOC-001 through DOC-003
+Say "ready" and I will say "continue" to begin.
 ```
 
-### Parallelization Opportunities
+### Expected Workflow
 
-Within each layer, these groups can be done in parallel:
-
-- **FND-005 through FND-009** - All type interfaces
-- **UI-001 through UI-004** - All badge components
-- **MIG-001 through MIG-004** - All migration defaults
-
----
-
-## 8. STATUS TRACKER TEMPLATE
-
-Create this file at:
-`/build-instructions/masterplan/_PHASE_3_STATUS_TRACKER.md`
-
-```markdown
-# PHASE 3 STATUS TRACKER
-
-> **Started:** [Date]  
-> **Last Updated:** [Date]  
-> **Completed:** 0 / 67
+1. Claude says "ready"
+2. You say "continue"
+3. Claude outputs content for 3-4 files
+4. Repeat until all 46 files complete
+5. Download complete content document
+6. Upload to Claude KB for Phase 4
 
 ---
 
-## LAYER 0: Foundation (No Dependencies)
+## 12. ACCEPTANCE CRITERIA SUMMARY
 
-| Prompt ID | File | Status | Date | Notes |
-|-----------|------|--------|------|-------|
-| 3-FND-001 | FND-001_tesseract-installation.md | ⬜ Pending | | |
-| 3-FND-002 | FND-002_manifest-permissions.md | ⬜ Pending | | |
-| 3-FND-003 | FND-003_vite-wasm-config.md | ⬜ Pending | | |
-| 3-FND-004 | FND-004_type-definitions-file.md | ⬜ Pending | | |
+### Thread 1 Complete When:
+- [ ] All 6 orchestration files have content
+- [ ] All 5 CDP service files have content (including fixes)
+- [ ] All 5 core Decision Engine files have content
 
-## LAYER 1: Type Interfaces
+### Thread 2 Complete When:
+- [ ] All 5 strategy evaluator files have content
+- [ ] All 4 library files have content (including fixes)
+- [ ] All 5 modification files have content
 
-| Prompt ID | File | Status | Date | Notes |
-|-----------|------|--------|------|-------|
-| 3-FND-005 | FND-005_vision-config-interface.md | ⬜ Pending | | |
-| 3-FND-006 | FND-006_text-result-interface.md | ⬜ Pending | | |
-| 3-FND-007 | FND-007_click-target-interface.md | ⬜ Pending | | |
-| 3-FND-008 | FND-008_conditional-config-interface.md | ⬜ Pending | | |
-| 3-FND-009 | FND-009_conditional-result-interface.md | ⬜ Pending | | |
+### Thread 3 Complete When:
+- [ ] All 5 Puppeteer extension files have content
+- [ ] All 8 Puppeteer runner files have content
+- [ ] All 2 Puppeteer UI files have content
 
-## LAYER 2: Extended Interfaces
-
-| Prompt ID | File | Status | Date | Notes |
-|-----------|------|--------|------|-------|
-| 3-FND-010 | FND-010_step-interface-extension.md | ⬜ Pending | | |
-| 3-FND-011 | FND-011_recording-interface-extension.md | ⬜ Pending | | |
-
-## LAYER 3: Data Layer Foundation
-
-| Prompt ID | File | Status | Date | Notes |
-|-----------|------|--------|------|-------|
-| 3-DAT-001 | DAT-001_indexeddb-schema-v2.md | ⬜ Pending | | |
-| 3-DAT-004 | DAT-004_step-validation-utility.md | ⬜ Pending | | |
-
-## LAYER 4: Data Layer Complete
-
-| Prompt ID | File | Status | Date | Notes |
-|-----------|------|--------|------|-------|
-| 3-DAT-002 | DAT-002_schema-migration-logic.md | ⬜ Pending | | |
-| 3-DAT-003 | DAT-003_recording-repository.md | ⬜ Pending | | |
-| 3-DAT-005 | DAT-005_recording-validation-utility.md | ⬜ Pending | | |
-| 3-DAT-006 | DAT-006_default-values-factory.md | ⬜ Pending | | |
-
-## LAYER 5: Engine Foundation
-
-| Prompt ID | File | Status | Date | Notes |
-|-----------|------|--------|------|-------|
-| 3-ENG-001 | ENG-001_vision-engine-class.md | ⬜ Pending | | |
-| 3-ENG-016 | ENG-016_csv-position-mapping.md | ⬜ Pending | | |
-| 3-UI-005 | UI-005_delay-dialog-component.md | ⬜ Pending | | |
-
-## LAYER 6: Engine Methods & Handlers
-
-| Prompt ID | File | Status | Date | Notes |
-|-----------|------|--------|------|-------|
-| 3-ENG-002 | ENG-002_tesseract-initialization.md | ⬜ Pending | | |
-| 3-ENG-003 | ENG-003_screenshot-capture.md | ⬜ Pending | | |
-| 3-ENG-004 | ENG-004_ocr-recognition.md | ⬜ Pending | | |
-| 3-ENG-005 | ENG-005_confidence-filtering.md | ⬜ Pending | | |
-| 3-ENG-006 | ENG-006_find-text-function.md | ⬜ Pending | | |
-| 3-ENG-007 | ENG-007_find-all-text-function.md | ⬜ Pending | | |
-| 3-ENG-008 | ENG-008_click-at-coordinates.md | ⬜ Pending | | |
-| 3-ENG-009 | ENG-009_type-text-function.md | ⬜ Pending | | |
-| 3-ENG-010 | ENG-010_send-keys-function.md | ⬜ Pending | | |
-| 3-ENG-011 | ENG-011_scroll-function.md | ⬜ Pending | | |
-| 3-ENG-012 | ENG-012_dropdown-handler.md | ⬜ Pending | | |
-| 3-ENG-013 | ENG-013_input-handler.md | ⬜ Pending | | |
-| 3-ENG-014 | ENG-014_wait-and-click-buttons.md | ⬜ Pending | | |
-| 3-ENG-015 | ENG-015_auto-detection-failsafe.md | ⬜ Pending | | |
-| 3-INT-001 | INT-001_vision-click-handler.md | ⬜ Pending | | |
-| 3-INT-002 | INT-002_vision-type-handler.md | ⬜ Pending | | |
-| 3-INT-003 | INT-003_vision-key-handler.md | ⬜ Pending | | |
-| 3-INT-004 | INT-004_vision-scroll-handler.md | ⬜ Pending | | |
-| 3-INT-005 | INT-005_vision-get-element-handler.md | ⬜ Pending | | |
-| 3-INT-006 | INT-006_screenshot-message-handler.md | ⬜ Pending | | |
-| 3-INT-007 | INT-007_inject-script-handler.md | ⬜ Pending | | |
-
-## LAYER 7: Integration
-
-| Prompt ID | File | Status | Date | Notes |
-|-----------|------|--------|------|-------|
-| 3-INT-008 | INT-008_playback-dom-vision-switch.md | ⬜ Pending | | |
-| 3-INT-009 | INT-009_vision-fallback-recording.md | ⬜ Pending | | |
-| 3-ENG-017 | ENG-017_step-executor-module.md | ⬜ Pending | | |
-| 3-ENG-018 | ENG-018_delay-execution-logic.md | ⬜ Pending | | |
-
-## LAYER 8: UI Components
-
-| Prompt ID | File | Status | Date | Notes |
-|-----------|------|--------|------|-------|
-| 3-UI-001 | UI-001_vision-badge-component.md | ⬜ Pending | | |
-| 3-UI-002 | UI-002_loop-start-badge-component.md | ⬜ Pending | | |
-| 3-UI-003 | UI-003_delay-badge-component.md | ⬜ Pending | | |
-| 3-UI-004 | UI-004_conditional-badge-component.md | ⬜ Pending | | |
-| 3-UI-006 | UI-006_conditional-config-dialog.md | ⬜ Pending | | |
-| 3-UI-007 | UI-007_loop-start-dropdown.md | ⬜ Pending | | |
-| 3-UI-008 | UI-008_global-delay-input.md | ⬜ Pending | | |
-| 3-UI-009 | UI-009_add-conditional-click-menu.md | ⬜ Pending | | |
-| 3-UI-010 | UI-010_step-row-badge-display.md | ⬜ Pending | | |
-| 3-UI-011 | UI-011_set-delay-menu-item.md | ⬜ Pending | | |
-| 3-UI-012 | UI-012_configure-conditional-menu.md | ⬜ Pending | | |
-
-## LAYER 9: Testing
-
-| Prompt ID | File | Status | Date | Notes |
-|-----------|------|--------|------|-------|
-| 3-TST-001 | TST-001_vision-engine-init-test.md | ⬜ Pending | | |
-| 3-TST-002 | TST-002_screenshot-capture-test.md | ⬜ Pending | | |
-| 3-TST-003 | TST-003_ocr-recognition-test.md | ⬜ Pending | | |
-| 3-TST-004 | TST-004_find-text-accuracy-test.md | ⬜ Pending | | |
-| 3-TST-005 | TST-005_coordinate-click-test.md | ⬜ Pending | | |
-| 3-TST-006 | TST-006_conditional-click-loop-test.md | ⬜ Pending | | |
-| 3-TST-007 | TST-007_vision-recording-fallback-test.md | ⬜ Pending | | |
-| 3-TST-008 | TST-008_schema-migration-test.md | ⬜ Pending | | |
-| 3-TST-009 | TST-009_csv-position-mapping-test.md | ⬜ Pending | | |
-| 3-TST-010 | TST-010_full-copilot-workflow-test.md | ⬜ Pending | | |
-
-## LAYER 10: Migration
-
-| Prompt ID | File | Status | Date | Notes |
-|-----------|------|--------|------|-------|
-| 3-MIG-001 | MIG-001_recorded-via-default.md | ⬜ Pending | | |
-| 3-MIG-002 | MIG-002_loop-start-index-default.md | ⬜ Pending | | |
-| 3-MIG-003 | MIG-003_global-delay-default.md | ⬜ Pending | | |
-| 3-MIG-004 | MIG-004_conditional-defaults.md | ⬜ Pending | | |
-| 3-MIG-005 | MIG-005_backward-compatibility-verify.md | ⬜ Pending | | |
-
-## LAYER 11: Documentation
-
-| Prompt ID | File | Status | Date | Notes |
-|-----------|------|--------|------|-------|
-| 3-DOC-001 | DOC-001_readme-vision-features.md | ⬜ Pending | | |
-| 3-DOC-002 | DOC-002_vision-engine-api-docs.md | ⬜ Pending | | |
-| 3-DOC-003 | DOC-003_troubleshooting-guide.md | ⬜ Pending | | |
+### Phase 3 Complete When:
+- [ ] All 46 files have content specifications
+- [ ] Content document downloaded
+- [ ] Content document uploaded to Claude KB
+- [ ] Ready for Phase 4 code generation
 
 ---
 
-## STATUS KEY
+## 13. APPENDIX: FILES NOT REQUIRING CONTENT
 
-| Symbol | Meaning |
-|--------|---------|
-| ⬜ | Pending |
-| 🔄 | In Progress |
-| ✅ | Complete |
-| ❌ | Blocked |
-| ⚠️ | Needs Review |
+These 23 files are working correctly and need no changes:
 
----
-
-*Last updated: [timestamp]*
+```
+src/types/strategy.ts ✅
+src/types/vision.ts ✅
+src/types/cdp.ts ✅
+src/types/index.ts ✅
+src/lib/repositories/telemetryRepository.ts ✅
+src/lib/repositories/evidenceRepository.ts ✅
+src/lib/repositories/index.ts ✅
+src/lib/factories/defaultValues.ts ✅
+src/lib/factories/index.ts ✅
+src/lib/validation/stepValidator.ts ✅
+src/lib/validation/index.ts ✅
+src/lib/csvPositionMapping.ts ✅
+src/components/recorder/VisionBadge.tsx ✅
+src/components/recorder/StrategyIndicator.tsx ✅
+src/components/recorder/DelayControls.tsx ✅
+src/components/recorder/DelayBadge.tsx ✅
+src/components/recorder/LoopStartBadge.tsx ✅
+src/components/recorder/ConditionalBadge.tsx ✅
+src/components/recorder/ConditionalClickConfig.tsx ✅
+src/components/recorder/TelemetryPanel.tsx ✅
+src/components/recorder/FallbackChainView.tsx ✅
+src/components/recorder/index.ts ✅
+src/lib/schemaMigration.ts ✅ (needs minor fix only)
 ```
 
 ---
 
-## 9. EXECUTION INSTRUCTIONS
+## 14. APPENDIX: 7-TIER TOOL ARSENAL
 
-### Starting Phase 3
+The Decision Engine evaluates ALL strategies in parallel (not hierarchically):
 
-1. **Ensure Prerequisites**
-   - Phase 1 rollups in Claude Knowledge Base
-   - Phase 2 specs in Claude Knowledge Base
-   - BIDIRECTIONAL_ANALYSIS.md in Claude Knowledge Base
-   - BUILD_CARD_BACKLOG.md in Claude Knowledge Base
+| Tier | Strategy | Speed Target | Best For |
+|------|----------|--------------|----------|
+| 1 | DOM Selector | <10ms | Standard elements with stable IDs/classes |
+| 2 | CSS Selector | <15ms | Elements with reliable CSS paths |
+| 3 | CDP Semantic (getByRole) | <50ms | Accessible elements (buttons, links, inputs) |
+| 4 | CDP Power (getByText/Label) | <100ms | Elements identifiable by visible text |
+| 5 | Evidence Scoring | <500ms | Changed DOM, uses mouse trail + attributes |
+| 6 | Vision (OCR) | <2000ms | Canvas/shadow DOM, inaccessible elements |
+| 7 | Coordinates | <5ms | Last resort, brittle but guaranteed |
 
-2. **Load This Manual**
-   - Upload to Claude Project Knowledge
-   - Commit to repo at `/analysis-resources/implementation-guides/PHASE_3_MANUAL.md`
-
-3. **Create Status Tracker**
-   - Copy Section 8 template
-   - Commit to `/build-instructions/masterplan/_PHASE_3_STATUS_TRACKER.md`
-
-4. **Begin Generation**
-   - Say to Claude: `continue`
-   - Or request specific prompt: `Generate 3-FND-001`
-
-### During Execution
-
-**For Each Prompt:**
-
-1. Claude generates Smart Prompt
-2. You copy EVERYTHING between markers
-3. Paste into Copilot
-4. Copilot creates file and commits
-5. Update status tracker: ⬜ → ✅
-6. Return to Claude, say `continue`
-
-**If Prompt Fails Quality Gate:**
-
-- Tell Claude: `Regenerate [ID] - [issue]`
-- Example: `Regenerate 3-FND-005 - missing code examples`
-
-**If You Need to Stop:**
-
-- Note last completed prompt ID
-- Resume with: `continue from [ID]`
+**Key Principle:** Fast strategies are *preferred* but not *required*. If Vision has 95% confidence and DOM has 40%, Vision wins.
 
 ---
 
-## 10. COMPLETION CRITERIA
+## 15. APPENDIX: RECORDING FLOW
 
-Phase 3 is complete when:
+```
+USER CLICKS "RECORD"
+        │
+        ▼
+┌─────────────────────────────────────────────────────────┐
+│              RECORDING ORCHESTRATOR                      │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │ Start All Layers in Parallel:                   │    │
+│  │  ├─ Layer A (DOM): DOMCapture.start()          │    │
+│  │  ├─ Layer B (Vision): VisionCapture.start()    │    │
+│  │  ├─ Layer C (Mouse): MouseCapture.start()      │    │
+│  │  └─ Layer D (Network): NetworkCapture.start()  │    │
+│  └─────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────┘
+        │
+        ▼
+USER PERFORMS ACTION (click, type, select)
+        │
+        ▼
+┌─────────────────────────────────────────────────────────┐
+│  PARALLEL CAPTURE                                        │
+│  ├─ DOMCapture: selector, xpath, attributes             │
+│  ├─ VisionCapture: screenshot, OCR text                 │
+│  ├─ MouseCapture: trail coordinates                     │
+│  └─ NetworkCapture: recent requests                     │
+└─────────────────────────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────────────────────────┐
+│  FALLBACK CHAIN GENERATOR                                │
+│  ├─ Score each strategy                                  │
+│  ├─ Sort by confidence                                   │
+│  └─ Build ordered chain                                  │
+└─────────────────────────────────────────────────────────┘
+        │
+        ▼
+STORE IN EVIDENCE BUFFER → DISPLAY IN RECORDER UI
+```
 
-| Criterion | Check |
-|-----------|-------|
-| All 67 prompts generated | Status tracker shows 67 ✅ |
-| All files committed | `git log` shows 67+ commits |
-| Directory structure complete | All folders created per Section 2 |
-| No pending dependencies | Layer 11 complete |
-| Quality gates passed | No TODOs, TBDs, or placeholders |
+---
+
+## 16. APPENDIX: PLAYBACK FLOW
+
+```
+USER CLICKS "PLAY"
+        │
+        ▼
+LOAD RECORDING FROM INDEXEDDB
+        │
+        ▼
+FOR EACH STEP:
+        │
+        ▼
+┌─────────────────────────────────────────────────────────┐
+│              DECISION ENGINE                             │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │ Evaluate ALL strategies in parallel:            │    │
+│  │  ├─ DOMStrategy.evaluate()                      │    │
+│  │  ├─ CDPStrategy.evaluate()                      │    │
+│  │  ├─ VisionStrategy.evaluate()                   │    │
+│  │  └─ CoordinatesStrategy.evaluate()              │    │
+│  └─────────────────────────────────────────────────┘    │
+│                         │                                │
+│                         ▼                                │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │ Sort by confidence, try highest first           │    │
+│  │  ├─ Success? → Log telemetry → Next step       │    │
+│  │  └─ Failure? → Try next strategy               │    │
+│  └─────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────┘
+        │
+        ▼
+ALL STEPS COMPLETE → SHOW RESULTS
+```
 
 ---
 
@@ -808,4 +670,12 @@ Phase 3 is complete when:
 
 ---
 
-*When ready to begin, say: `continue`*
+## NEXT STEPS
+
+1. **Download this manual** using the link below
+2. **Upload to Claude Knowledge Base**
+3. **Start NEW Claude thread**
+4. **Paste the Generation Prompt from Section 11**
+5. **Say "continue"** to begin content generation
+
+The content generation phase will produce detailed specifications for all 46 files, which you then use in Phase 4 for code generation via Smart Prompts to Copilot.

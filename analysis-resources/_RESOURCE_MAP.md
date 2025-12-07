@@ -94,6 +94,15 @@ It must be updated automatically every time any analysis prompt, breakdown promp
   **Files:**
   - `BUILD_DEPENDENCY_MAP.md` — Build dependency mapping
   - `BUILD_PLAN.md` — Build execution plan
+
+## IMPLEMENTATION GUIDES
+
+- **analysis-resources/implementation-guides/**
+  Contains phase-specific implementation manuals and guides.
+  
+  **Files:**
+  - **PHASE_3_MANUAL.md** ⭐ — **[December 6, 2025]** Complete content generation plan for Phase 2 Vision Enhancement + Puppeteer integration. Defines 46 files requiring content generation organized into 8 sections (Content Script Orchestration, Background CDP Services, Decision Engine, Library Files, File Modifications, Puppeteer Extension, Puppeteer Runner, UI Components). Includes dependency graph, 3 generation threads, content format templates, critical interfaces, message handlers, architecture decisions, and step-by-step execution workflow. **Primary reference for Phase 3 content generation.**
+
 ## KNOWLEDGE BASE EXPORT
 
 - **analysis-resources/knowledge-base-export/** ⭐
