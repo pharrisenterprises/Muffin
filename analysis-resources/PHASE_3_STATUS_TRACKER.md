@@ -1,196 +1,225 @@
-# Phase 3 Status Tracker
+# PHASE 3 STATUS TRACKER
 
-> **Started:** December 2, 2025  
-> **Completed:** December 2, 2025  
-> **Last Updated:** December 2, 2025  
-> **Phase:** Specification Generation — ✅ COMPLETE
+**Generated:** December 6, 2025  
+**Purpose:** Track content generation progress for Phase 3 Manual specifications
+
+---
+
+## Overview
+
+Phase 3 involves generating detailed content specifications for 46 files across 8 sections. These specifications will be used in Phase 4 for actual code implementation.
+
+**Manual Reference:** `implementation-guides/PHASE_3_MANUAL.md`
 
 ---
 
 ## Specifications to Generate
-### Category 1: Foundation / Architecture (FND) - 11 specs
 
-| # | Spec File | Status | Committed |
-|---|-----------|--------|-----------|
-| 1 | FND-001_tesseract-installation.md | ✅ Complete | ✅ |
-| 2 | FND-002_manifest-permissions.md | ✅ Complete | ✅ |
-| 3 | FND-003_vite-wasm-config.md | ✅ Complete | ✅ |
-| 4 | FND-004_type-definitions-file.md | ✅ Complete | ✅ |
-| 5 | FND-005_vision-config-interface.md | ✅ Complete | ✅ |
-| 6 | FND-006_text-result-interface.md | ✅ Complete | ✅ |
-| 7 | FND-007_click-target-interface.md | ✅ Complete | ✅ |
-| 8 | FND-008_conditional-config-interface.md | ✅ Complete | ✅ |
-| 9 | FND-009_conditional-result-interface.md | ✅ Complete | ✅ |
-| 10 | FND-010_step-interface-extension.md | ✅ Complete | ✅ |
-| 11 | FND-011_recording-interface-extension.md | ✅ Complete | ✅ |
-| 11 | FND-011_recording-interface-extension.md | ☐ Pending | ☐ |
-### Category 2: Data Layer (DAT) - 6 specs
+### Section A: Content Script Orchestration (7 files)
 
-| # | Spec File | Status | Committed |
-|---|-----------|--------|-----------|
-| 12 | DAT-001_indexeddb-schema-v2.md | ✅ Complete | ✅ |
-| 13 | DAT-002_schema-migration-logic.md | ✅ Complete | ✅ |
-| 14 | DAT-003_recording-repository.md | ✅ Complete | ✅ |
-| 15 | DAT-004_step-validation-utility.md | ✅ Complete | ✅ |
-| 16 | DAT-005_recording-validation-utility.md | ✅ Complete | ✅ |
-| 17 | DAT-006_default-values-factory.md | ✅ Complete | ✅ | | ☐ |
-| 17 | DAT-006_default-values-factory.md | ☐ Pending | ☐ |
-### Category 3: Core Engine Components (ENG) - 18 specs
+| # | ID | File Path | Status | Committed |
+|---|-----|-----------|--------|-----------|
+| 1 | A1 | `src/contentScript/RecordingOrchestrator.ts` | ☐ Pending | ☐ |
+| 2 | A2 | `src/contentScript/EvidenceBuffer.ts` | ☐ Pending | ☐ |
+| 3 | A3 | `src/contentScript/layers/DOMCapture.ts` | ☐ Pending | ☐ |
+| 4 | A4 | `src/contentScript/layers/VisionCapture.ts` | ☐ Pending | ☐ |
+| 5 | A5 | `src/contentScript/layers/MouseCapture.ts` | ☐ Pending | ☐ |
+| 6 | A6 | `src/contentScript/layers/NetworkCapture.ts` | ☐ Pending | ☐ |
+| 7 | A7 | `src/contentScript/content.tsx` (MODIFY) | ☐ Pending | ☐ |
 
-| # | Spec File | Status | Committed |
-|---|-----------|--------|-----------|
-| 18 | ENG-001_vision-engine-class.md | ✅ Complete | ✅ |
-| 19 | ENG-002_tesseract-initialization.md | ✅ Complete | ✅ |
-| 20 | ENG-003_screenshot-capture.md | ✅ Complete | ✅ |
-| 21 | ENG-004_ocr-recognition.md | ✅ Complete | ✅ |
-| 22 | ENG-005_confidence-filtering.md | ✅ Complete | ✅ |
-| 23 | ENG-006_find-text-function.md | ✅ Complete | ✅ |
-| 24 | ENG-007_find-all-text-function.md | ✅ Complete | ✅ |
-| 25 | ENG-008_click-at-coordinates.md | ✅ Complete | ✅ |
-| 26 | ENG-009_type-text-function.md | ✅ Complete | ✅ |
-| 27 | ENG-010_send-keys-function.md | ✅ Complete | ✅ |
-| 28 | ENG-011_scroll-function.md | ✅ Complete | ✅ |
-| 29 | ENG-012_dropdown-handler.md | ✅ Complete | ✅ |
-| 30 | ENG-013_input-handler.md | ✅ Complete | ✅ |
-| 31 | ENG-014_wait-and-click-buttons.md | ✅ Complete | ✅ |
-| 32 | ENG-015_auto-detection-failsafe.md | ✅ Complete | ✅ |
-| 33 | ENG-016_csv-position-mapping.md | ✅ Complete | ✅ |
-| 34 | ENG-017_step-executor-module.md | ✅ Complete | ✅ |
-| 35 | ENG-018_delay-execution-logic.md | ✅ Complete | ✅ |
-| 35 | ENG-018_delay-execution-logic.md | ☐ Pending | ☐ |
-### Category 4: Integration Points (INT) - 9 specs
+### Section B: Background CDP Services (5 files)
 
-| # | Spec File | Status | Committed |
-|---|-----------|--------|-----------|
-| 36 | INT-001_vision-click-handler.md | ✅ Complete | ✅ |
-| 37 | INT-002_vision-type-handler.md | ✅ Complete | ✅ |
-| 38 | INT-003_vision-key-handler.md | ✅ Complete | ✅ |
-| 39 | INT-004_vision-scroll-handler.md | ✅ Complete | ✅ |
-| 40 | INT-005_vision-get-element-handler.md | ✅ Complete | ✅ |
-| 41 | INT-006_screenshot-message-handler.md | ✅ Complete | ✅ |
-| 42 | INT-007_inject-script-handler.md | ✅ Complete | ✅ |
-| 43 | INT-008_playback-dom-vision-switch.md | ✅ Complete | ✅ |
-| 44 | INT-009_vision-fallback-recording.md | ✅ Complete | ✅ ||
-| 44 | INT-009_vision-fallback-recording.md | ☐ Pending | ☐ |
-### Category 5: UI Components (UI) - 12 specs
+| # | ID | File Path | Status | Committed |
+|---|-----|-----------|--------|-----------|
+| 8 | B1 | `src/background/services/CDPService.ts` (FIX) | ☐ Pending | ☐ |
+| 9 | B2 | `src/background/services/AccessibilityService.ts` (FIX) | ☐ Pending | ☐ |
+| 10 | B3 | `src/background/services/PlaywrightLocators.ts` (FIX) | ☐ Pending | ☐ |
+| 11 | B4 | `src/background/services/AutoWaiting.ts` (FIX) | ☐ Pending | ☐ |
+| 12 | B5 | `src/background/services/VisionService.ts` | ☐ Pending | ☐ |
 
-| # | Spec File | Status | Committed |
-|---|-----------|--------|-----------|
-| 45 | UI-001_vision-badge-component.md | ✅ Complete | ✅ |
-| 46 | UI-002_loop-start-badge-component.md | ✅ Complete | ✅ |
-| 47 | UI-003_delay-badge-component.md | ✅ Complete | ✅ |
-| 48 | UI-004_conditional-badge-component.md | ✅ Complete | ✅ |
-| 49 | UI-005_delay-dialog-component.md | ✅ Complete | ✅ |
-| 50 | UI-006_conditional-config-dialog.md | ✅ Complete | ✅ |
-| 51 | UI-007_loop-start-dropdown.md | ✅ Complete | ✅ |
-| 52 | UI-008_global-delay-input.md | ✅ Complete | ✅ |
-| 53 | UI-009_add-conditional-click-menu.md | ✅ Complete | ✅ |
-| 54 | UI-010_step-row-badge-display.md | ✅ Complete | ✅ |
-| 55 | UI-011_set-delay-menu-item.md | ✅ Complete | ✅ |
-| 56 | UI-012_configure-conditional-menu.md | ✅ Complete | ✅ |
-| 56 | UI-012_configure-conditional-menu.md | ☐ Pending | ☐ |
+### Section C: Decision Engine (10 files)
 
-### Category 6: Testing & Validation (TST) - 10 specs
+| # | ID | File Path | Status | Committed |
+|---|-----|-----------|--------|-----------|
+| 13 | C1 | `src/background/services/DecisionEngine.ts` (FIX) | ☐ Pending | ☐ |
+| 14 | C2 | `src/background/services/FallbackChainGenerator.ts` | ☐ Pending | ☐ |
+| 15 | C3 | `src/background/services/TelemetryLogger.ts` | ☐ Pending | ☐ |
+| 16 | C4 | `src/background/services/StrategyScorer.ts` | ☐ Pending | ☐ |
+| 17 | C5 | `src/background/services/StrategyChainBuilder.ts` | ☐ Pending | ☐ |
+| 18 | C6 | `src/background/services/strategies/StrategyEvaluator.ts` | ☐ Pending | ☐ |
+| 19 | C7 | `src/background/services/strategies/DOMStrategy.ts` | ☐ Pending | ☐ |
+| 20 | C8 | `src/background/services/strategies/CDPStrategy.ts` | ☐ Pending | ☐ |
+| 21 | C9 | `src/background/services/strategies/VisionStrategy.ts` | ☐ Pending | ☐ |
+| 22 | C10 | `src/background/services/strategies/CoordinatesStrategy.ts` | ☐ Pending | ☐ |
 
-| # | Spec File | Status | Committed |
-|---|-----------|--------|-----------|
-| 57 | TST-001_vision-engine-init-test.md | ✅ Complete | ✅ |
-| 58 | TST-002_screenshot-capture-test.md | ✅ Complete | ✅ |
-| 59 | TST-003_ocr-recognition-test.md | ✅ Complete | ✅ |
-| 60 | TST-004_find-text-accuracy-test.md | ✅ Complete | ✅ |
-| 61 | TST-005_coordinate-click-test.md | ✅ Complete | ✅ |
-| 62 | TST-006_conditional-click-loop-test.md | ✅ Complete | ✅ |
-| 63 | TST-007_vision-recording-fallback-test.md | ✅ Complete | ✅ |
-| 64 | TST-008_schema-migration-test.md | ✅ Complete | ✅ |
-| 65 | TST-009_csv-position-mapping-test.md | ✅ Complete | ✅ |
-| 66 | TST-010_full-copilot-workflow-test.md | ✅ Complete | ✅ |
+### Section D: Library Files (4 files)
 
-### Category 7: Migration Tasks (MIG) - 5 specs
+| # | ID | File Path | Status | Committed |
+|---|-----|-----------|--------|-----------|
+| 23 | D1 | `src/lib/visionEngine.ts` (FIX) | ☐ Pending | ☐ |
+| 24 | D2 | `src/lib/migrations/v3.ts` | ☐ Pending | ☐ |
+| 25 | D3 | `src/lib/mouseTrailAnalyzer.ts` | ☐ Pending | ☐ |
+| 26 | D4 | `src/lib/schemaMigration.ts` (FIX) | ☐ Pending | ☐ |
 
-| # | Spec File | Status | Committed |
-|---|-----------|--------|-----------|
-| 67 | MIG-001_recorded-via-default.md | ✅ Complete | ✅ |
-| 68 | MIG-002_loop-start-index-default.md | ✅ Complete | ✅ |
-| 69 | MIG-003_global-delay-default.md | ✅ Complete | ✅ |
-| 70 | MIG-004_conditional-defaults.md | ✅ Complete | ✅ |
-| 71 | MIG-005_backward-compatibility-verify.md | ✅ Complete | ✅ |
+### Section E: Existing Files to Modify (5 files)
 
-### Category 8: Documentation (DOC) - 3 specs
+| # | ID | File Path | Status | Committed |
+|---|-----|-----------|--------|-----------|
+| 27 | E1 | `src/common/services/indexedDB.ts` (MODIFY) | ☐ Pending | ☐ |
+| 28 | E2 | `src/background/background.ts` (MODIFY) | ☐ Pending | ☐ |
+| 29 | E3 | `src/pages/Recorder.tsx` (MODIFY) | ☐ Pending | ☐ |
+| 30 | E4 | `src/pages/TestRunner.tsx` (MODIFY) | ☐ Pending | ☐ |
+| 31 | E5 | `public/manifest.json` (MODIFY) | ☐ Pending | ☐ |
 
-| # | Spec File | Status | Committed |
-|---|-----------|--------|-----------|
-| 72 | DOC-001_readme-vision-features.md | ✅ Complete | ✅ |
-| 73 | DOC-002_vision-engine-api-docs.md | ✅ Complete | ✅ |
-| 74 | DOC-003_troubleshooting-guide.md | ✅ Complete | ✅ |
+### Section F: Puppeteer Extension Integration (5 files)
+
+| # | ID | File Path | Status | Committed |
+|---|-----|-----------|--------|-----------|
+| 32 | F1 | `src/lib/puppeteer/PuppeteerConnector.ts` | ☐ Pending | ☐ |
+| 33 | F2 | `src/lib/puppeteer/ScriptExporter.ts` | ☐ Pending | ☐ |
+| 34 | F3 | `src/lib/puppeteer/LocatorTranslator.ts` | ☐ Pending | ☐ |
+| 35 | F4 | `src/lib/puppeteer/ExportFormat.ts` | ☐ Pending | ☐ |
+| 36 | F5 | `src/lib/puppeteer/index.ts` | ☐ Pending | ☐ |
+
+### Section G: Puppeteer External Runner (8 files)
+
+| # | ID | File Path | Status | Committed |
+|---|-----|-----------|--------|-----------|
+| 37 | G1 | `puppeteer-runner/package.json` | ☐ Pending | ☐ |
+| 38 | G2 | `puppeteer-runner/tsconfig.json` | ☐ Pending | ☐ |
+| 39 | G3 | `puppeteer-runner/src/index.ts` | ☐ Pending | ☐ |
+| 40 | G4 | `puppeteer-runner/src/TestExecutor.ts` | ☐ Pending | ☐ |
+| 41 | G5 | `puppeteer-runner/src/RecordingLoader.ts` | ☐ Pending | ☐ |
+| 42 | G6 | `puppeteer-runner/src/StrategyExecutor.ts` | ☐ Pending | ☐ |
+| 43 | G7 | `puppeteer-runner/src/VisionAdapter.ts` | ☐ Pending | ☐ |
+| 44 | G8 | `puppeteer-runner/src/types.ts` | ☐ Pending | ☐ |
+
+### Section H: Puppeteer UI Components (2 files)
+
+| # | ID | File Path | Status | Committed |
+|---|-----|-----------|--------|-----------|
+| 45 | H1 | `src/components/export/PuppeteerExportButton.tsx` | ☐ Pending | ☐ |
+| 46 | H2 | `src/components/export/ExportOptionsDialog.tsx` | ☐ Pending | ☐ |
 
 ---
 
-## Progress
+## Progress Summary
 
-- **Total specs:** 74
-- **Completed:** 74 ✅
-- **Remaining:** 0
-- **Percentage:** 100%
+### By Section
+| Section | Files | Completed | Remaining | % Complete |
+|---------|-------|-----------|-----------|------------|
+| A: Content Script Orchestration | 7 | 0 | 7 | 0% |
+| B: Background CDP Services | 5 | 0 | 5 | 0% |
+| C: Decision Engine | 10 | 0 | 10 | 0% |
+| D: Library Files | 4 | 0 | 4 | 0% |
+| E: Existing Files to Modify | 5 | 0 | 5 | 0% |
+| F: Puppeteer Extension | 5 | 0 | 5 | 0% |
+| G: Puppeteer Runner | 8 | 0 | 8 | 0% |
+| H: Puppeteer UI | 2 | 0 | 2 | 0% |
+| **TOTAL** | **46** | **0** | **46** | **0%** |
+
+### Overall Progress
+- **Total Specifications:** 46
+- **Completed:** 0
+- **In Progress:** 0
+- **Remaining:** 46
+- **Overall Progress:** 0%
 
 ---
 
-## Category Progress
+## Generation Threads
 
-| Category | Total | Complete | Remaining | % |
-|----------|-------|----------|-----------|---|
-| Foundation (FND) | 11 | 11 ✅ | 0 | 100% |
-| Data Layer (DAT) | 6 | 6 ✅ | 0 | 100% |
-| Core Engine (ENG) | 18 | 18 ✅ | 0 | 100% |
-| Integration (INT) | 9 | 9 ✅ | 0 | 100% |
-| UI Components (UI) | 12 | 12 ✅ | 0 | 100% |
-| Testing (TST) | 10 | 10 ✅ | 0 | 100% |
-| Migration (MIG) | 5 | 5 ✅ | 0 | 100% |
-| Documentation (DOC) | 3 | 3 ✅ | 0 | 100% |
+### Thread 1: Core Infrastructure (16 files)
+**Status:** ☐ Not Started  
+**Files:** A1-A6, B1-B5, C1-C5  
+**Estimated Continues:** 5-6
+
+### Thread 2: Strategies + Library + Modifications (15 files)
+**Status:** ☐ Not Started  
+**Files:** C6-C10, D1-D4, E1-E5  
+**Estimated Continues:** 4-5
+
+### Thread 3: Puppeteer Integration (15 files)
+**Status:** ☐ Not Started  
+**Files:** F1-F5, G1-G8, H1-H2  
+**Estimated Continues:** 4-5
+
+---
+
+## Session Notes
+
+### Session 1: [Date]
+- **Files Completed:** 
+- **Issues:** 
+- **Decisions:** 
+
+### Session 2: [Date]
+- **Files Completed:** 
+- **Issues:** 
+- **Decisions:** 
+
+### Session 3: [Date]
+- **Files Completed:** 
+- **Issues:** 
+- **Decisions:** 
+
+---
+
+## Acceptance Criteria
+
+### Thread 1 Complete When:
+- [ ] All 7 orchestration files have content specifications
+- [ ] All 5 CDP service files have content specifications (including fixes)
+- [ ] All 5 core Decision Engine files have content specifications
+
+### Thread 2 Complete When:
+- [ ] All 5 strategy evaluator files have content specifications
+- [ ] All 4 library files have content specifications (including fixes)
+- [ ] All 5 modification files have content specifications
+
+### Thread 3 Complete When:
+- [ ] All 5 Puppeteer extension files have content specifications
+- [ ] All 8 Puppeteer runner files have content specifications
+- [ ] All 2 Puppeteer UI files have content specifications
+
+### Phase 3 Complete When:
+- [ ] All 46 files have content specifications generated
+- [ ] Content specifications document downloaded from Claude
+- [ ] Content specifications document uploaded to Claude Knowledge Base
+- [ ] Ready for Phase 4 code generation
+
+---
+
+## Key Deliverables
+
+1. **Content Specifications Document**
+   - Format: Single markdown file with all 46 file specifications
+   - Content per file: Purpose, Dependencies, Interfaces, Functions, Implementation Details, Integration Points, Acceptance Criteria, Estimated Lines
+   - Generated by: Claude using Phase 3 Manual as reference
+   - Delivery: Download from Claude, upload to Claude Knowledge Base
+
+2. **Updated Knowledge Base**
+   - Add: Complete content specifications document
+   - Verify: Claude can access specifications for Phase 4 code generation
+   - Test: Run verification prompts from KNOWLEDGE_SYNC_STATUS.md
+
+3. **Phase 4 Readiness**
+   - Confirm: All 46 specifications complete
+   - Confirm: Specifications follow content format from Phase 3 Manual Section 5
+   - Confirm: Dependencies documented for build order
+   - Confirm: Ready to begin Phase 4 code implementation
 
 ---
 
 ## Status Legend
 
-| Symbol | Meaning |
-|--------|---------|
-| ☐ | Pending |
-| 🔄 | In Progress |
-| ✅ | Complete |
-| ❌ | Blocked |
-| ⚠️ | Needs Review |
+- ☐ Pending - Not started
+- 🔄 In Progress - Currently being generated
+- ✅ Complete - Specification finished
+- ⚠️ Issues - Needs review or clarification
+- 🔁 Revision - Needs updates
 
 ---
 
-## Notes
-
-### Session Log
-
-**December 2, 2025:**
-- ✅ Phase 3 Specification Generation COMPLETE
-- All 74 specifications generated and committed
-- All specifications meet quality standards (400-600 lines, NO placeholders)
-- Documentation rollup complete (4/4 chunks):
-  - Chunk 1: Component breakdowns (7 new Vision files)
-  - Chunk 2: Technical reference refresh
-  - Chunk 3: Master rollup refresh
-  - Chunk 4: Source code rollup + resource map + tracker update
-
-### Completion Summary
-
-**Phase 3 Status:** 100% COMPLETE ✅
-
-**Categories Complete:**
-- Foundation (FND): 11/11 specifications
-- Data Layer (DAT): 6/6 specifications
-- Core Engine (ENG): 18/18 specifications
-- Integration (INT): 9/9 specifications
-- UI Components (UI): 12/12 specifications
-- Testing (TST): 10/10 specifications
-- Migration (MIG): 5/5 specifications
-- Documentation (DOC): 3/3 specifications
-
-**Next Phase:** Implementation (pending)
-
----
-
-*End of Status Tracker*
+**Last Updated:** December 6, 2025  
+**Next Review:** After each content generation session
