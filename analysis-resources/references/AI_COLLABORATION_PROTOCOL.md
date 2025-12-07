@@ -27,15 +27,22 @@ This protocol enables **bidirectional AI collaboration** where:
 | `ARCHITECTURE_DECISIONS.md` ⭐ | 8 finalized architectural decisions | Upload to Claude Project |
 | `BUILD_CARD_BACKLOG_PHASE2.md` | 87 build cards with dependencies | Upload to Claude Project |
 | `BIDIRECTIONAL_ANALYSIS.md` | Gap analysis (current vs. Phase 2) | Upload to Claude Project |
-| `MASTER_ROLLUP.md` | Complete system reference (Phase 1-3) | Upload to Claude Project |
+| `knowledge-base-export/MASTER_ROLLUP_PHASE2.md` | Complete Phase 2 reference | Upload to Claude Project |
 | `TECHNICAL_REFERENCE.md` | TypeScript interfaces, conventions | Upload to Claude Project |
-| `SOURCE_CODE_ROLLUP.md` | Key source code examples | Upload to Claude Project |
+| `rollup-export-clean/COMPONENT_ROLLUP_*.md` | Component breakdowns (4 files) | Upload to Claude Project |
 
 #### Phase-Specific Documents
 | File | Purpose | Claude Equivalent |
 |------|---------|-------------------|
+| `implementation-guides/PHASE_3_MANUAL.md` ⭐ | Phase 3 content generation guide (Dec 6, 2025) | Upload to Claude Project |
+| `KNOWLEDGE_SYNC_STATUS.md` ⭐ | Track Claude ↔ Copilot synchronization | Reference for sync verification |
 | `PHASE_3_STATUS_TRACKER.md` | Phase 3 progress tracking | Share status updates with Claude |
-| `PHASE_4_STATUS_TRACKER.md` | Phase 4 implementation tracking | Share status updates with Claude |
+
+#### Archived Documents (DO NOT USE)
+| File | Reason | Location |
+|------|--------|----------|
+| `PHASE_3_MANUAL_OLD_Dec2.md` | Outdated - Vision only scope | implementation-guides/archive/ |
+| `PHASE_4_MANUAL_OLD_Dec2.md` | Outdated - Vision only scope | implementation-guides/archive/ |
 
 #### Component Breakdowns (32 files)
 **Location:** `component-breakdowns/`  
@@ -49,6 +56,18 @@ Files include:
 - `MASTER_ROLLUP_PHASE2.md` - Primary code generation reference
 - `00_masterplan-overview.md` through `12_future-roadmap.md`
 - Build cards, architecture, data layer, testing, deployment
+
+#### Component Rollup Export (5 files) ⭐ CURRENT
+**Location:** `../rollup-export-clean/`  
+**Claude Action:** Upload all component rollup files
+
+Files include:
+- `COMPONENT_ROLLUP_A-D.md` - Components A through D
+- `COMPONENT_ROLLUP_F-P.md` - Components F through P
+- `COMPONENT_ROLLUP_R-T.md` - Components R through T (first set)
+- `COMPONENT_ROLLUP_T-Z.md` - Components T through Z
+- `MASTER_ROLLUP.md` - Complete system rollup
+- `TECHNICAL_REFERENCE.md` - Technical conventions
 
 ---
 
@@ -156,9 +175,15 @@ Next Task: CDP-003 (DOM Commands) - Ready to implement
   - [ ] `ARCHITECTURE_DECISIONS.md` ⭐ (REQUIRED - 8 finalized decisions)
   - [ ] `BUILD_CARD_BACKLOG_PHASE2.md` ⭐ (REQUIRED - 87 build cards)
   - [ ] `BIDIRECTIONAL_ANALYSIS.md` (Gap analysis)
-  - [ ] `MASTER_ROLLUP.md` (System reference)
+  - [ ] `knowledge-base-export/MASTER_ROLLUP_PHASE2.md` (Phase 2 primary reference)
   - [ ] `TECHNICAL_REFERENCE.md` (TypeScript conventions)
-  - [ ] `SOURCE_CODE_ROLLUP.md` (Code examples)
+- [ ] Upload Component Rollups (from `../rollup-export-clean/`):
+  - [ ] `COMPONENT_ROLLUP_A-D.md`
+  - [ ] `COMPONENT_ROLLUP_F-P.md`
+  - [ ] `COMPONENT_ROLLUP_R-T.md`
+  - [ ] `COMPONENT_ROLLUP_T-Z.md`
+  - [ ] `MASTER_ROLLUP.md` (system overview)
+  - [ ] `TECHNICAL_REFERENCE.md` (technical reference)
 - [ ] Upload Phase 2 knowledge base (15 files):
   - [ ] `knowledge-base-export/MASTER_ROLLUP_PHASE2.md`
   - [ ] `knowledge-base-export/00_masterplan-overview.md`
@@ -175,7 +200,6 @@ Next Task: CDP-003 (DOM Commands) - Ready to implement
   - [ ] `knowledge-base-export/11_user-documentation.md`
   - [ ] `knowledge-base-export/12_future-roadmap.md`
   - [ ] `knowledge-base-export/_RESOURCE_MAP_UPDATED.md`
-- [ ] Upload component breakdowns (32 files from `component-breakdowns/`)
 - [ ] Add custom instructions to Claude Project (see below)
 
 ---
@@ -249,8 +273,9 @@ When receiving prompts, I will reference:
 | Build Cards & Dependencies | `BUILD_CARD_BACKLOG_PHASE2.md` (87 cards with effort estimates) |
 | Gap Analysis | `BIDIRECTIONAL_ANALYSIS.md` (current vs Phase 2) |
 | TypeScript Types | `knowledge-base-export/05_data-layer.md`, `TECHNICAL_REFERENCE.md` |
-| Architecture | `knowledge-base-export/04_architecture.md`, `MASTER_ROLLUP.md` |
-| Code Examples | `knowledge-base-export/MASTER_ROLLUP_PHASE2.md`, `SOURCE_CODE_ROLLUP.md` |
+| Architecture | `knowledge-base-export/04_architecture.md`, `rollup-export-clean/MASTER_ROLLUP.md` |
+| Code Examples | `knowledge-base-export/MASTER_ROLLUP_PHASE2.md`, `rollup-export-clean/COMPONENT_ROLLUP_*.md` |
+| Component Details | `rollup-export-clean/COMPONENT_ROLLUP_A-D.md` (etc. - 4 files covering all components) |
 | Conventions | `TECHNICAL_REFERENCE.md` |
 | Testing Patterns | `knowledge-base-export/08_testing-strategy.md` |
 
@@ -446,17 +471,19 @@ When knowledge base changes:
 - ARCHITECTURE_DECISIONS.md committed (8 finalized decisions)
 - BUILD_CARD_BACKLOG_PHASE2.md committed (87 build cards)
 - BIDIRECTIONAL_ANALYSIS.md committed (gap analysis)
-- All 15 knowledge base export files committed and indexed
+- All 15 knowledge-base-export files committed and indexed
+- All 6 rollup-export-clean files committed and indexed
 - Can reference via workspace paths
 - Protocol documented in this file
 
 **Claude Status:** ⏳ Pending User Action
 - User needs to create Claude Project
-- User needs to upload 4 priority files:
+- User needs to upload priority files:
   1. ARCHITECTURE_DECISIONS.md ⭐
   2. BUILD_CARD_BACKLOG_PHASE2.md ⭐
-  3. knowledge-base-export/MASTER_ROLLUP_PHASE2.md
-  4. BIDIRECTIONAL_ANALYSIS.md
+  3. knowledge-base-export/MASTER_ROLLUP_PHASE2.md ⭐
+  4. rollup-export-clean/COMPONENT_ROLLUP_*.md (4 files) ⭐
+  5. BIDIRECTIONAL_ANALYSIS.md
 - User needs to add custom instructions (see CLAUDE_UPLOAD_CHECKLIST.md)
 
 Once Claude setup is complete, collaboration can begin!
