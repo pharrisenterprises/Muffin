@@ -81,7 +81,7 @@ export function migrateStep(step: Record<string, unknown>): MigratedStep {
   };
 }
 
-export function migrateRecording(recording: Record<string, unknown>): MigratedRecording {
+export function migrateRecording(recording: Record<string, unknown>, projectId?: number): MigratedRecording {
   const existingSteps = (recording.recorded_steps || recording.steps || []) as Record<string, unknown>[];
   const steps = existingSteps.map(migrateStep);
 
@@ -96,6 +96,7 @@ export function migrateRecording(recording: Record<string, unknown>): MigratedRe
     status: recording.status as string | undefined,
     created_date: recording.created_date as number | undefined,
     updated_date: recording.updated_date as number | undefined,
+    projectId: (recording.projectId as number | undefined) ?? projectId,
     // Apply defaults for new fields
     schemaVersion: 3,
     loopStartIndex: (recording.loopStartIndex as number) ?? 0,
