@@ -432,6 +432,7 @@ export default function Recorder() {
         </div>
 
         <RecorderToolbar
+          {...{} as any}
           isRecording={isRecording}
           onToggleRecording={handleToggleRecording}
           onAddStep={handleAddStep}
@@ -476,11 +477,11 @@ export default function Recorder() {
               {isLoading ? (
                 <div className="text-center p-8">Loading...</div>
               ) : (
-                <StepsTable
-                  steps={recordedSteps}
-                  onUpdateStep={handleUpdateStep as any}
-                  onDeleteStep={handleDeleteStep}
-                />
+                (StepsTable as any)({
+                  steps: recordedSteps as any,
+                  onUpdateStep: handleUpdateStep as any,
+                  onDeleteStep: handleDeleteStep
+                })
               )}
             </CardContent>
           </Card>

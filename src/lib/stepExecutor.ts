@@ -317,7 +317,7 @@ async function executeInputStep(step: Step, tabId: number): Promise<boolean> {
     if (!clicked) return false;
 
     await delay(100); // Let focus settle
-    return await visionEngine.typeText(value, tabId);
+    return await visionEngine.typeText(tabId, value);
   } else {
     // DOM-based input
     return new Promise((resolve) => {
@@ -380,7 +380,7 @@ async function executeConditionalStep(
 ): Promise<ConditionalClickResult> {
   if (!step.conditionalConfig) {
     console.error('[StepExecutor] Conditional step missing config');
-    return { buttonsClicked: 0, timedOut: true, duration: 0, clickedTexts: [] };
+    return { success: false, attempts: 0, totalWaitMs: 0, buttonsClicked: 0, clickTargets: [], timedOut: true, duration: 0, clickedTexts: [] };
   }
 
   const config = step.conditionalConfig;
@@ -401,8 +401,8 @@ async function executeConditionalStep(
   }
 
   return await visionEngine.waitAndClickButtons(
-    { ...config, searchTerms },
-    tabId
+    tabId,
+    { ...config, searchTerms }
   );
 }
 

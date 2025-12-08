@@ -552,19 +552,19 @@ export function initializeVisionHandlers(): void {
         }
 
         case 'VISION_KEY': {
-          const result = handleVisionKey(message.key ?? '', message.modifiers);
+          const result = handleVisionKey(message.key ?? '', message.modifiers as any);
           sendResponse({ success: result.success, error: result.error });
           return true;
         }
 
         case 'VISION_SCROLL': {
-          const result = handleVisionScroll(message.direction, message.amount);
+          const result = handleVisionScroll(message.direction as any, message.amount ?? 0);
           sendResponse({ success: result.success, error: result.error, data: result });
           return true;
         }
 
         case 'VISION_GET_ELEMENT': {
-          const result = handleVisionGetElement(message.x, message.y);
+          const result = handleVisionGetElement(message.x ?? 0, message.y ?? 0);
           sendResponse({ success: result !== null, data: result });
           return true;
         }

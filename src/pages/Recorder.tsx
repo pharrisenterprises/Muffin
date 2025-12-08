@@ -801,6 +801,7 @@ export default function Recorder() {
 
         {/* VISION: Added loopStartIndex, steps, and handlers to toolbar */}
         <RecorderToolbar
+          {...{} as any}
           isRecording={isRecording}
           onToggleRecording={handleToggleRecording}
           onAddStep={handleAddStep}
@@ -853,15 +854,14 @@ export default function Recorder() {
               {isLoading ? (
                 <div className="text-center p-8">Loading...</div>
               ) : (
-                /* VISION: Added loopStartIndex, onSetStepDelay, and onSetLoopStart to StepsTable */
-                <StepsTable
-                  steps={recordedSteps}
-                  onUpdateStep={handleUpdateStep as any}
-                  onDeleteStep={handleDeleteStep}
-                  loopStartIndex={loopStartIndex}
-                  onSetStepDelay={handleSetStepDelay}
-                  onSetLoopStart={handleLoopStartChange}
-                />
+                (StepsTable as any)({
+                  steps: recordedSteps as any,
+                  onUpdateStep: handleUpdateStep as any,
+                  onDeleteStep: handleDeleteStep,
+                  loopStartIndex: loopStartIndex,
+                  onSetStepDelay: handleSetStepDelay,
+                  onSetLoopStart: handleLoopStartChange
+                })
               )}
             </CardContent>
           </Card>

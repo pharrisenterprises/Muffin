@@ -20,6 +20,7 @@ import Dexie, { Table } from 'dexie';
  */
 export interface Project {
   id?: number;
+  projectId?: number; // Alias for id (Phase 4 compatibility)
   projectName: string;
   isPublic: boolean;
   project_url?: string;

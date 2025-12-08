@@ -281,7 +281,7 @@ function validateConditionalConfig(
   if (config.interactionType === 'dropdown' && !config.dropdownOption) {
     errors.push(`${prefix}Dropdown interaction requires 'dropdownOption'`);
   }
-  if (config.interactionType === 'type' && !config.inputValue) {
+  if (config.interactionType === 'input' && !config.inputValue) {
     errors.push(`${prefix}Input interaction requires 'inputValue'`);
   }
 

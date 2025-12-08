@@ -167,12 +167,14 @@ class VisionEngine {
       if (cfg.successText) {
         const successTarget = await this.findText(cfg.successText, screenshot);
         if (successTarget) {
-          return { success: true, attempts: buttonsClicked, totalWaitMs: Date.now() - startTime, buttonsClicked, clickTargets };
+          const duration = Date.now() - startTime;
+          return { success: true, attempts: buttonsClicked, totalWaitMs: duration, buttonsClicked, clickTargets, clickedTexts: [], duration, timedOut: false };
         }
       }
       await this.sleep(cfg.pollIntervalMs);
     }
-    return { success: buttonsClicked > 0, attempts: buttonsClicked, totalWaitMs: Date.now() - startTime, buttonsClicked, clickTargets };
+    const duration = Date.now() - startTime;
+    return { success: buttonsClicked > 0, attempts: buttonsClicked, totalWaitMs: duration, buttonsClicked, clickTargets, clickedTexts: [], duration, timedOut: false };
   }
 
   private sleep(ms: number): Promise<void> {

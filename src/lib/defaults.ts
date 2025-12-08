@@ -194,13 +194,17 @@ export function createRecording(
   const now = Date.now();
   return {
     projectId,
+    projectName: '',
+    isPublic: false,
+    recorded_steps: [],
     steps: [],
+    parsedFields: [],
     schemaVersion: CURRENT_SCHEMA_VERSION,
     loopStartIndex: -1,
     globalDelayMs: 0,
     conditionalDefaults: { ...DEFAULT_RECORDING_CONDITIONAL },
-    createdAt: now,
-    updatedAt: now,
+    created_date: new Date(now).toISOString(),
+    updated_date: new Date(now).toISOString(),
     ...overrides,
   };
 }
@@ -285,8 +289,8 @@ export function cloneRecording(
     id: undefined,
     projectId: newProjectId ?? recording.projectId,
     steps: recording.steps.map(step => cloneStep(step)),
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    created_date: new Date().toISOString(),
+    updated_date: new Date().toISOString(),
     ...overrides,
   };
 }

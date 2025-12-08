@@ -92,6 +92,7 @@ export function migrateRecording(recording: Record<string, unknown>, projectId?:
     description: recording.description as string | undefined,
     target_url: recording.target_url as string | undefined,
     recorded_steps: steps,
+    steps: steps, // Camelcase alias for Phase 4 compatibility
     parsed_fields: recording.parsed_fields as MigratedRecording["parsed_fields"],
     csv_data: recording.csv_data as string[][] | undefined,
     status: recording.status as string | undefined,
