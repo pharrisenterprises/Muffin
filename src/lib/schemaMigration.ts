@@ -39,6 +39,15 @@ export interface MigratedRecording {
   status?: string;
   created_date?: number;
   updated_date?: number;
+  
+  // CamelCase aliases for Phase 4 compatibility
+  steps: MigratedStep[];
+  parsedFields?: Array<{ field_name: string; mapped: boolean; inputvarfields: string }>;
+  csvData?: string[][];
+  projectId?: number;
+  createdAt?: number;
+  updatedAt?: number;
+  
   // Phase 2 additions
   schemaVersion: number;
   loopStartIndex: number;
@@ -123,4 +132,15 @@ export function getMigrationReport(recording: Record<string, unknown>): { fields
 
   return { fieldsAdded, stepsUpdated };
 }
+
+// Export aliases for backward compatibility
+export const stepNeedsMigration = needsMigration;
+export const recordingNeedsMigration = needsMigration;
+export const verifyRecordingMigration = getMigrationReport;
+export const MIGRATION_DEFAULTS = {
+  schemaVersion: CURRENT_SCHEMA_VERSION,
+  loopStartIndex: 0,
+  globalDelayMs: 0,
+  conditionalDefaults: DEFAULT_CONDITIONAL_CONFIG
+};
 
