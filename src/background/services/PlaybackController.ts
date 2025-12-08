@@ -69,8 +69,8 @@ type PlaybackState = 'idle' | 'running' | 'paused' | 'stopping';
 export class PlaybackController {
   private config: PlaybackControllerConfig;
   private decisionEngine: DecisionEngine;
-  private _actionExecutor: ActionExecutor;
-  private _telemetry: TelemetryLogger;
+  private __actionExecutor: ActionExecutor;
+  private __telemetry: TelemetryLogger;
 
   private state: PlaybackState = 'idle';
   private currentStepIndex = 0;

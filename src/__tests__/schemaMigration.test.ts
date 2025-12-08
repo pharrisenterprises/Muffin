@@ -25,6 +25,7 @@ import type { Recording } from '../types/vision';
 
 /** Helper to cast Recording to Record<string, unknown> for migration functions */
 const asRecord = (r: any): Record<string, unknown> => r as Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 
 // ============================================================================
 // TEST DATA FACTORIES

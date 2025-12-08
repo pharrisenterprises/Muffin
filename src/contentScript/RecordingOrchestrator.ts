@@ -111,11 +111,11 @@ export class RecordingOrchestrator {
   private stepCounter = 0;
 
   // Capture layers (lazy loaded)
-  private _domCapture: any | null = null;
+  private __domCapture: any | null = null;
   private visionCapture: any | null = null;
   private mouseCapture: any | null = null;
   private networkCapture: any | null = null;
-  private _evidenceBuffer: any | null = null;
+  private __evidenceBuffer: any | null = null;
 
   // Event listeners (for cleanup)
   private boundHandleClick: ((e: MouseEvent) => void) | null = null;

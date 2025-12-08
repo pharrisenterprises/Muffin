@@ -282,7 +282,7 @@ export class EvidenceScoring implements StrategyEvaluator {
 
       if (!boxResult.success || !boxResult.result?.model?.content) return null;
 
-      const [x1, y1, x2, , , , x4, y4] = boxResult.result.model.content;
+      const [x1, y1, x2, , , , _x4, y4] = boxResult.result.model.content;
       const boundingRect = {
         x: x1,
         y: y1,

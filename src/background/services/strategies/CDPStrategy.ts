@@ -72,8 +72,8 @@ export type CDPLocatorMethod =
 // ============================================================================
 
 export class CDPStrategy implements StrategyEvaluator {
-  private cdpService: CDPService;
-  private accessibilityService: AccessibilityService;
+  private _cdpService: CDPService;
+  private _accessibilityService: AccessibilityService;
   private locators: PlaywrightLocators;
   private config: CDPStrategyConfig;
 

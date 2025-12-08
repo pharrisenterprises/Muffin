@@ -136,11 +136,11 @@ export class AutoWaiting {
 
       // Check conditions
       let allConditionsMet = true;
-      let _failureReason: WaitFailureReason | undefined;
+      let __failureReason: WaitFailureReason | undefined;
 
       if (shouldWaitVisible && !state.visible) {
         allConditionsMet = false;
-        _failureReason = 'hidden';
+        __failureReason = 'hidden';
       }
 
       if (shouldWaitEnabled && !state.enabled) {

@@ -2561,7 +2561,7 @@ const Layout: React.FC = () => {
 let recordingOrchestrator: RecordingOrchestrator | null = null;
 
 // Message handler for recording control
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   switch (message.type) {
     case 'START_RECORDING':
       handleStartRecording(message.payload)

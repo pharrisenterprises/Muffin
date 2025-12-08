@@ -10,7 +10,7 @@
 
 import { CDPService, getCDPService } from '../CDPService';
 import { PlaywrightLocators, getPlaywrightLocators } from '../PlaywrightLocators';
-import { AccessibilityService, getAccessibilityService } from '../AccessibilityService';
+import { getAccessibilityService } from '../AccessibilityService';
 import type { StrategyType, LocatorStrategy } from '../../../types/strategy';
 
 // ============================================================================
@@ -337,7 +337,7 @@ export class DOMStrategy implements StrategyEvaluator {
     try {
       const boxResult = await this.cdpService.getBoxModel(tabId, nodeId);
       if (boxResult.success && boxResult.result?.content) {
-        const [x1, y1, x2, , , , x4, y4] = boxResult.result.content;
+        const [x1, y1, x2, , , , _x4, y4] = boxResult.result.content;
         return {
           x: (x1 + x2) / 2,
           y: (y1 + y4) / 2

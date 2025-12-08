@@ -52,7 +52,7 @@ class VisionEngine {
     return this.lastOcrResult;
   }
 
-  async captureScreenshot(tabId?: number): Promise<Screenshot> {
+  async captureScreenshot(_tabId?: number): Promise<Screenshot> {
     const dataUrl = await chrome.tabs.captureVisibleTab({ format: "png" });
     const img = new Image();
     await new Promise<void>((resolve, reject) => {
