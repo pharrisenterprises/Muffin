@@ -496,9 +496,9 @@ export class RecordingOrchestrator {
         }
       }
 
-      const parent = current.parentElement;
+      const parent: HTMLElement | null = current.parentElement;
       if (parent) {
-        const siblings = Array.from(parent.children).filter(c => c.tagName === current!.tagName);
+        const siblings = Array.from(parent.children).filter(c => (c as Element).tagName === current!.tagName);
         if (siblings.length > 1) {
           const index = siblings.indexOf(current) + 1;
           selector += `:nth-of-type(${index})`;
@@ -521,9 +521,9 @@ export class RecordingOrchestrator {
     while (current && current !== document.body) {
       let part = current.tagName.toLowerCase();
 
-      const parent = current.parentElement;
+      const parent: HTMLElement | null = current.parentElement;
       if (parent) {
-        const siblings = Array.from(parent.children).filter(c => c.tagName === current!.tagName);
+        const siblings = Array.from(parent.children).filter(c => (c as Element).tagName === current!.tagName);
         if (siblings.length > 1) {
           const index = siblings.indexOf(current) + 1;
           part += `[${index}]`;

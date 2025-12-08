@@ -153,9 +153,9 @@ export class DOMCapture {
       }
 
       // Add nth-of-type if needed
-      const parent = current.parentElement;
+      const parent: HTMLElement | null = current.parentElement;
       if (parent) {
-        const siblings = Array.from(parent.children).filter(c => c.tagName === current!.tagName);
+        const siblings = Array.from(parent.children).filter(c => (c as Element).tagName === current!.tagName);
         if (siblings.length > 1) {
           const index = siblings.indexOf(current) + 1;
           part += `:nth-of-type(${index})`;
@@ -194,9 +194,9 @@ export class DOMCapture {
     while (current && current !== document.body && depth < this.config.maxDepth) {
       let part = current.tagName.toLowerCase();
 
-      const parent = current.parentElement;
+      const parent: HTMLElement | null = current.parentElement;
       if (parent) {
-        const siblings = Array.from(parent.children).filter(c => c.tagName === current!.tagName);
+        const siblings = Array.from(parent.children).filter(c => (c as Element).tagName === current!.tagName);
         if (siblings.length > 1) {
           const index = siblings.indexOf(current) + 1;
           part += `[${index}]`;
