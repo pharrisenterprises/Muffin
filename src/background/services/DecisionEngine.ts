@@ -1,120 +1,672 @@
-﻿// src/background/services/DecisionEngine.ts
-import { cdpService } from "./CDPService";
-import { playwrightLocators } from "./PlaywrightLocators";
-import type { StrategyType, LocatorStrategy, FallbackChain, StrategyAttempt, StrategyTelemetry } from "../../types/strategy";
-import type { LocatorResult } from "../../types/cdp";
+﻿/**
+ * @fileoverview Decision Engine
+ * @description Central coordinator for the 7-tier strategy evaluation system.
+ * Evaluates ALL strategies in parallel, selects highest-confidence match,
+ * and executes actions. The brain of the playback system.
+ * 
+ * @module services/DecisionEngine
+ * @version 1.0.0
+ * @since Phase 4
+ */
 
-export interface DecisionResult {
-  success: boolean;
-  strategy: StrategyType | null;
-  element?: Element;
-  nodeId?: number;
-  telemetry: StrategyTelemetry;
+import { CDPService, getCDPService } from './CDPService';
+import { PlaywrightLocators, getPlaywrightLocators } from './PlaywrightLocators';
+import { AccessibilityService, getAccessibilityService } from './AccessibilityService';
+import { AutoWaiting, getAutoWaiting } from './AutoWaiting';
+import { VisionService, getVisionService } from './VisionService';
+import { TelemetryLogger, getTelemetryLogger, type StrategyEvaluation } from './TelemetryLogger';
+import type { StrategyType, LocatorStrategy, FallbackChain } from '../../types';
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+export interface DecisionEngineConfig {
+  timeout: number;
+  minConfidence: number;
+  parallelEvaluation: boolean;
+  maxParallelStrategies: number;
+  enableTelemetry: boolean;
+  retryOnFailure: boolean;
+  maxRetries: number;
 }
 
-class DecisionEngine {
-  private readonly _strategyOrder: StrategyType[] = [
-    "dom_selector",
-    "css_selector",
-    "cdp_semantic",
-    "cdp_power",
-    "evidence_scoring",
-    "vision_ocr",
-    "coordinates"
-  ];
+const DEFAULT_CONFIG: DecisionEngineConfig = {
+  timeout: 30000,
+  minConfidence: 0.5,
+  parallelEvaluation: true,
+  maxParallelStrategies: 7,
+  enableTelemetry: true,
+  retryOnFailure: true,
+  maxRetries: 2
+};
 
-  async executeWithFallback(tabId: number, fallbackChain: FallbackChain, stepId: number): Promise<DecisionResult> {
-    const attempts: StrategyAttempt[] = [];
-    const startTime = Date.now();
-    for (const strategy of fallbackChain.strategies) {
-      const attemptStart = Date.now();
-      try {
-        const result = await this.tryStrategy(tabId, strategy);
-        attempts.push({
-          strategy: strategy.type,
-          success: result.found,
-          duration: Date.now() - attemptStart,
-          confidence: result.confidence,
-          attemptNumber: attempts.length + 1
-        });
-        if (result.found) {
-          return {
-            success: true,
-            strategy: strategy.type,
-            nodeId: result.cdpNode?.nodeId,
-            telemetry: { stepId, attempts, finalStrategy: strategy.type, totalDuration: Date.now() - startTime, timestamp: Date.now() }
-          };
-        }
-      } catch (e) {
-        attempts.push({
-          strategy: strategy.type,
+export interface StrategyEvaluationResult {
+  strategy: LocatorStrategy;
+  found: boolean;
+  confidence: number;
+  backendNodeId?: number;
+  clickPoint?: { x: number; y: number };
+  duration: number;
+  error?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface EvaluationResults {
+  results: StrategyEvaluationResult[];
+  bestStrategy: StrategyEvaluationResult | null;
+  totalDuration: number;
+  strategiesEvaluated: number;
+  strategiesSucceeded: number;
+}
+
+export interface ActionExecutionResult {
+  success: boolean;
+  usedStrategy: LocatorStrategy;
+  evaluationResults: EvaluationResults;
+  executionDuration: number;
+  totalDuration: number;
+  error?: string;
+  telemetryId?: string;
+}
+
+export interface ActionRequest {
+  tabId: number;
+  fallbackChain: FallbackChain;
+  actionType: 'click' | 'type' | 'select' | 'hover' | 'scroll';
+  value?: string;
+  stepIndex?: number;
+  timeout?: number;
+  pageDomain?: string;
+}
+
+export type DecisionEngineStatus = 'idle' | 'evaluating' | 'executing' | 'error';
+
+interface ServiceDependencies {
+  cdpService: CDPService;
+  locators: PlaywrightLocators;
+  accessibilityService: AccessibilityService;
+  autoWaiting: AutoWaiting;
+  visionService: VisionService;
+  telemetryLogger: TelemetryLogger;
+}
+
+// ============================================================================
+// DECISION ENGINE CLASS
+// ============================================================================
+
+export class DecisionEngine {
+  private config: DecisionEngineConfig;
+  private status: DecisionEngineStatus = 'idle';
+  private services: ServiceDependencies;
+
+  /** Fixed strategy weights (Architecture Decision #6) */
+  private readonly STRATEGY_WEIGHTS: Record<StrategyType, number> = {
+    cdp_semantic: 0.95,
+    cdp_power: 0.90,
+    dom_selector: 0.85,
+    evidence_scoring: 0.80,
+    css_selector: 0.75,
+    vision_ocr: 0.70,
+    coordinates: 0.60
+  };
+
+  constructor(services: ServiceDependencies, config?: Partial<DecisionEngineConfig>) {
+    this.services = services;
+    this.config = { ...DEFAULT_CONFIG, ...config };
+  }
+
+  // ==========================================================================
+  // MAIN EXECUTION
+  // ==========================================================================
+
+  async executeAction(request: ActionRequest): Promise<ActionExecutionResult> {
+    const totalStartTime = Date.now();
+    let telemetryId: string | undefined;
+
+    // Start telemetry tracking
+    if (this.config.enableTelemetry && request.actionType !== 'hover') {
+      telemetryId = this.services.telemetryLogger.startAction({
+        stepIndex: request.stepIndex,
+        actionType: request.actionType,
+        pageDomain: request.pageDomain
+      });
+    }
+
+    try {
+      this.status = 'evaluating';
+
+      // Evaluate all strategies
+      const evaluationResults = await this.evaluateStrategies(
+        request.tabId,
+        request.fallbackChain,
+        request.timeout
+      );
+
+      // Select best strategy
+      const bestStrategy = this.selectBestStrategy(evaluationResults);
+
+      if (!bestStrategy) {
+        this.status = 'error';
+        const result: ActionExecutionResult = {
           success: false,
-          duration: Date.now() - attemptStart,
+          usedStrategy: request.fallbackChain.strategies[0],
+          evaluationResults,
+          executionDuration: 0,
+          totalDuration: Date.now() - totalStartTime,
+          error: 'No strategy found element with sufficient confidence',
+          telemetryId
+        };
+
+        await this.logTelemetry(telemetryId, result, evaluationResults);
+        return result;
+      }
+
+      // Wait for element to be actionable
+      if (bestStrategy.backendNodeId) {
+        const waitResult = await this.services.autoWaiting.waitForActionable(
+          request.tabId,
+          bestStrategy.backendNodeId,
+          { timeout: 5000 }
+        );
+
+        if (!waitResult.success) {
+          console.warn('[DecisionEngine] Element not actionable:', waitResult.failureReason);
+        }
+      }
+
+      // Execute the action
+      this.status = 'executing';
+      const execStartTime = Date.now();
+
+      const execResult = await this.performAction(
+        request.tabId,
+        bestStrategy.backendNodeId,
+        bestStrategy.clickPoint,
+        request.actionType,
+        request.value
+      );
+
+      const executionDuration = Date.now() - execStartTime;
+      this.status = 'idle';
+
+      const result: ActionExecutionResult = {
+        success: execResult.success,
+        usedStrategy: bestStrategy.strategy,
+        evaluationResults,
+        executionDuration,
+        totalDuration: Date.now() - totalStartTime,
+        error: execResult.error,
+        telemetryId
+      };
+
+      await this.logTelemetry(telemetryId, result, evaluationResults);
+      return result;
+
+    } catch (error) {
+      this.status = 'error';
+      const result: ActionExecutionResult = {
+        success: false,
+        usedStrategy: request.fallbackChain.strategies[0],
+        evaluationResults: {
+          results: [],
+          bestStrategy: null,
+          totalDuration: Date.now() - totalStartTime,
+          strategiesEvaluated: 0,
+          strategiesSucceeded: 0
+        },
+        executionDuration: 0,
+        totalDuration: Date.now() - totalStartTime,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        telemetryId
+      };
+
+      await this.logTelemetry(telemetryId, result, result.evaluationResults);
+      return result;
+    }
+  }
+
+  // ==========================================================================
+  // STRATEGY EVALUATION
+  // ==========================================================================
+
+  async evaluateStrategies(
+    tabId: number,
+    fallbackChain: FallbackChain,
+    timeout?: number
+  ): Promise<EvaluationResults> {
+    const startTime = Date.now();
+    const evalTimeout = timeout ?? this.config.timeout;
+    const strategies = fallbackChain.strategies.slice(0, this.config.maxParallelStrategies);
+
+    let results: StrategyEvaluationResult[];
+
+    if (this.config.parallelEvaluation) {
+      // Evaluate all strategies in parallel
+      const promises = strategies.map(strategy =>
+        this.withTimeout(
+          this.evaluateStrategy(tabId, strategy),
+          evalTimeout,
+          `Strategy ${strategy.type}`
+        ).catch(error => ({
+          strategy,
+          found: false,
           confidence: 0,
-          error: String(e),
-          attemptNumber: attempts.length + 1
-        });
+          duration: Date.now() - startTime,
+          error: error instanceof Error ? error.message : 'Evaluation failed'
+        }))
+      );
+
+      results = await Promise.all(promises);
+    } else {
+      // Sequential evaluation (fallback)
+      results = [];
+      for (const strategy of strategies) {
+        const result = await this.evaluateStrategy(tabId, strategy);
+        results.push(result);
       }
     }
+
+    const successfulResults = results.filter(r => r.found);
+    const bestStrategy = this.selectBestStrategy({ 
+      results, 
+      bestStrategy: null, 
+      totalDuration: 0, 
+      strategiesEvaluated: 0, 
+      strategiesSucceeded: 0 
+    });
+
     return {
-      success: false,
-      strategy: null,
-      telemetry: { stepId, attempts, finalStrategy: null, totalDuration: Date.now() - startTime, timestamp: Date.now() }
+      results,
+      bestStrategy,
+      totalDuration: Date.now() - startTime,
+      strategiesEvaluated: results.length,
+      strategiesSucceeded: successfulResults.length
     };
   }
 
-  private async tryStrategy(tabId: number, strategy: LocatorStrategy): Promise<LocatorResult> {
-    switch (strategy.type) {
-      case "dom_selector":
-      case "css_selector":
-        if (!strategy.selector) return { found: false, confidence: 0, duration: 0 };
-        const nodeId = await cdpService.querySelector(tabId, strategy.selector);
-        return { found: !!nodeId, confidence: nodeId ? 0.95 : 0, duration: 0 };
-      case "cdp_semantic":
-        if (strategy.metadata?.role) {
-          return playwrightLocators.getByRole(tabId, strategy.metadata.role, { name: strategy.metadata.text });
-        }
-        if (strategy.metadata?.text) {
-          return playwrightLocators.getByText(tabId, strategy.metadata.text);
-        }
-        return { found: false, confidence: 0, duration: 0 };
-      case "cdp_power":
-        if (strategy.metadata?.testId) {
-          return playwrightLocators.getByTestId(tabId, strategy.metadata.testId);
-        }
-        if (strategy.metadata?.label) {
-          return playwrightLocators.getByLabel(tabId, strategy.metadata.label);
-        }
-        if (strategy.metadata?.placeholder) {
-          return playwrightLocators.getByPlaceholder(tabId, strategy.metadata.placeholder);
-        }
-        return { found: false, confidence: 0, duration: 0 };
-      default:
-        return { found: false, confidence: 0, duration: 0 };
+  async evaluateStrategy(tabId: number, strategy: LocatorStrategy): Promise<StrategyEvaluationResult> {
+    const startTime = Date.now();
+
+    try {
+      switch (strategy.type) {
+        case 'cdp_semantic':
+          return await this.evaluateCDPSemantic(tabId, strategy, startTime);
+
+        case 'cdp_power':
+          return await this.evaluateCDPPower(tabId, strategy, startTime);
+
+        case 'dom_selector':
+        case 'css_selector':
+          return await this.evaluateCSSSelector(tabId, strategy, startTime);
+
+        case 'vision_ocr':
+          return await this.evaluateVisionOCR(tabId, strategy, startTime);
+
+        case 'coordinates':
+          return await this.evaluateCoordinates(tabId, strategy, startTime);
+
+        case 'evidence_scoring':
+          return await this.evaluateEvidenceScoring(tabId, strategy, startTime);
+
+        default:
+          return {
+            strategy,
+            found: false,
+            confidence: 0,
+            duration: Date.now() - startTime,
+            error: `Unknown strategy type: ${strategy.type}`
+          };
+      }
+    } catch (error) {
+      return {
+        strategy,
+        found: false,
+        confidence: 0,
+        duration: Date.now() - startTime,
+        error: error instanceof Error ? error.message : 'Evaluation error'
+      };
     }
   }
 
-  buildFallbackChain(selector?: string, metadata?: LocatorStrategy["metadata"]): FallbackChain {
-    const strategies: LocatorStrategy[] = [];
-    if (selector) {
-      strategies.push({ type: "dom_selector", selector, confidence: 0.9 });
-      strategies.push({ type: "css_selector", selector, confidence: 0.85 });
+  // ==========================================================================
+  // STRATEGY EVALUATORS
+  // ==========================================================================
+
+  private async evaluateCDPSemantic(
+    tabId: number,
+    strategy: LocatorStrategy,
+    startTime: number
+  ): Promise<StrategyEvaluationResult> {
+    const metadata = strategy.metadata as Record<string, unknown> | undefined;
+    const role = metadata?.role as string | undefined;
+    const name = metadata?.name as string | undefined;
+
+    if (!role) {
+      return { strategy, found: false, confidence: 0, duration: Date.now() - startTime, error: 'No role in metadata' };
     }
-    if (metadata?.role) {
-      strategies.push({ type: "cdp_semantic", confidence: 0.9, metadata });
+
+    const result = await this.services.locators.getByRole(tabId, role, { name });
+
+    return {
+      strategy,
+      found: result.found,
+      confidence: result.found ? result.confidence : 0,
+      backendNodeId: result.backendNodeId,
+      clickPoint: result.boundingBox ? {
+        x: result.boundingBox.x + result.boundingBox.width / 2,
+        y: result.boundingBox.y + result.boundingBox.height / 2
+      } : undefined,
+      duration: Date.now() - startTime
+    };
+  }
+
+  private async evaluateCDPPower(
+    tabId: number,
+    strategy: LocatorStrategy,
+    startTime: number
+  ): Promise<StrategyEvaluationResult> {
+    const result = await this.services.locators.executeStrategy(tabId, strategy);
+
+    return {
+      strategy,
+      found: result.found,
+      confidence: result.found ? result.confidence : 0,
+      backendNodeId: result.backendNodeId,
+      clickPoint: result.boundingBox ? {
+        x: result.boundingBox.x + result.boundingBox.width / 2,
+        y: result.boundingBox.y + result.boundingBox.height / 2
+      } : undefined,
+      duration: Date.now() - startTime
+    };
+  }
+
+  private async evaluateCSSSelector(
+    tabId: number,
+    strategy: LocatorStrategy,
+    startTime: number
+  ): Promise<StrategyEvaluationResult> {
+    const selector = strategy.selector ?? strategy.value;
+    if (!selector) {
+      return { strategy, found: false, confidence: 0, duration: Date.now() - startTime, error: 'No selector' };
     }
-    if (metadata?.testId || metadata?.label || metadata?.placeholder) {
-      strategies.push({ type: "cdp_power", confidence: 0.85, metadata });
+
+    const result = await this.services.locators.locator(tabId, selector);
+
+    return {
+      strategy,
+      found: result.found,
+      confidence: result.found ? result.confidence : 0,
+      backendNodeId: result.backendNodeId,
+      clickPoint: result.boundingBox ? {
+        x: result.boundingBox.x + result.boundingBox.width / 2,
+        y: result.boundingBox.y + result.boundingBox.height / 2
+      } : undefined,
+      duration: Date.now() - startTime
+    };
+  }
+
+  private async evaluateVisionOCR(
+    tabId: number,
+    strategy: LocatorStrategy,
+    startTime: number
+  ): Promise<StrategyEvaluationResult> {
+    const result = await this.services.visionService.evaluateStrategy(tabId, strategy);
+
+    return {
+      strategy,
+      found: result.success,
+      confidence: result.confidence,
+      clickPoint: result.clickPoint,
+      duration: Date.now() - startTime,
+      metadata: { matchedText: result.matchedText }
+    };
+  }
+
+  private async evaluateCoordinates(
+    tabId: number,
+    strategy: LocatorStrategy,
+    startTime: number
+  ): Promise<StrategyEvaluationResult> {
+    const metadata = strategy.metadata as Record<string, unknown> | undefined;
+    const x = metadata?.x as number | undefined;
+    const y = metadata?.y as number | undefined;
+
+    if (x === undefined || y === undefined) {
+      return { strategy, found: false, confidence: 0, duration: Date.now() - startTime, error: 'No coordinates' };
     }
-    if (metadata?.text) {
-      strategies.push({ type: "cdp_semantic", confidence: 0.8, metadata: { text: metadata.text } });
+
+    // Coordinates always "find" the element (it's just a location)
+    return {
+      strategy,
+      found: true,
+      confidence: this.STRATEGY_WEIGHTS.coordinates,
+      clickPoint: { x, y },
+      duration: Date.now() - startTime
+    };
+  }
+
+  private async evaluateEvidenceScoring(
+    tabId: number,
+    strategy: LocatorStrategy,
+    startTime: number
+  ): Promise<StrategyEvaluationResult> {
+    const metadata = strategy.metadata as Record<string, unknown> | undefined;
+    const endpoint = metadata?.endpoint as { x: number; y: number } | undefined;
+
+    if (!endpoint) {
+      return { strategy, found: false, confidence: 0, duration: Date.now() - startTime, error: 'No endpoint' };
     }
-    strategies.push({ type: "vision_ocr", confidence: 0.7, metadata });
-    if (metadata?.coordinates) {
-      strategies.push({ type: "coordinates", confidence: 0.6, metadata });
+
+    // Get element at recorded coordinates
+    const cdp = this.services.cdpService;
+    const result = await cdp.sendCommand<{ backendNodeId: number }>(tabId, 'DOM.getNodeForLocation', {
+      x: Math.round(endpoint.x),
+      y: Math.round(endpoint.y)
+    });
+
+    if (!result.success || !(result.result as any)?.backendNodeId) {
+      return { strategy, found: false, confidence: 0, duration: Date.now() - startTime, error: 'No element at coordinates' };
     }
-    return { strategies, primaryStrategy: strategies[0]?.type || "dom_selector", recordedAt: Date.now() };
+
+    return {
+      strategy,
+      found: true,
+      confidence: this.STRATEGY_WEIGHTS.evidence_scoring,
+      backendNodeId: (result.result as any).backendNodeId,
+      clickPoint: endpoint,
+      duration: Date.now() - startTime
+    };
+  }
+
+  // ==========================================================================
+  // STRATEGY SELECTION
+  // ==========================================================================
+
+  selectBestStrategy(results: EvaluationResults): StrategyEvaluationResult | null {
+    const successful = results.results.filter(r => r.found && r.confidence >= this.config.minConfidence);
+
+    if (successful.length === 0) return null;
+
+    // Sort by weighted confidence (strategy weight * evaluation confidence)
+    successful.sort((a, b) => {
+      const aWeighted = this.calculateWeightedConfidence(a);
+      const bWeighted = this.calculateWeightedConfidence(b);
+      return bWeighted - aWeighted;
+    });
+
+    return successful[0];
+  }
+
+  calculateWeightedConfidence(result: StrategyEvaluationResult): number {
+    const baseWeight = this.STRATEGY_WEIGHTS[result.strategy.type] ?? 0.5;
+    return baseWeight * result.confidence;
+  }
+
+  getStrategyWeight(type: StrategyType): number {
+    return this.STRATEGY_WEIGHTS[type] ?? 0.5;
+  }
+
+  // ==========================================================================
+  // ACTION EXECUTION
+  // ==========================================================================
+
+  async performAction(
+    tabId: number,
+    backendNodeId: number | undefined,
+    clickPoint: { x: number; y: number } | undefined,
+    actionType: ActionRequest['actionType'],
+    value?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const cdp = this.services.cdpService;
+
+      switch (actionType) {
+        case 'click':
+          await this.executeClick(tabId, backendNodeId, clickPoint);
+          break;
+
+        case 'type':
+          if (!value) return { success: false, error: 'No value for type action' };
+          if (!backendNodeId) return { success: false, error: 'No element for type action' };
+          await this.executeType(tabId, backendNodeId, value);
+          break;
+
+        case 'select':
+          if (!value) return { success: false, error: 'No value for select action' };
+          if (!backendNodeId) return { success: false, error: 'No element for select action' };
+          await this.executeSelect(tabId, backendNodeId, value);
+          break;
+
+        case 'hover':
+          if (clickPoint) {
+            await cdp.dispatchMouseEvent(tabId, 'mouseMoved', clickPoint.x, clickPoint.y);
+          }
+          break;
+
+        case 'scroll':
+          if (backendNodeId) {
+            const descResult = await cdp.sendCommand<{ node: { nodeId: number } }>(tabId, 'DOM.describeNode', { backendNodeId, depth: 0 });
+            if (descResult.success && (descResult.result as any)?.node?.nodeId) {
+              await cdp.sendCommand(tabId, 'DOM.scrollIntoViewIfNeeded', { backendNodeId });
+            }
+          }
+          break;
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Action failed' };
+    }
+  }
+
+  private async executeClick(
+    tabId: number,
+    backendNodeId: number | undefined,
+    clickPoint: { x: number; y: number } | undefined
+  ): Promise<void> {
+    const cdp = this.services.cdpService;
+    let point = clickPoint;
+
+    if (!point && backendNodeId) {
+      point = await this.services.locators.getClickPoint(tabId, backendNodeId) ?? undefined;
+    }
+
+    if (!point) throw new Error('No click point available');
+
+    await cdp.dispatchMouseEvent(tabId, 'mouseMoved', point.x, point.y);
+    await cdp.dispatchMouseEvent(tabId, 'mousePressed', point.x, point.y, { button: 'left', clickCount: 1 });
+    await cdp.dispatchMouseEvent(tabId, 'mouseReleased', point.x, point.y, { button: 'left', clickCount: 1 });
+  }
+
+  private async executeType(tabId: number, backendNodeId: number, value: string): Promise<void> {
+    const cdp = this.services.cdpService;
+    const descResult = await cdp.sendCommand<{ node: { nodeId: number } }>(tabId, 'DOM.describeNode', { backendNodeId, depth: 0 });
+
+    if (!descResult.success || !(descResult.result as any)?.node?.nodeId) {
+      throw new Error('Could not resolve node for typing');
+    }
+
+    await cdp.sendCommand(tabId, 'DOM.focus', { backendNodeId });
+    await cdp.insertText(tabId, value);
+  }
+
+  private async executeSelect(tabId: number, backendNodeId: number, value: string): Promise<void> {
+    const clickPoint = await this.services.locators.getClickPoint(tabId, backendNodeId);
+    if (clickPoint) {
+      await this.executeClick(tabId, undefined, clickPoint);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const optionResult = await this.services.locators.getByText(tabId, value, { exact: true });
+    if (optionResult.found && optionResult.backendNodeId) {
+      await this.executeClick(tabId, optionResult.backendNodeId, undefined);
+    } else {
+      throw new Error(`Option "${value}" not found`);
+    }
+  }
+
+  // ==========================================================================
+  // HELPERS
+  // ==========================================================================
+
+  private async withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+      )
+    ]);
+  }
+
+  private async logTelemetry(
+    actionId: string | undefined,
+    result: ActionExecutionResult,
+    evaluationResults: EvaluationResults
+  ): Promise<void> {
+    if (!this.config.enableTelemetry || !actionId) return;
+
+    const strategyEvals: StrategyEvaluation[] = evaluationResults.results.map(r => ({
+      type: r.strategy.type,
+      found: r.found,
+      confidence: r.confidence,
+      duration: r.duration,
+      error: r.error
+    }));
+
+    await this.services.telemetryLogger.endAction(actionId, {
+      success: result.success,
+      usedStrategy: result.usedStrategy.type,
+      confidence: result.usedStrategy ? this.calculateWeightedConfidence({
+        strategy: result.usedStrategy,
+        found: true,
+        confidence: evaluationResults.bestStrategy?.confidence ?? 0,
+        duration: 0
+      }) : 0,
+      evaluationResults: { results: strategyEvals },
+      executionDuration: result.executionDuration,
+      error: result.error
+    });
+  }
+
+  getStatus(): DecisionEngineStatus {
+    return this.status;
   }
 }
 
-export const decisionEngine = new DecisionEngine();
+// ============================================================================
+// SINGLETON
+// ============================================================================
+
+let instance: DecisionEngine | null = null;
+
+export function getDecisionEngine(services?: ServiceDependencies): DecisionEngine {
+  if (!instance) {
+    if (!services) {
+      throw new Error('DecisionEngine requires services on first initialization');
+    }
+    instance = new DecisionEngine(services);
+  }
+  return instance;
+}
