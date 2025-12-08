@@ -216,10 +216,11 @@ describe('TST-003: OCR Recognition', () => {
 
   it('should store last OCR results', async () => {
     await engine.recognizeText('data:image/png;base64,mockData');
-    const lastResults = engine.getLastOcrResults();
+    const lastResult = engine.getLastOcrResult();
     
-    expect(lastResults).toBeDefined();
-    expect(Array.isArray(lastResults)).toBe(true);
+    expect(lastResult).toBeDefined();
+    expect(lastResult?.results).toBeDefined();
+    expect(Array.isArray(lastResult?.results)).toBe(true);
   });
 
   it('should throw if not initialized', async () => {
@@ -246,14 +247,14 @@ describe('TST-004: findText Accuracy', () => {
   });
 
   it('should find exact text match', async () => {
-    const result = await engine.findText(['Allow']);
+    const result = await engine.findText('Allow');
     
     expect(result).not.toBeNull();
     expect(result?.text).toBe('Allow');
   });
 
   it('should return click coordinates for found text', async () => {
-    const result = await engine.findText(['Allow']);
+    const result = await engine.findText('Allow');
     
     expect(result).not.toBeNull();
     expect(result?.x).toBeDefined();
@@ -267,7 +268,7 @@ describe('TST-004: findText Accuracy', () => {
       ])
     );
 
-    const result = await engine.findText(['allow']);
+    const result = await engine.findText('allow');
     expect(result).not.toBeNull();
   });
 
@@ -278,7 +279,7 @@ describe('TST-004: findText Accuracy', () => {
       ])
     );
 
-    const result = await engine.findText(['Allow']);
+    const result = await engine.findText('Allow');
     expect(result).not.toBeNull();
   });
 
@@ -289,7 +290,7 @@ describe('TST-004: findText Accuracy', () => {
       ])
     );
 
-    const result = await engine.findText(['Allow', 'Keep']);
+    const result = await engine.findText('Allow');
     expect(result).toBeNull();
   });
 
@@ -301,13 +302,13 @@ describe('TST-004: findText Accuracy', () => {
       ])
     );
 
-    const result = await engine.findText(['Allow', 'Keep']);
+    const result = await engine.findText('Allow');
     // Should find first term in search array that matches
     expect(result).not.toBeNull();
   });
 
   it('should include confidence score in result', async () => {
-    const result = await engine.findText(['Allow']);
+    const result = await engine.findText('Allow');
     
     expect(result).not.toBeNull();
     expect(result?.confidence).toBeDefined();
@@ -316,7 +317,7 @@ describe('TST-004: findText Accuracy', () => {
 
   it('should throw if not initialized', async () => {
     await engine.terminate();
-    await expect(engine.findText(['Allow'])).rejects.toThrow();
+    await expect(engine.findText('Allow')).rejects.toThrow();
   });
 });
 
@@ -403,12 +404,12 @@ describe('VisionEngine: typeText', () => {
       if (callback) callback({ success: true });
     });
     
-    const result = await engine.typeText('Hello World', 1);
+    const result = await engine.typeText(1, 'Hello World');
     expect(result).toBe(true);
   });
 
   it('should send VISION_TYPE message', async () => {
-    await engine.typeText('Test input', 1);
+    await engine.typeText(1, 'Test input');
     
     expect(mockChromeTabs.sendMessage).toHaveBeenCalledWith(
       1,

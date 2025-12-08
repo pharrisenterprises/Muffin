@@ -20,6 +20,13 @@ import {
 import type { Recording } from '../types/vision';
 
 // ============================================================================
+// TYPE HELPERS
+// ============================================================================
+
+/** Helper to cast Recording to Record<string, unknown> for migration functions */
+const asRecord = (r: any): Record<string, unknown> => r as Record<string, unknown>;
+
+// ============================================================================
 // TEST DATA FACTORIES
 // ============================================================================
 
