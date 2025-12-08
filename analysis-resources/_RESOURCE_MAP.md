@@ -163,6 +163,14 @@ It must be updated automatically every time any analysis prompt, breakdown promp
 
 **Total Upload Size:** ~300 KB | **Purpose:** Synchronized Claude-Copilot code generation
 
+## IMPLEMENTATION GUIDES
+
+- **analysis-resources/implementation-guides/**
+  Contains structured guides for multi-phase code generation and implementation workflows.
+  
+  **Files:**
+  - `PHASE_4_CODE_GENERATION_MANUAL.md` — **[PHASE 4 IMPLEMENTATION GUIDE]** Comprehensive manual for implementing all 46 Phase 3 specifications (42 new files + 8 modifications). Includes 6-week implementation schedule organized by dependency layers, daily task breakdown, smart prompt templates for code generation/testing, code standards (import order, file structure, naming conventions, error handling), integration checkpoints, and troubleshooting guide. Covers all categories: Types (E1-E5), CDP Services (B1-B5), Strategy System (D1-D5, C1-C5, G1, H1, H5), Recording System (A1-A7, H4), and UI Components (F1-F5, G6-G8, H3). **Required reference for Phase 4 code implementation.**
+
 ---
 
 ## FUTURE SPECIFICATIONS
