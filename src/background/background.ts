@@ -1,6 +1,16 @@
 import { DB } from "../common/services/indexedDB";
 import { handleVisionMessage } from './visionMessageHandler';
 
+// ============================================================================
+// PHASE 4 IMPORTS
+// ============================================================================
+
+import { getCDPService } from './services/CDPService';
+import { getDecisionEngine } from './services/DecisionEngine';
+import { getPlaybackController } from './services/PlaybackController';
+import { getVisionService } from './services/VisionService';
+import { getTelemetryLogger } from './services/TelemetryLogger';
+
 async function ensurePersistentStorage() {
   if ('storage' in navigator && navigator.storage && navigator.storage.persist) {
     const isPersisted = await navigator.storage.persisted();
@@ -57,6 +67,183 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Keep channel open for async response
   }
 });
+
+// ============================================================================
+// PHASE 4 MESSAGE HANDLERS
+// ============================================================================
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  const tabId = sender.tab?.id;
+
+  switch (message.type) {
+    // ========================================================================
+    // SCREENSHOT / VISION
+    // ========================================================================
+    case 'CAPTURE_SCREENSHOT':
+      handleScreenshotCapture(tabId, message.payload)
+        .then(sendResponse)
+        .catch(err => sendResponse({ success: false, error: err.message }));
+      return true; // Async response
+
+    case 'RUN_OCR':
+      handleOCRRequest(message.payload)
+        .then(sendResponse)
+        .catch(err => sendResponse({ success: false, error: err.message }));
+      return true;
+
+    // ========================================================================
+    // PLAYBACK
+    // ========================================================================
+    case 'START_PLAYBACK':
+      handleStartPlayback(message.payload)
+        .then(sendResponse)
+        .catch(err => sendResponse({ success: false, error: err.message }));
+      return true;
+
+    case 'PAUSE_PLAYBACK':
+      getPlaybackController().pause();
+      sendResponse({ success: true });
+      return false;
+
+    case 'RESUME_PLAYBACK':
+      getPlaybackController().resume();
+      sendResponse({ success: true });
+      return false;
+
+    case 'STOP_PLAYBACK':
+      getPlaybackController().stop();
+      sendResponse({ success: true });
+      return false;
+
+    // ========================================================================
+    // CDP COMMANDS
+    // ========================================================================
+    case 'CDP_COMMAND':
+      handleCDPCommand(tabId, message.payload)
+        .then(sendResponse)
+        .catch(err => sendResponse({ success: false, error: err.message }));
+      return true;
+
+    // ========================================================================
+    // TELEMETRY
+    // ========================================================================
+    case 'GET_TELEMETRY':
+      handleGetTelemetry()
+        .then(sendResponse)
+        .catch(err => sendResponse({ success: false, error: err.message }));
+      return true;
+  }
+
+  // Return false for unhandled messages (let other listeners handle)
+  return false;
+});
+
+// ============================================================================
+// HANDLER IMPLEMENTATIONS
+// ============================================================================
+
+async function handleScreenshotCapture(
+  tabId: number | undefined,
+  payload: { format?: string; quality?: number }
+): Promise<{ success: boolean; screenshot?: string; error?: string }> {
+  if (!tabId) {
+    return { success: false, error: 'No tab ID' };
+  }
+
+  try {
+    const screenshot = await chrome.tabs.captureVisibleTab(undefined, {
+      format: (payload.format as 'png' | 'jpeg') ?? 'jpeg',
+      quality: payload.quality ?? 80
+    });
+
+    return { success: true, screenshot };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Screenshot failed' 
+    };
+  }
+}
+
+async function handleOCRRequest(
+  payload: { screenshot: string; region?: object; language?: string }
+): Promise<{ success: boolean; result?: object; error?: string }> {
+  try {
+    const visionService = getVisionService();
+
+    if (!visionService.isReady()) {
+      await visionService.initialize();
+    }
+
+    const result = await visionService.performOCR({
+      data: payload.screenshot,
+      width: 0,
+      height: 0,
+      scale: 1,
+      timestamp: Date.now(),
+      tabId: 0
+    });
+
+    return { success: true, result };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'OCR failed' 
+    };
+  }
+}
+
+async function handleStartPlayback(
+  payload: { tabId: number; steps: any[] }
+): Promise<{ success: boolean; result?: object; error?: string }> {
+  try {
+    const controller = getPlaybackController();
+    const result = await controller.start(payload.tabId, payload.steps);
+
+    return { success: true, result };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Playback failed' 
+    };
+  }
+}
+
+async function handleCDPCommand(
+  tabId: number | undefined,
+  payload: { method: string; params?: Record<string, unknown> }
+): Promise<{ success: boolean; result?: unknown; error?: string }> {
+  if (!tabId) {
+    return { success: false, error: 'No tab ID' };
+  }
+
+  try {
+    const cdpService = getCDPService();
+    const result = await cdpService.sendCommand(tabId, payload.method, payload.params);
+
+    return { success: result.success, result: result.result, error: result.error };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'CDP command failed' 
+    };
+  }
+}
+
+async function handleGetTelemetry(): Promise<{ success: boolean; runs?: any[]; events?: any[]; error?: string }> {
+  try {
+    const telemetry = getTelemetryLogger();
+    const runs = await telemetry.getRunSummaries();
+    const events = await telemetry.getEvents({ limit: 20 });
+
+    return { success: true, runs, events };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Telemetry fetch failed' 
+    };
+  }
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[BACKGROUND] Message:', (message as any).action || message.type);
@@ -386,6 +573,14 @@ chrome.action.onClicked.addListener(() => {
 });
 
 chrome.runtime.onInstalled.addListener((details) => {
+  console.log('[Background] Extension installed/updated, initializing Phase 4 services...');
+  
+  // Pre-initialize Phase 4 singletons
+  getCDPService();
+  getTelemetryLogger();
+  
+  console.log('[Background] Phase 4 services initialized');
+
   if (details.reason === "install") {
     chrome.tabs.create({
       url: chrome.runtime.getURL("pages.html#dashboard"),
