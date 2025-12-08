@@ -9,12 +9,12 @@
  * @since Phase 4
  */
 
-import { CDPService, getCDPService } from './CDPService';
-import { PlaywrightLocators, getPlaywrightLocators } from './PlaywrightLocators';
-import { AccessibilityService, getAccessibilityService } from './AccessibilityService';
-import { AutoWaiting, getAutoWaiting } from './AutoWaiting';
-import { VisionService, getVisionService } from './VisionService';
-import { TelemetryLogger, getTelemetryLogger, type StrategyEvaluation } from './TelemetryLogger';
+import type { CDPService } from './CDPService';
+import type { PlaywrightLocators } from './PlaywrightLocators';
+import type { AccessibilityService } from './AccessibilityService';
+import type { AutoWaiting } from './AutoWaiting';
+import type { VisionService } from './VisionService';
+import { TelemetryLogger, type StrategyEvaluation } from './TelemetryLogger';
 import type { StrategyType, LocatorStrategy, FallbackChain } from '../../types';
 
 // ============================================================================
@@ -424,7 +424,7 @@ export class DecisionEngine {
   }
 
   private async evaluateCoordinates(
-    tabId: number,
+    _tabId: number,
     strategy: LocatorStrategy,
     startTime: number
   ): Promise<StrategyEvaluationResult> {

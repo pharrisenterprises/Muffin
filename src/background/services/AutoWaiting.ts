@@ -9,8 +9,8 @@
  * @since Phase 4
  */
 
-import { CDPService, getCDPService, type CDPCommandResult } from './CDPService';
-import { PlaywrightLocators, getPlaywrightLocators } from './PlaywrightLocators';
+import { CDPService } from './CDPService';
+import type { PlaywrightLocators } from './PlaywrightLocators';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -136,31 +136,31 @@ export class AutoWaiting {
 
       // Check conditions
       let allConditionsMet = true;
-      let failureReason: WaitFailureReason | undefined;
+      let _failureReason: WaitFailureReason | undefined;
 
       if (shouldWaitVisible && !state.visible) {
         allConditionsMet = false;
-        failureReason = 'hidden';
+        _failureReason = 'hidden';
       }
 
       if (shouldWaitEnabled && !state.enabled) {
         allConditionsMet = false;
-        failureReason = 'disabled';
+        _failureReason = 'disabled';
       }
 
       if (shouldWaitStable && !state.stable) {
         allConditionsMet = false;
-        failureReason = 'unstable';
+        _failureReason = 'unstable';
       }
 
       if (options?.editable && !state.editable) {
         allConditionsMet = false;
-        failureReason = 'not_editable';
+        _failureReason = 'not_editable';
       }
 
       if (options?.receivesPointerEvents && !state.receivesPointerEvents) {
         allConditionsMet = false;
-        failureReason = 'covered';
+        _failureReason = 'covered';
       }
 
       if (allConditionsMet) {
@@ -399,7 +399,7 @@ export class AutoWaiting {
   }
 
   private async checkStable(
-    tabId: number,
+    _tabId: number,
     backendNodeId: number,
     boundingBox: { x: number; y: number; width: number; height: number } | null
   ): Promise<boolean> {
@@ -516,14 +516,14 @@ export class AutoWaiting {
   }
 
   private async checkInViewport(
-    tabId: number,
-    backendNodeId: number,
+    _tabId: number,
+    _backendNodeId: number,
     boundingBox: { x: number; y: number; width: number; height: number } | null
   ): Promise<boolean> {
     if (!boundingBox) return false;
 
     try {
-      const layoutResult = await this.cdpService.sendCommand(tabId, 'Page.getLayoutMetrics');
+      const layoutResult = await this.cdpService.sendCommand(_tabId, 'Page.getLayoutMetrics');
       if (!layoutResult.success || !layoutResult.result) return false;
 
       const viewport = (layoutResult.result as any).visualViewport ?? (layoutResult.result as any).layoutViewport;

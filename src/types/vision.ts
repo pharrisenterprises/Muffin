@@ -4,10 +4,13 @@
 export type {
   RecordedStep as Step,
   Project as Recording,
-  ConditionalConfig,
   ConditionalDefaults as RecordingConditionalDefaults,
   ParsedField
 } from '../common/services/indexedDB';
+
+// Import ConditionalConfig for internal use and re-export
+import type { ConditionalConfig } from '../common/services/indexedDB';
+export type { ConditionalConfig };
 
 // Step event types
 export type StepEventType = 
@@ -40,15 +43,17 @@ export interface VisionConfig {
   fuzzyMatchThreshold: number;
 }
 
+export interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface TextResult {
   text: string;
   confidence: number;
-  bbox: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
+  bbox: BoundingBox;
 }
 
 export interface ClickTarget {
@@ -95,6 +100,19 @@ export interface OcrResult {
   results: TextResult[];
   duration: number;
   timestamp: number;
+}
+
+// Backward compatibility alias
+export type OCRResult = OcrResult;
+
+// VisionResult encompasses all vision-based detection results
+export interface VisionResult {
+  found: boolean;
+  target?: ClickTarget;
+  ocr?: OcrResult;
+  screenshot?: Screenshot;
+  confidence: number;
+  duration: number;
 }
 
 export const DEFAULT_VISION_CONFIG: VisionConfig = {

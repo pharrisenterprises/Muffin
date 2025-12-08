@@ -8,7 +8,7 @@
  * @since Phase 4
  */
 
-import type { CDPNode, AXNode, BoxModel, BoundingRect } from '../../types';
+import type { CDPNode, AXNode, BoxModel } from '../../types';
 
 // ============================================================================
 // SECTION 1: TYPE DEFINITIONS
@@ -86,7 +86,7 @@ export interface CDPCommandResult<T = unknown> {
 export class CDPService {
   private config: CDPServiceConfig;
   private connections: Map<number, CDPConnection> = new Map();
-  private commandIdCounter: number = 0;
+  private _commandIdCounter: number = 0;
   private isInitialized: boolean = false;
 
   constructor(config?: Partial<CDPServiceConfig>) {

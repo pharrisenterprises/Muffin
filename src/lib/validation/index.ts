@@ -1,7 +1,4 @@
-/**
- * Validation Module Index
- * Re-exports all validation utilities.
- */
+﻿// src/lib/validation/index.ts
+// Barrel export for validation
 
-export * from './stepValidation';
-export * from './recordingValidation';
+export * from "./stepValidator";

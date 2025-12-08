@@ -992,3 +992,31 @@ export function getCenterPoint(rect: BoundingRect): { x: number; y: number } {
     y: rect.y + rect.height / 2
   };
 }
+
+// ============================================================================
+// SECTION 11: LOCATOR RESULT
+// ============================================================================
+
+/**
+ * Result of a locator query operation.
+ * Used by PlaywrightLocators and other services to return element lookup results.
+ */
+export interface LocatorResult {
+  /** Whether the element was found */
+  found: boolean;
+  
+  /** CDP NodeId (from DOM.querySelector) - optional */
+  nodeId?: number;
+  
+  /** CDP BackendNodeId (from Accessibility tree) - optional */
+  backendNodeId?: number;
+  
+  /** Selector used (if applicable) */
+  selector?: string;
+  
+  /** Confidence score (0-1) */
+  confidence: number;
+  
+  /** Query duration in milliseconds */
+  duration: number;
+}

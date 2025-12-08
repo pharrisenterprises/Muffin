@@ -82,6 +82,9 @@ export interface LocatorStrategy {
   /** CSS selector or XPath (for dom_selector, css_selector) */
   selector?: string;
   
+  /** Alternative name for selector - used by some strategies for backward compatibility */
+  value?: string;
+  
   /** Confidence score (0-1) assigned during recording */
   confidence: number;
   

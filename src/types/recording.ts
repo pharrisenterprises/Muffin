@@ -608,3 +608,19 @@ export interface RecordingEvent {
   /** Event data */
   data?: Record<string, unknown>;
 }
+
+// ============================================================================
+// BACKWARD COMPATIBILITY ALIASES
+// ============================================================================
+
+/**
+ * Alias for RecordingSessionState.
+ * @deprecated Use RecordingSessionState instead
+ */
+export type RecordingState = RecordingSessionState;
+
+/**
+ * Alias for RecordingSessionState.
+ * @deprecated Use RecordingSessionState instead  
+ */
+export type RecordingStatus = RecordingSessionState;

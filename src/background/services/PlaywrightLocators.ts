@@ -8,11 +8,10 @@
  * @since Phase 4
  */
 
-import { CDPService, getCDPService, type CDPCommandResult } from './CDPService';
+import { CDPService, getCDPService } from './CDPService';
 import {
   AccessibilityService,
   getAccessibilityService,
-  type AXMatchResult,
   type ARIARole
 } from './AccessibilityService';
 import type { LocatorStrategy } from '../../types';

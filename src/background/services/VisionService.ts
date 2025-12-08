@@ -596,7 +596,7 @@ export class VisionService {
     return exact ? v.trim() === p.trim() : v.includes(p);
   }
 
-  private selectBestMatch(matches: OCRResult[], searchText: string, exact: boolean): OCRResult {
+  private selectBestMatch(matches: OCRResult[], searchText: string, _exact: boolean): OCRResult {
     return matches.sort((a, b) => {
       const aExact = a.text.toLowerCase().trim() === searchText.toLowerCase().trim();
       const bExact = b.text.toLowerCase().trim() === searchText.toLowerCase().trim();

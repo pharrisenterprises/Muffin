@@ -103,7 +103,7 @@ export const LayerIndicator: React.FC<LayerIndicatorProps> = ({
         Capture Layers
       </div>
       <div className="grid grid-cols-2 gap-2">
-        {layers.map(({ layer, active, capturing, lastCapture }) => {
+        {layers.map(({ layer, active, capturing, lastCapture: _lastCapture }) => {
           const meta = LAYER_META[layer];
           return (
             <div
@@ -115,8 +115,8 @@ export const LayerIndicator: React.FC<LayerIndicatorProps> = ({
               `}
               style={{ 
                 borderColor: capturing ? meta.color : undefined,
-                ringColor: capturing ? meta.color : undefined
-              }}
+                '--tw-ring-color': capturing ? meta.color : undefined
+              } as React.CSSProperties}
             >
               <span 
                 className={`

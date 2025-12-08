@@ -8,7 +8,7 @@
  * @since Phase 4
  */
 
-import type { StrategyType, LocatorStrategy, FallbackChain } from '../types';
+import type { LocatorStrategy, FallbackChain } from '../types';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -111,11 +111,11 @@ export class RecordingOrchestrator {
   private stepCounter = 0;
 
   // Capture layers (lazy loaded)
-  private domCapture: any | null = null;
+  private _domCapture: any | null = null;
   private visionCapture: any | null = null;
   private mouseCapture: any | null = null;
   private networkCapture: any | null = null;
-  private evidenceBuffer: any | null = null;
+  private _evidenceBuffer: any | null = null;
 
   // Event listeners (for cleanup)
   private boundHandleClick: ((e: MouseEvent) => void) | null = null;
@@ -188,7 +188,7 @@ export class RecordingOrchestrator {
 
   private async initializeLayers(): Promise<void> {
     // DOM capture is always enabled
-    this.domCapture = { capture: this.captureDOMFallback.bind(this) };
+    this._domCapture = { capture: this.captureDOMFallback.bind(this) };
 
     if (this.config.enableMouse) {
       this.mouseCapture = { 
@@ -210,18 +210,18 @@ export class RecordingOrchestrator {
       };
     }
 
-    this.evidenceBuffer = {
+    this._evidenceBuffer = {
       add: () => {},
       flush: () => []
     };
   }
 
   private async shutdownLayers(): Promise<void> {
-    this.domCapture = null;
+    this._domCapture = null;
     this.visionCapture = null;
     this.mouseCapture = null;
     this.networkCapture = null;
-    this.evidenceBuffer = null;
+    this._evidenceBuffer = null;
   }
 
   // ==========================================================================

@@ -216,7 +216,7 @@ export class StrategyScorer {
   // STRATEGY-SPECIFIC SCORING
   // ==========================================================================
 
-  scoreDOMSelector(candidate: StrategyCandidate, context: ElementContext): number {
+  scoreDOMSelector(candidate: StrategyCandidate, _context: ElementContext): number {
     let score = this.config.baseWeights.dom_selector;
 
     if (!candidate.selector) return 0.3;
@@ -247,7 +247,7 @@ export class StrategyScorer {
     return this.normalizeScore(score);
   }
 
-  scoreCSSSelector(candidate: StrategyCandidate, context: ElementContext): number {
+  scoreCSSSelector(candidate: StrategyCandidate, _context: ElementContext): number {
     let score = this.config.baseWeights.css_selector;
 
     if (!candidate.selector) return 0.3;
@@ -267,7 +267,7 @@ export class StrategyScorer {
     return this.normalizeScore(score);
   }
 
-  scoreCDPSemantic(candidate: StrategyCandidate, context: ElementContext): number {
+  scoreCDPSemantic(candidate: StrategyCandidate, _context: ElementContext): number {
     let score = this.config.baseWeights.cdp_semantic;
 
     const { role, name } = candidate.metadata as { role?: string; name?: string };
@@ -291,7 +291,7 @@ export class StrategyScorer {
     return this.normalizeScore(score);
   }
 
-  scoreCDPPower(candidate: StrategyCandidate, context: ElementContext): number {
+  scoreCDPPower(candidate: StrategyCandidate, _context: ElementContext): number {
     let score = this.config.baseWeights.cdp_power;
 
     const { text, label, placeholder } = candidate.metadata as { text?: string; label?: string; placeholder?: string };
@@ -311,7 +311,7 @@ export class StrategyScorer {
     return this.normalizeScore(score);
   }
 
-  scoreVisionOCR(candidate: StrategyCandidate, context: ElementContext): number {
+  scoreVisionOCR(candidate: StrategyCandidate, _context: ElementContext): number {
     let score = this.config.baseWeights.vision_ocr;
 
     const { targetText, ocrConfidence } = candidate.metadata as { targetText?: string; ocrConfidence?: number };
@@ -331,7 +331,7 @@ export class StrategyScorer {
     return this.normalizeScore(score);
   }
 
-  scoreEvidenceScoring(candidate: StrategyCandidate, context: ElementContext): number {
+  scoreEvidenceScoring(candidate: StrategyCandidate, _context: ElementContext): number {
     let score = this.config.baseWeights.evidence_scoring;
 
     const { endpoint, pattern, attributes } = candidate.metadata as {
@@ -365,7 +365,7 @@ export class StrategyScorer {
     return this.normalizeScore(score);
   }
 
-  scoreCoordinates(candidate: StrategyCandidate, context: ElementContext): number {
+  scoreCoordinates(candidate: StrategyCandidate, _context: ElementContext): number {
     let score = this.config.baseWeights.coordinates;
 
     const { boundingRect } = candidate.metadata as { boundingRect?: { width: number; height: number } };

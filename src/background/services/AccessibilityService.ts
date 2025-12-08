@@ -9,8 +9,8 @@
  * @since Phase 4
  */
 
-import { CDPService, getCDPService, type CDPCommandResult } from './CDPService';
-import type { AXNode, AXProperty, AXValue } from '../../types';
+import { CDPService, getCDPService } from './CDPService';
+import type { AXNode } from '../../types';
 
 // ============================================================================
 // TYPE DEFINITIONS

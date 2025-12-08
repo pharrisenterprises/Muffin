@@ -6,7 +6,6 @@ import { handleVisionMessage } from './visionMessageHandler';
 // ============================================================================
 
 import { getCDPService } from './services/CDPService';
-import { getDecisionEngine } from './services/DecisionEngine';
 import { getPlaybackController } from './services/PlaybackController';
 import { getVisionService } from './services/VisionService';
 import { getTelemetryLogger } from './services/TelemetryLogger';
@@ -151,7 +150,7 @@ async function handleScreenshotCapture(
   }
 
   try {
-    const screenshot = await chrome.tabs.captureVisibleTab(undefined, {
+    const screenshot = await chrome.tabs.captureVisibleTab({
       format: (payload.format as 'png' | 'jpeg') ?? 'jpeg',
       quality: payload.quality ?? 80
     });
