@@ -145,22 +145,22 @@ export class AutoWaiting {
 
       if (shouldWaitEnabled && !state.enabled) {
         allConditionsMet = false;
-        _failureReason = 'disabled';
+        __failureReason = 'disabled';
       }
 
       if (shouldWaitStable && !state.stable) {
         allConditionsMet = false;
-        _failureReason = 'unstable';
+        __failureReason = 'unstable';
       }
 
       if (options?.editable && !state.editable) {
         allConditionsMet = false;
-        _failureReason = 'not_editable';
+        __failureReason = 'not_editable';
       }
 
       if (options?.receivesPointerEvents && !state.receivesPointerEvents) {
         allConditionsMet = false;
-        _failureReason = 'covered';
+        __failureReason = 'covered';
       }
 
       if (allConditionsMet) {

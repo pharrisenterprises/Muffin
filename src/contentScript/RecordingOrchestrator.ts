@@ -188,7 +188,7 @@ export class RecordingOrchestrator {
 
   private async initializeLayers(): Promise<void> {
     // DOM capture is always enabled
-    this._domCapture = { capture: this.captureDOMFallback.bind(this) };
+    this.__domCapture = { capture: this.captureDOMFallback.bind(this) };
 
     if (this.config.enableMouse) {
       this.mouseCapture = { 
@@ -210,18 +210,18 @@ export class RecordingOrchestrator {
       };
     }
 
-    this._evidenceBuffer = {
+    this.__evidenceBuffer = {
       add: () => {},
       flush: () => []
     };
   }
 
   private async shutdownLayers(): Promise<void> {
-    this._domCapture = null;
+    this.__domCapture = null;
     this.visionCapture = null;
     this.mouseCapture = null;
     this.networkCapture = null;
-    this._evidenceBuffer = null;
+    this.__evidenceBuffer = null;
   }
 
   // ==========================================================================

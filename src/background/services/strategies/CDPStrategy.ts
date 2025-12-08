@@ -85,8 +85,8 @@ export class CDPStrategy implements StrategyEvaluator {
     locators: PlaywrightLocators,
     config?: Partial<CDPStrategyConfig>
   ) {
-    this.cdpService = cdpService;
-    this.accessibilityService = accessibilityService;
+    this._cdpService = cdpService;
+    this._accessibilityService = accessibilityService;
     this.locators = locators;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }

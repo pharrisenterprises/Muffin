@@ -87,8 +87,8 @@ export class PlaybackController {
     config?: Partial<PlaybackControllerConfig>
   ) {
     this.decisionEngine = decisionEngine;
-    this._actionExecutor = actionExecutor;
-    this._telemetry = telemetry;
+    this.__actionExecutor = actionExecutor;
+    this.__telemetry = telemetry;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
