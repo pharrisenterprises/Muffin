@@ -140,25 +140,25 @@ describe('Schema Migration (TST-008)', () => {
 
     it('should return false for current schema version', () => {
       const v3 = createV3Recording();
-      expect(recordingNeedsMigration(v3)).toBe(false);
+      expect(recordingNeedsMigration(asRecord(v3))).toBe(false);
     });
 
     it('should return true when loopStartIndex is missing', () => {
       const partial = createV3Recording();
       delete (partial as any).loopStartIndex;
-      expect(recordingNeedsMigration(partial)).toBe(true);
+      expect(recordingNeedsMigration(asRecord(partial))).toBe(true);
     });
 
     it('should return true when globalDelayMs is missing', () => {
       const partial = createV3Recording();
       delete (partial as any).globalDelayMs;
-      expect(recordingNeedsMigration(partial)).toBe(true);
+      expect(recordingNeedsMigration(asRecord(partial))).toBe(true);
     });
 
     it('should return true when conditionalDefaults is missing', () => {
       const partial = createV3Recording();
       delete (partial as any).conditionalDefaults;
-      expect(recordingNeedsMigration(partial)).toBe(true);
+      expect(recordingNeedsMigration(asRecord(partial))).toBe(true);
     });
 
     it('should return true when any step needs migration', () => {
@@ -167,7 +167,7 @@ describe('Schema Migration (TST-008)', () => {
           { label: 'Test', event: 'click' } as any, // Missing recordedVia
         ],
       });
-      expect(recordingNeedsMigration(rec)).toBe(true);
+      expect(recordingNeedsMigration(asRecord(rec))).toBe(true);
     });
   });
 
@@ -455,7 +455,7 @@ describe('Schema Migration (TST-008)', () => {
     it('should produce same result when migrated twice', () => {
       const v1 = createV1Recording();
       const firstMigration = migrateRecording(v1, projectId);
-      const secondMigration = migrateRecording(firstMigration, projectId);
+      const secondMigration = migrateRecording(asRecord(firstMigration), projectId);
 
       // Schema version should be the same
       expect(firstMigration.schemaVersion).toBe(secondMigration.schemaVersion);
@@ -466,7 +466,7 @@ describe('Schema Migration (TST-008)', () => {
 
     it('should not break already migrated recording', () => {
       const v3 = createV3Recording();
-      const migrated = migrateRecording(v3, 1);
+      const migrated = migrateRecording(asRecord(v3), 1);
 
       expect(migrated.schemaVersion).toBe(v3.schemaVersion);
       expect(migrated.loopStartIndex).toBe(v3.loopStartIndex);
@@ -493,7 +493,7 @@ describe('Schema Migration (TST-008)', () => {
           } as any,
         ],
       });
-      const migrated = migrateRecording(v3, 1);
+      const migrated = migrateRecording(asRecord(v3), 1);
 
       expect(migrated.steps[0].recordedVia).toBe('vision');
       expect((migrated.steps[0] as any).coordinates).toEqual({
@@ -509,7 +509,7 @@ describe('Schema Migration (TST-008)', () => {
   describe('verifyRecordingMigration', () => {
     it('should pass for valid migrated recording', () => {
       const v3 = createV3Recording();
-      const result = verifyRecordingMigration(v3);
+      const result = verifyRecordingMigration(asRecord(v3));
 
       expect(result.valid).toBe(true);
       expect(result.issues).toHaveLength(0);
@@ -517,7 +517,7 @@ describe('Schema Migration (TST-008)', () => {
 
     it('should fail if schemaVersion is wrong', () => {
       const invalid = createV3Recording({ schemaVersion: 2 } as any);
-      const result = verifyRecordingMigration(invalid);
+      const result = verifyRecordingMigration(asRecord(invalid));
 
       expect(result.valid).toBe(false);
       expect(result.issues.length).toBeGreaterThan(0);
@@ -525,7 +525,7 @@ describe('Schema Migration (TST-008)', () => {
 
     it('should fail if loopStartIndex is not a number', () => {
       const invalid = createV3Recording({ loopStartIndex: 'invalid' as any });
-      const result = verifyRecordingMigration(invalid);
+      const result = verifyRecordingMigration(asRecord(invalid));
 
       expect(result.valid).toBe(false);
       expect(result.issues.some((e) => e.includes('loopStartIndex'))).toBe(true);
@@ -533,7 +533,7 @@ describe('Schema Migration (TST-008)', () => {
 
     it('should fail if globalDelayMs is not a number', () => {
       const invalid = createV3Recording({ globalDelayMs: 'invalid' as any });
-      const result = verifyRecordingMigration(invalid);
+      const result = verifyRecordingMigration(asRecord(invalid));
 
       expect(result.valid).toBe(false);
       expect(result.issues.some((e) => e.includes('globalDelayMs'))).toBe(true);
@@ -542,7 +542,7 @@ describe('Schema Migration (TST-008)', () => {
     it('should fail if conditionalDefaults is missing', () => {
       const invalid = createV3Recording();
       delete (invalid as any).conditionalDefaults;
-      const result = verifyRecordingMigration(invalid);
+      const result = verifyRecordingMigration(asRecord(invalid));
 
       expect(result.valid).toBe(false);
       expect(result.issues.some((e) => e.includes('conditionalDefaults'))).toBe(
@@ -554,7 +554,7 @@ describe('Schema Migration (TST-008)', () => {
       const invalid = createV3Recording({
         steps: [{ label: 'Test', event: 'click' }] as any,
       });
-      const result = verifyRecordingMigration(invalid);
+      const result = verifyRecordingMigration(asRecord(invalid));
 
       expect(result.valid).toBe(false);
       expect(result.issues.some((e) => e.includes('recordedVia'))).toBe(true);
@@ -564,7 +564,7 @@ describe('Schema Migration (TST-008)', () => {
       const invalid = createV3Recording({
         steps: [{ label: 'Test', recordedVia: 'dom' }] as any,
       });
-      const result = verifyRecordingMigration(invalid);
+      const result = verifyRecordingMigration(asRecord(invalid));
 
       expect(result.valid).toBe(false);
       expect(result.issues.some((e) => e.includes('event'))).toBe(true);
