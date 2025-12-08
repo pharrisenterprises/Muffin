@@ -11,6 +11,7 @@ import { DEFAULT_CONDITIONAL_CONFIG } from "../types/vision";
 export interface MigratedStep {
   id?: number;
   stepType: string;
+  event?: string;
   targetElement?: string;
   value?: string;
   timestamp?: number;
@@ -134,10 +135,47 @@ export function getMigrationReport(recording: Record<string, unknown>): { fields
   return { fieldsAdded, stepsUpdated };
 }
 
+export function verifyRecordingMigration(recording: Record<string, unknown>): { valid: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  // Check schemaVersion
+  if (recording.schemaVersion !== CURRENT_SCHEMA_VERSION) {
+    issues.push(`schemaVersion must be ${CURRENT_SCHEMA_VERSION}, got ${recording.schemaVersion}`);
+  }
+  
+  // Check loopStartIndex
+  if (typeof recording.loopStartIndex !== 'number') {
+    issues.push('loopStartIndex must be a number');
+  }
+  
+  // Check globalDelayMs
+  if (typeof recording.globalDelayMs !== 'number') {
+    issues.push('globalDelayMs must be a number');
+  }
+  
+  // Check conditionalDefaults
+  if (!recording.conditionalDefaults) {
+    issues.push('conditionalDefaults is required');
+  }
+  
+  // Check steps
+  const steps = (recording.recorded_steps || recording.steps || []) as Record<string, unknown>[];
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    if (!step.recordedVia) {
+      issues.push(`Step ${i}: recordedVia is required`);
+    }
+    if (!step.event && !step.stepType) {
+      issues.push(`Step ${i}: event or stepType is required`);
+    }
+  }
+  
+  return { valid: issues.length === 0, issues };
+}
+
 // Export aliases for backward compatibility
 export const stepNeedsMigration = needsMigration;
 export const recordingNeedsMigration = needsMigration;
-export const verifyRecordingMigration = getMigrationReport;
 export const MIGRATION_DEFAULTS = {
   schemaVersion: CURRENT_SCHEMA_VERSION,
   loopStartIndex: 0,

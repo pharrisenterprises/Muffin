@@ -92,6 +92,7 @@ export interface ConditionalConfig {
   interactionType: 'click' | 'input' | 'dropdown';
   dropdownOption?: string;
   inputValue?: string;
+  successText?: string;
 }
 
 /**

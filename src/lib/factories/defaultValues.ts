@@ -45,7 +45,7 @@ export function createDefaultFallbackChain(selector?: string, metadata?: Locator
     strategies.push({ type: "dom_selector", selector, confidence: 0.9 });
     strategies.push({ type: "css_selector", selector, confidence: 0.85 });
   }
-  if (metadata?.role) {
+  if (metadata && 'role' in metadata && metadata.role) {
     strategies.push({ type: "cdp_semantic", confidence: 0.9, metadata });
   }
   strategies.push({ type: "vision_ocr", confidence: 0.7 });

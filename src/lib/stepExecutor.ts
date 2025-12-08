@@ -418,7 +418,8 @@ async function executeAutoDetection(
     return false;
   }
 
-  return await visionEngine.quickDetectAndClick(searchTerms, tabId);
+  const result = await visionEngine.waitAndClickButtons(tabId, { searchTerms });
+  return result.success;
 }
 
 // ============================================================================

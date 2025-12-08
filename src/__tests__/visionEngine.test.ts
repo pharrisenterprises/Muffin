@@ -176,10 +176,10 @@ describe('TST-003: OCR Recognition', () => {
   });
 
   it('should return text results with confidence scores', async () => {
-    const results = await engine.recognizeText('data:image/png;base64,mockData');
+    const ocrResult = await engine.recognizeText('data:image/png;base64,mockData');
     
-    expect(results.length).toBeGreaterThan(0);
-    results.forEach(result => {
+    expect(ocrResult.results.length).toBeGreaterThan(0);
+    ocrResult.results.forEach(result => {
       expect(result.text).toBeDefined();
       expect(result.confidence).toBeDefined();
       expect(result.confidence).toBeGreaterThanOrEqual(0);
@@ -188,14 +188,14 @@ describe('TST-003: OCR Recognition', () => {
   });
 
   it('should return bounding boxes for each word', async () => {
-    const results = await engine.recognizeText('data:image/png;base64,mockData');
+    const ocrResult = await engine.recognizeText('data:image/png;base64,mockData');
     
-    results.forEach(result => {
-      expect(result.bounds).toBeDefined();
-      expect(result.bounds.x).toBeDefined();
-      expect(result.bounds.y).toBeDefined();
-      expect(result.bounds.width).toBeGreaterThan(0);
-      expect(result.bounds.height).toBeGreaterThan(0);
+    ocrResult.results.forEach(result => {
+      expect(result.bbox).toBeDefined();
+      expect(result.bbox.x).toBeDefined();
+      expect(result.bbox.y).toBeDefined();
+      expect(result.bbox.width).toBeGreaterThan(0);
+      expect(result.bbox.height).toBeGreaterThan(0);
     });
   });
 
@@ -208,10 +208,10 @@ describe('TST-003: OCR Recognition', () => {
     );
 
     // Default threshold is 60%
-    const results = await engine.recognizeText('data:image/png;base64,mockData');
+    const ocrResult = await engine.recognizeText('data:image/png;base64,mockData');
     
-    expect(results.some(r => r.text === 'High')).toBe(true);
-    expect(results.some(r => r.text === 'Low')).toBe(false);
+    expect(ocrResult.results.some(r => r.text === 'High')).toBe(true);
+    expect(ocrResult.results.some(r => r.text === 'Low')).toBe(false);
   });
 
   it('should store last OCR results', async () => {
