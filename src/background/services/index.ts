@@ -100,6 +100,65 @@ export {
 } from './TelemetryLogger';
 
 // ============================================================================
+// DECISION ENGINE (Week 3)
+// ============================================================================
+
+export {
+  DecisionEngine,
+  getDecisionEngine,
+  type DecisionEngineConfig,
+  type ActionExecutionResult,
+  type ActionRequest
+} from './DecisionEngine';
+
+export {
+  FallbackChainGenerator,
+  getFallbackChainGenerator,
+  type FallbackChainGeneratorConfig,
+  type ChainGenerationResult
+} from './FallbackChainGenerator';
+
+export {
+  StrategyScorer,
+  getStrategyScorer,
+  type StrategyScorerConfig,
+  type ScoringFactors
+} from './StrategyScorer';
+
+export {
+  StrategyChainBuilder,
+  getStrategyChainBuilder,
+  type StrategyChainBuilderConfig,
+  type ChainBuildResult
+} from './StrategyChainBuilder';
+
+// ============================================================================
+// PLAYBACK (Week 6)
+// ============================================================================
+
+export {
+  ActionExecutor,
+  getActionExecutor,
+  type ActionExecutorConfig,
+  type ActionResult
+} from './ActionExecutor';
+
+export {
+  PlaybackController,
+  getPlaybackController,
+  type PlaybackControllerConfig,
+  type PlaybackResult,
+  type StepResult,
+  type RecordedStep
+} from './PlaybackController';
+
+// ============================================================================
+// STRATEGY EVALUATORS
+// ============================================================================
+
+export * from './strategies';
+
+// ============================================================================
 // SERVICE FACTORY
 // ============================================================================
 
