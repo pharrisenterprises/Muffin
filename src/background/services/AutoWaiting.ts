@@ -136,6 +136,7 @@ export class AutoWaiting {
 
       // Check conditions
       let allConditionsMet = true;
+      // @ts-expect-error reserved for future telemetry
       let __failureReason: WaitFailureReason | undefined;
 
       if (shouldWaitVisible && !state.visible) {

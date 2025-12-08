@@ -111,10 +111,12 @@ export class RecordingOrchestrator {
   private stepCounter = 0;
 
   // Capture layers (lazy loaded)
+  // @ts-expect-error reserved for future use
   private __domCapture: any | null = null;
   private visionCapture: any | null = null;
   private mouseCapture: any | null = null;
   private networkCapture: any | null = null;
+  // @ts-expect-error reserved for future use
   private __evidenceBuffer: any | null = null;
 
   // Event listeners (for cleanup)

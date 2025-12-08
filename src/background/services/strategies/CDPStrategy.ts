@@ -72,7 +72,9 @@ export type CDPLocatorMethod =
 // ============================================================================
 
 export class CDPStrategy implements StrategyEvaluator {
+  // @ts-expect-error reserved for future use
   private _cdpService: CDPService;
+  // @ts-expect-error reserved for future use
   private _accessibilityService: AccessibilityService;
   private locators: PlaywrightLocators;
   private config: CDPStrategyConfig;

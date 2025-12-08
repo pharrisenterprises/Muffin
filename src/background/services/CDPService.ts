@@ -86,6 +86,7 @@ export interface CDPCommandResult<T = unknown> {
 export class CDPService {
   private config: CDPServiceConfig;
   private connections: Map<number, CDPConnection> = new Map();
+  // @ts-expect-error reserved for future use
   private __commandIdCounter: number = 0;
   private isInitialized: boolean = false;
 

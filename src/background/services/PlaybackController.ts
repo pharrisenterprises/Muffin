@@ -69,7 +69,9 @@ type PlaybackState = 'idle' | 'running' | 'paused' | 'stopping';
 export class PlaybackController {
   private config: PlaybackControllerConfig;
   private decisionEngine: DecisionEngine;
+  // @ts-expect-error reserved for future use
   private __actionExecutor: ActionExecutor;
+  // @ts-expect-error reserved for future use
   private __telemetry: TelemetryLogger;
 
   private state: PlaybackState = 'idle';
