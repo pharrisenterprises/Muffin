@@ -18,6 +18,15 @@ import { evidenceAggregator } from '../playback/evidence';
 // Automation Orchestrator (tiered fallback system)
 import { automationOrchestrator, cdpClient } from '../automation';
 
+// ============================================================================
+// PHASE 4 IMPORTS
+// ============================================================================
+
+import { 
+  RecordingOrchestrator, 
+  getRecordingOrchestrator 
+} from './RecordingOrchestrator';
+
 // B-46: Safe querySelector that handles special characters in selectors
 function safeQuerySelector(doc: Document | ShadowRoot, selector: string): Element | null {
   if (!selector) return null;
@@ -2544,5 +2553,106 @@ const Layout: React.FC = () => {
   }
   return null;
 };
+
+// ============================================================================
+// PHASE 4 RECORDING INTEGRATION
+// ============================================================================
+
+let recordingOrchestrator: RecordingOrchestrator | null = null;
+
+// Message handler for recording control
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  switch (message.type) {
+    case 'START_RECORDING':
+      handleStartRecording(message.payload)
+        .then(sendResponse)
+        .catch(err => sendResponse({ success: false, error: err.message }));
+      return true;
+
+    case 'PAUSE_RECORDING':
+      if (recordingOrchestrator) {
+        recordingOrchestrator.pause();
+        sendResponse({ success: true });
+      } else {
+        sendResponse({ success: false, error: 'Not recording' });
+      }
+      return false;
+
+    case 'RESUME_RECORDING':
+      if (recordingOrchestrator) {
+        recordingOrchestrator.resume();
+        sendResponse({ success: true });
+      } else {
+        sendResponse({ success: false, error: 'Not recording' });
+      }
+      return false;
+
+    case 'STOP_RECORDING':
+      handleStopRecording()
+        .then(sendResponse)
+        .catch(err => sendResponse({ success: false, error: err.message }));
+      return true;
+
+    case 'GET_RECORDING_STATE':
+      sendResponse({
+        success: true,
+        state: recordingOrchestrator?.getState() ?? 'idle',
+        stepCount: recordingOrchestrator?.getSteps().length ?? 0
+      });
+      return false;
+  }
+
+  return false;
+});
+
+async function handleStartRecording(
+  payload: { enableVision?: boolean; enableMouse?: boolean; enableNetwork?: boolean }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (recordingOrchestrator?.getState() !== 'idle') {
+      return { success: false, error: 'Already recording' };
+    }
+
+    recordingOrchestrator = getRecordingOrchestrator({
+      enableVision: payload.enableVision ?? true,
+      enableMouse: payload.enableMouse ?? true,
+      enableNetwork: payload.enableNetwork ?? true,
+      tabId: 0 // Will be set by orchestrator
+    });
+
+    await recordingOrchestrator.start();
+
+    return { success: true };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to start recording' 
+    };
+  }
+}
+
+async function handleStopRecording(): Promise<{ 
+  success: boolean; 
+  steps?: any[]; 
+  error?: string 
+}> {
+  try {
+    if (!recordingOrchestrator) {
+      return { success: false, error: 'Not recording' };
+    }
+
+    const steps = await recordingOrchestrator.stop();
+    recordingOrchestrator = null;
+
+    return { success: true, steps };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to stop recording' 
+    };
+  }
+}
+
+console.log('[Content] Phase 4 recording integration loaded');
 
 export default Layout;
