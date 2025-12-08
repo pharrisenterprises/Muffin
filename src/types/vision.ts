@@ -131,16 +131,24 @@ export const DEFAULT_VISION_CONFIG: VisionConfig = {
 // Vision message types for content script communication
 export interface VisionMessage {
   action: 'vision-click' | 'vision-type' | 'vision-ocr' | 'vision-screenshot';
+  type?: string; // Message type for routing
   tabId?: number;
   searchTerms?: string[];
   text?: string;
   coordinates?: { x: number; y: number };
+  x?: number; // Mouse x coordinate
+  y?: number; // Mouse y coordinate
+  key?: string; // Keyboard key
+  modifiers?: string; // Keyboard modifiers
+  direction?: string; // Scroll direction
+  amount?: number; // Scroll amount
 }
 
 export interface VisionResponse {
   success: boolean;
   error?: string;
   result?: unknown;
+  data?: unknown; // Generic data payload
   coordinates?: { x: number; y: number };
   confidence?: number;
 }
