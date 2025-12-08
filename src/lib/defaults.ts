@@ -23,12 +23,16 @@ export const CURRENT_SCHEMA_VERSION = 3;
 
 /** Default Vision configuration */
 export const DEFAULT_VISION_CONFIG: VisionConfig = {
+  enabled: true,
   confidenceThreshold: 60,
   pollIntervalMs: 1000,
   scrollRetries: 3,
   useSIMD: true,
   language: 'eng',
   debugMode: false,
+  screenshotQuality: 0.92,
+  devicePixelRatio: 1,
+  fuzzyMatchThreshold: 0.7,
 };
 
 /** Default conditional configuration for new conditional steps */

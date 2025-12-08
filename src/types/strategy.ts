@@ -800,3 +800,27 @@ export function getAllStrategyTypes(): StrategyType[] {
     'coordinates'
   ];
 }
+
+// ============================================================================
+// SECTION 9: RECORDING & TELEMETRY TYPES
+// ============================================================================
+
+/**
+ * Recording method type - how the step was captured
+ */
+export type RecordedVia = 'dom' | 'vision';
+
+/**
+ * Telemetry data for strategy evaluation
+ */
+export interface StrategyTelemetry {
+  stepId: number;
+  strategyType: StrategyType;
+  confidence: number;
+  duration: number;
+  success: boolean;
+  timestamp: number;
+  finalStrategy: StrategyType | null;
+  totalDuration: number;
+  metadata?: Record<string, unknown>;
+}
