@@ -540,19 +540,19 @@ export function initializeVisionHandlers(): void {
 
       switch (message.type) {
         case 'VISION_CLICK': {
-          const result = handleVisionClick(message.x, message.y);
+          const result = handleVisionClick(message.x ?? 0, message.y ?? 0);
           sendResponse({ success: result.success, error: result.error, data: result });
           return true;
         }
 
         case 'VISION_TYPE': {
-          const result = handleVisionType(message.text);
+          const result = handleVisionType(message.text ?? '');
           sendResponse({ success: result.success, error: result.error });
           return true;
         }
 
         case 'VISION_KEY': {
-          const result = handleVisionKey(message.key, message.modifiers);
+          const result = handleVisionKey(message.key ?? '', message.modifiers);
           sendResponse({ success: result.success, error: result.error });
           return true;
         }

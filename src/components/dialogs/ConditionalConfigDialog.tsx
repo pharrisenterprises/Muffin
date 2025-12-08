@@ -71,7 +71,7 @@ export function ConditionalConfigDialog({
   const [searchTermsInput, setSearchTermsInput] = useState('');
   const [timeout, setTimeout] = useState('120');
   const [pollInterval, setPollInterval] = useState('1000');
-  const [interactionType, setInteractionType] = useState<'click' | 'type' | 'dropdown'>('click');
+  const [interactionType, setInteractionType] = useState<'click' | 'input' | 'dropdown'>('click');
   const [dropdownOption, setDropdownOption] = useState('');
   const [inputValue, setInputValue] = useState('');
   
