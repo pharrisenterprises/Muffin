@@ -1,7 +1,7 @@
 # Modularization Plan - Muffin Chrome Extension
 
-**Generated:** December 1, 2025  
-**Purpose:** Define clear module boundaries, dependencies, and refactoring strategy for improved maintainability and testability
+**Generated:** December 7, 2025  
+**Purpose:** Define clear module boundaries, dependencies, and refactoring strategy for improved maintainability and testability (Phase 3 Integration Complete)
 
 ---
 
@@ -904,3 +904,84 @@ This modularization plan provides a clear roadmap for refactoring Muffin into we
 2. Create GitHub issues for each phase
 3. Set up Vitest testing infrastructure
 4. Begin Phase 1: DOM Automation Core extraction
+
+---
+
+## Phase 3 Integration Considerations
+
+**Status:** Phase 3 Specifications Complete (46 documents: A1-H6)
+
+### Phase 3 Modularization Impacts
+The Phase 3 multi-layer recording system introduces additional complexity that should inform modularization priorities:
+
+#### 1. Enhanced Element Finding Module
+- **7-Tier Selector Strategy:** Requires extensible strategy pattern implementation
+- **Multi-Context Support:** Must handle main window, iframes, shadow DOMs simultaneously
+- **Validation Integration:** Element finding must support pre-execution validation (TST-009)
+
+#### 2. Recording Engine Enhancements
+- **Multi-Layer Capture:** Extract `MultiLayerRecorder` as separate module from monolithic content script
+- **Context Management:** `ContextTracker` should be separate utility (tracks iframe chains, shadow root paths)
+- **Event Aggregation:** Central event bus for cross-context recording
+
+#### 3. Playback Engine Improvements
+- **Strategy Pattern:** Each tier in 7-tier fallback = separate strategy class
+- **Retry Logic:** Extract retry/backoff logic into reusable `RetryManager`
+- **Error Recovery:** `ErrorRecoveryService` module for automatic fallback handling
+
+#### 4. Validation Framework
+- **New Module:** `ValidationEngine` for real-time step validation
+- **Dependencies:** DOM Automation Core, Element Finding Strategies
+- **Integration:** Hooks into Recording Engine and Playback Engine
+
+#### 5. Recommended Module Additions (Phase 3)
+```typescript
+src/lib/
+├── dom-automation/           # Phase 1 (existing plan)
+├── selector-strategies/      # NEW: 7-tier fallback strategies
+│   ├── IDStrategy.ts
+│   ├── DataTestIdStrategy.ts
+│   ├── AriaLabelStrategy.ts
+│   ├── NameStrategy.ts
+│   ├── XPathStrategy.ts
+│   ├── TextSimilarityStrategy.ts
+│   └── PositionStrategy.ts
+├── multi-layer-recording/    # NEW: Cross-context capture
+│   ├── ContextTracker.ts
+│   ├── EventAggregator.ts
+│   └── MultiLayerRecorder.ts
+├── validation/               # NEW: Step validation framework
+│   ├── ValidationEngine.ts
+│   ├── ElementValidator.ts
+│   └── StepValidator.ts
+└── error-recovery/           # NEW: Automatic fallback handling
+    ├── RetryManager.ts
+    ├── ErrorRecoveryService.ts
+    └── FallbackStrategies.ts
+```
+
+### Updated Build Order (with Phase 3)
+
+**Phase 1-3:** Follow existing plan (DOM Automation, Content Script Split, Business Logic)
+
+**Phase 4 (NEW):** Phase 3 System Integration (Weeks 7-8)
+1. Extract 7-tier selector strategies
+2. Build ValidationEngine module
+3. Implement MultiLayerRecorder
+4. Add RetryManager and ErrorRecoveryService
+5. Integrate validation hooks into Recording and Playback engines
+
+**Phase 5:** Background Refactoring (Week 9)
+**Phase 6:** CI/CD and Documentation (Week 10)
+
+### Success Metrics (Phase 3)
+- ✅ 7-tier fallback successfully modularized (100% strategy coverage)
+- ✅ Multi-layer recording supports ≥3 simultaneous contexts
+- ✅ Validation framework reduces playback errors by ≥40%
+- ✅ Error recovery automatically falls back without user intervention
+- ✅ Test coverage ≥80% for all Phase 3 modules
+
+### Related Documentation
+- **Component Breakdowns:** 40 files with Phase 3 integration points
+- **Specifications:** 46 Phase 3 specs (A1-H6) in `analysis-resources/references/`
+- **Technical Reference:** `TECHNICAL_REFERENCE.md` with Phase 3 architecture patterns
