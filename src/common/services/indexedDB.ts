@@ -29,6 +29,18 @@ export interface Project {
   created_date?: string;
   updated_date?: string;
   
+  /**
+   * Recorded steps in this project (camelCase alias for Phase 4 compatibility)
+   * @spec PR-001 - Project must contain steps array
+   */
+  steps: RecordedStep[];
+  
+  /**
+   * Parsed fields from CSV data for variable substitution (camelCase alias)
+   * @spec PR-002 - Project must contain parsed fields
+   */
+  parsedFields: ParsedField[];
+  
   // === Vision Enhancement Fields (v2) ===
   /** Index where CSV loop iteration begins. Default: 0 */
   loopStartIndex: number;
