@@ -4,10 +4,10 @@ import { Button } from "../components/Ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Ui/card";
 import { Disc, Video, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
-import RecorderToolbar from "../components/Recorder/RecorderToolbar";
-import StepsTable from "../components/Recorder/StepsTable";
-import LogPanel from "../components/Recorder/LogPanel";
-import ConditionalClickModal from "../components/Recorder/ConditionalClickModal";
+import RecorderToolbar from "../components/toolbar/RecorderToolbar";
+import StepsTable from "../components/recorder/StepsTable";
+import LogPanel from "../components/recorder/LogPanel";
+import ConditionalClickModal from "../components/recorder/ConditionalClickModal";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { createPageUrl } from "../utils/index";
 import { TableHead, TableHeader, TableRow } from "../components/Ui/table"
