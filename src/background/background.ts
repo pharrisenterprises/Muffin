@@ -10,6 +10,15 @@ import { getPlaybackController } from './services/PlaybackController';
 import { getVisionService } from './services/VisionService';
 import { getTelemetryLogger } from './services/TelemetryLogger';
 
+// P40: Additional Phase 4 service imports
+import { getDecisionEngine, type ActionExecutionResult } from './services/DecisionEngine';
+// @ts-expect-error - Reserved for future direct action execution
+import { getActionExecutor } from './services/ActionExecutor';
+import { 
+  initializeServices,
+  type ServiceInstances 
+} from './services';
+
 async function ensurePersistentStorage() {
   if ('storage' in navigator && navigator.storage && navigator.storage.persist) {
     const isPersisted = await navigator.storage.persisted();
@@ -26,6 +35,72 @@ async function ensurePersistentStorage() {
 
 //Call this ONCE when service worker starts
 ensurePersistentStorage();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// P40: SERVICE INSTANCE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Singleton service container - initialized on extension startup */
+let serviceInstances: ServiceInstances | null = null;
+
+/** Flag to prevent multiple initialization attempts */
+let servicesInitializing = false;
+
+/**
+ * Initialize all Phase 4 services with proper dependency injection
+ * Called on extension install/startup
+ */
+async function initializePhase4Services(): Promise<boolean> {
+  if (serviceInstances) {
+    console.log('[Muffin P40] Services already initialized');
+    return true;
+  }
+  
+  if (servicesInitializing) {
+    console.log('[Muffin P40] Services initialization already in progress');
+    return false;
+  }
+  
+  servicesInitializing = true;
+  
+  try {
+    console.log('[Muffin P40] Initializing Phase 4 services...');
+    
+    // Initialize all services with async init (Vision OCR, Telemetry DB)
+    serviceInstances = await initializeServices();
+    
+    console.log('[Muffin P40] ✅ All services initialized:');
+    console.log('  - CDP Service: Ready for Chrome DevTools Protocol');
+    console.log('  - Accessibility Service: Ready for semantic element finding');
+    console.log('  - Vision Service: Tesseract OCR loaded');
+    console.log('  - Telemetry Logger: IndexedDB ready');
+    console.log('  - Decision Engine: 7-tier fallback chain ready');
+    
+    servicesInitializing = false;
+    return true;
+    
+  } catch (error) {
+    console.error('[Muffin P40] ❌ Failed to initialize services:', error);
+    servicesInitializing = false;
+    return false;
+  }
+}
+
+/**
+ * Get current services instance (may be null if not initialized)
+ * Reserved for future use
+ */
+// @ts-expect-error - Unused function reserved for future use
+function getServiceInstances(): ServiceInstances | null {
+  return serviceInstances;
+}
+
+/**
+ * Check if Phase 4 services are ready for use
+ */
+function isServicesReady(): boolean {
+  return serviceInstances !== null;
+}
 
 let openedTabId: number | null = null;
 const trackedTabs = new Set<number>();
@@ -75,8 +150,157 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const tabId = sender.tab?.id;
 
   switch (message.type) {
+    // ═══════════════════════════════════════════════════════════════════════
+    // P40: EXECUTE_STEP - Run step using DecisionEngine with fallback chain
+    // Called by TestRunner during playback
+    // ═══════════════════════════════════════════════════════════════════════
+    case 'EXECUTE_STEP': {
+      const { tabId: targetTabId, step } = message as {
+        tabId: number;
+        step: any; // Step from TestRunner
+      };
+      
+      if (!serviceInstances) {
+        console.warn('[Muffin P40] DecisionEngine not available - services not initialized');
+        sendResponse({ 
+          success: false, 
+          error: 'Services not initialized. Try reloading the extension.',
+          fallback: 'basic'
+        });
+        return true;
+      }
+      
+      // Execute step with 7-tier fallback chain
+      const decisionEngine = getDecisionEngine();
+      decisionEngine.executeAction({
+        tabId: targetTabId,
+        fallbackChain: step.fallbackChain || { strategies: [] },
+        actionType: step.action || 'click',
+        value: step.value,
+        stepIndex: step.index
+      })
+        .then((result: ActionExecutionResult) => {
+          console.log(`[Muffin P40] Step "${step.label}" executed via ${result.usedStrategy.type} (${result.success ? 'success' : 'failed'})`);
+          sendResponse({ 
+            success: result.success, 
+            strategyUsed: result.usedStrategy,
+            duration: result.totalDuration 
+          });
+        })
+        .catch((error: Error) => {
+          console.error('[Muffin P40] Step execution failed:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      
+      return true; // Keep channel open for async response
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // P40: GET_SERVICE_STATUS - Check if Phase 4 services are available
+    // Used by UI to show service indicators
+    // ═══════════════════════════════════════════════════════════════════════
+    case 'GET_SERVICE_STATUS': {
+      sendResponse({
+        ready: isServicesReady(),
+        services: serviceInstances ? {
+          cdp: !!serviceInstances.cdpService,
+          accessibility: !!serviceInstances.accessibilityService,
+          vision: !!serviceInstances.visionService,
+          telemetry: !!serviceInstances.telemetryLogger,
+          playwrightLocators: !!serviceInstances.playwrightLocators,
+          autoWaiting: !!serviceInstances.autoWaiting
+        } : null,
+        version: '4.0.0'
+      });
+      return true;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // P40: GET_ANALYTICS - Retrieve strategy metrics and run history
+    // Called by Analytics dashboard
+    // ═══════════════════════════════════════════════════════════════════════
+    case 'GET_ANALYTICS': {
+      if (!serviceInstances?.telemetryLogger) {
+        sendResponse({ metrics: null, recentRuns: [], error: 'Telemetry not available' });
+        return true;
+      }
+      
+      const { days = 30 } = message;
+      // Parallel query: metrics + recent run summaries
+      const now = Date.now();
+      const startTime = days ? now - (days * 24 * 60 * 60 * 1000) : undefined;
+      const timeRange = startTime ? { start: startTime, end: now } : undefined;
+      
+      Promise.all([
+        serviceInstances.telemetryLogger.getStrategyMetrics(timeRange),
+        serviceInstances.telemetryLogger.getRunSummaries(timeRange)
+      ]).then(([metrics, runSummaries]) => {
+        // Return strategy metrics and run summaries
+        const recentRuns = runSummaries.slice(0, 20).map(summary => ({
+          runId: summary.runId,
+          startTime: summary.startTime,
+          endTime: summary.endTime,
+          totalSteps: summary.totalSteps,
+          successfulSteps: summary.successfulSteps,
+          passRate: summary.passRate
+        }));
+        
+        sendResponse({ metrics, recentRuns });
+      }).catch((error) => {
+        console.error('[Muffin P40] Failed to get analytics:', error);
+        sendResponse({ metrics: null, recentRuns: [], error: error.message });
+      });
+      
+      return true;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // P40: ATTACH_CDP - Attach Chrome DevTools Protocol to a tab
+    // Required for advanced element finding strategies
+    // ═══════════════════════════════════════════════════════════════════════
+    case 'ATTACH_CDP': {
+      const { tabId: targetTabId } = message;
+      
+      if (!serviceInstances?.cdpService) {
+        sendResponse({ success: false, error: 'CDP service not available' });
+        return true;
+      }
+      
+      serviceInstances.cdpService.attach(targetTabId)
+        .then(() => {
+          console.log(`[Muffin P40] CDP attached to tab ${targetTabId}`);
+          sendResponse({ success: true });
+        })
+        .catch((error: Error) => {
+          // Some tabs can't be debugged (chrome://, devtools, etc.)
+          console.warn(`[Muffin P40] CDP attach failed for tab ${targetTabId}:`, error.message);
+          sendResponse({ success: false, error: error.message });
+        });
+      
+      return true;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // P40: DETACH_CDP - Detach CDP from a tab
+    // Called when recording/playback ends
+    // ═══════════════════════════════════════════════════════════════════════
+    case 'DETACH_CDP': {
+      const { tabId: targetTabId } = message;
+      
+      if (!serviceInstances?.cdpService) {
+        sendResponse({ success: true }); // No-op if service unavailable
+        return true;
+      }
+      
+      serviceInstances.cdpService.detach(targetTabId)
+        .then(() => sendResponse({ success: true }))
+        .catch((error: Error) => sendResponse({ success: false, error: error.message }));
+      
+      return true;
+    }
+    
     // ========================================================================
-    // SCREENSHOT / VISION
+    // SCREENSHOT / VISION (Existing handlers preserved)
     // ========================================================================
     case 'CAPTURE_SCREENSHOT':
       handleScreenshotCapture(tabId, message.payload)
@@ -571,20 +795,43 @@ chrome.action.onClicked.addListener(() => {
   });
 });
 
-chrome.runtime.onInstalled.addListener((details) => {
-  console.log('[Background] Extension installed/updated, initializing Phase 4 services...');
+// ═══════════════════════════════════════════════════════════════════════════════
+// P40: EXTENSION LIFECYCLE HANDLERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize services when extension is installed or updated
+ */
+chrome.runtime.onInstalled.addListener(async (details) => {
+  console.log('[Muffin P40] Extension installed/updated:', details.reason);
   
-  // Pre-initialize Phase 4 singletons
-  getCDPService();
-  getTelemetryLogger();
+  // Initialize comprehensive Phase 4 services
+  const success = await initializePhase4Services();
   
-  console.log('[Background] Phase 4 services initialized');
+  if (success) {
+    console.log('[Muffin P40] ✅ Ready for multi-layer recording and 7-tier playback');
+  } else {
+    console.log('[Muffin P40] ⚠️ Running in basic mode (Phase 4 services unavailable)');
+    
+    // Fallback: Initialize legacy singletons
+    getCDPService();
+    getTelemetryLogger();
+  }
 
   if (details.reason === "install") {
     chrome.tabs.create({
       url: chrome.runtime.getURL("pages.html#dashboard"),
     });
   }
+});
+
+/**
+ * Re-initialize services when service worker wakes up
+ * (Service workers can be terminated and restarted by Chrome)
+ */
+chrome.runtime.onStartup.addListener(async () => {
+  console.log('[Muffin P40] Service worker startup - re-initializing services');
+  await initializePhase4Services();
 });
 
 // helper function
@@ -611,5 +858,46 @@ chrome.webNavigation.onCommitted.addListener((details) => {
   if (trackedTabs.has(details.tabId)) {
     console.log("Frame navigated:", details.frameId, details.url);
     injectMain(details.tabId);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// P40: TAB EVENT HANDLERS
+// Auto-attach CDP for better element finding
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Optionally attach CDP when a tab becomes active
+ * This enables faster step execution during playback
+ */
+chrome.tabs.onActivated.addListener(async ({ tabId }) => {
+  if (!serviceInstances?.cdpService) return;
+  
+  try {
+    // Get tab info to check if it's debuggable
+    const tab = await chrome.tabs.get(tabId);
+    
+    // Skip chrome:// and other restricted URLs
+    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('devtools://')) {
+      return;
+    }
+    
+    // Attach CDP (will be no-op if already attached)
+    await serviceInstances.cdpService.attach(tabId);
+    console.log(`[Muffin P40] CDP auto-attached to tab ${tabId}`);
+  } catch (_e) {
+    // Silently ignore - tab may not be debuggable
+  }
+});
+
+/**
+ * Clean up CDP connection when tab is closed
+ */
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (serviceInstances?.cdpService) {
+    serviceInstances.cdpService.detach(tabId).catch(() => {
+      // Ignore - tab already gone
+    });
+    console.log(`[Muffin P40] CDP detached from closed tab ${tabId}`);
   }
 });
