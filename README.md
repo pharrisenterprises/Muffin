@@ -16,14 +16,35 @@
 - **CSV Data** - Run recordings with multiple data rows
 - **Projects** - Organize recordings into projects
 
-### 🆕 Vision Enhancement (v2.1.0)
+### 🆕 Phase 4: 7-Tier Intelligent Playback System
 
-#### 👁️ Vision-Based Recording
-Automatically falls back to OCR-based recording when DOM selectors are unreliable:
-- Shadow DOM elements
-- Deeply nested structures (15+ levels)
-- Elements without stable identifiers
-- Monaco editors and complex inputs
+#### 🎯 Intelligent Element Location
+Multi-strategy approach to finding elements reliably:
+
+1. **CDP Semantic** (0.95) - Playwright-style role/name locators
+2. **CDP Power** (0.92) - Accessibility tree queries
+3. **DOM Selector** (0.90) - ID-based selectors
+4. **CSS Selector** (0.85) - CSS path selectors
+5. **XPath** (0.80) - XPath expressions
+6. **Vision OCR** (0.70) - Text recognition fallback
+7. **Coordinates** (0.60) - Screen position (last resort)
+
+#### 📹 Multi-Layer Recording
+Record with comprehensive evidence capture:
+- **V1 Mode** - Simple XPath-based recording (backward compatible)
+- **V2 Mode** - Multi-layer recording with:
+  - **DOM Layer** - Selectors, attributes, tag names
+  - **Vision Layer** - Screenshots for OCR fallback
+  - **Mouse Layer** - Movement patterns
+  - **Network Layer** - Request tracking
+
+#### 📊 Analytics Dashboard
+Track strategy performance and test reliability:
+- Strategy usage breakdown
+- Success rates per strategy
+- Recent run history
+- Fallback statistics
+- Time range filtering (7/30/90 days)
 
 #### ⏱️ Time Delays
 Configure delays for your automation:
