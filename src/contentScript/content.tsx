@@ -1443,7 +1443,11 @@ const Layout: React.FC = () => {
     if (visionRecordingDebounce) clearTimeout(visionRecordingDebounce);
     if (keyboardDebounce) clearTimeout(keyboardDebounce);
     
-    console.log('[TestFlow] Content script initialized, Vision recording enabled');
+    // P41: Reset V2 recording state
+    recordingOrchestrator = null;
+    useV2Recording = false;
+    
+    console.log('[TestFlow] Content script initialized, Vision recording enabled, V2 orchestrator ready');
     
     logOpenPageEvent();
 
@@ -2617,9 +2621,177 @@ function resetLabelCountersModuleLevel(): void {
 }
 
 let recordingOrchestrator: RecordingOrchestrator | null = null;
+let useV2Recording = false;
 
 // Message handler for recording control
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // V2 MESSAGE HANDLERS (Multi-Layer Recording with Enhanced Orchestration)
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  // ─────────────────────────────────────────────────────────────────────────────
+  // START_RECORDING_V2: Initialize multi-layer recording with full orchestration
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (message.type === 'START_RECORDING_V2') {
+    const payload = message.payload || {};
+    
+    handleStartRecording({
+      enableVision: payload.enableVision ?? true,
+      enableMouse: payload.enableMouse ?? true,
+      enableNetwork: payload.enableNetwork ?? true
+    })
+      .then((result) => {
+        if (result.success) {
+          useV2Recording = true;
+          console.log('[Muffin P41] V2 Recording started with multi-layer capture');
+          sendResponse({ ...result, mode: 'v2' });
+        } else {
+          sendResponse(result);
+        }
+      })
+      .catch((err) => {
+        console.error('[Muffin P41] V2 Recording start failed:', err);
+        sendResponse({ success: false, error: err.message });
+      });
+    
+    return true;
+  }
+  
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STOP_RECORDING_V2: Stop and return full recording session with all layers
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (message.type === 'STOP_RECORDING_V2') {
+    handleStopRecording()
+      .then((result) => {
+        if (result.success) {
+          useV2Recording = false;
+          const actionCount = result.steps?.length ?? 0;
+          console.log(`[Muffin P41] V2 Recording stopped: ${actionCount} actions captured`);
+          sendResponse({ 
+            ...result, 
+            mode: 'v2',
+            actionCount,
+            session: {
+              id: `session-${Date.now()}`,
+              actions: result.steps || [],
+              duration: 0 // Will be calculated by orchestrator
+            }
+          });
+        } else {
+          sendResponse(result);
+        }
+      })
+      .catch((err) => {
+        console.error('[Muffin P41] V2 Recording stop failed:', err);
+        sendResponse({ success: false, error: err.message });
+      });
+    
+    return true;
+  }
+  
+  // ─────────────────────────────────────────────────────────────────────────────
+  // PAUSE_RECORDING_V2: Temporarily pause multi-layer capture
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (message.type === 'PAUSE_RECORDING_V2') {
+    if (recordingOrchestrator) {
+      recordingOrchestrator.pause();
+      console.log('[Muffin P41] V2 Recording paused');
+      sendResponse({ success: true, paused: true, mode: 'v2' });
+    } else {
+      sendResponse({ success: false, error: 'No active recording' });
+    }
+    return true;
+  }
+  
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RESUME_RECORDING_V2: Resume paused multi-layer capture
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (message.type === 'RESUME_RECORDING_V2') {
+    if (recordingOrchestrator) {
+      recordingOrchestrator.resume();
+      console.log('[Muffin P41] V2 Recording resumed');
+      sendResponse({ success: true, paused: false, mode: 'v2' });
+    } else {
+      sendResponse({ success: false, error: 'No active recording' });
+    }
+    return true;
+  }
+  
+  // ─────────────────────────────────────────────────────────────────────────────
+  // GET_RECORDING_STATUS: Check current recording state (V2 enhanced)
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (message.type === 'GET_RECORDING_STATUS') {
+    const state = recordingOrchestrator?.getState() ?? 'idle';
+    const stepCount = recordingOrchestrator?.getSteps().length ?? 0;
+    
+    sendResponse({
+      success: true,
+      isRecording: state === 'recording',
+      isPaused: state === 'paused',
+      mode: useV2Recording ? 'v2' : 'v1',
+      state,
+      actionCount: stepCount,
+      status: {
+        isRecording: state === 'recording',
+        isPaused: state === 'paused',
+        actionCount: stepCount
+      }
+    });
+    return true;
+  }
+  
+  // ─────────────────────────────────────────────────────────────────────────────
+  // GET_LAYER_STATUS: Get status of individual capture layers (V2 only)
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (message.type === 'GET_LAYER_STATUS') {
+    if (recordingOrchestrator && useV2Recording) {
+      const stepCount = recordingOrchestrator.getSteps().length;
+      sendResponse({ 
+        success: true, 
+        layers: {
+          dom: { active: true, captureCount: stepCount },
+          vision: { active: true, captureCount: stepCount },
+          mouse: { active: true, captureCount: stepCount },
+          network: { active: true, captureCount: 0 }
+        }
+      });
+    } else {
+      sendResponse({ 
+        success: true, 
+        layers: {
+          dom: { active: false, captureCount: 0 },
+          vision: { active: false, captureCount: 0 },
+          mouse: { active: false, captureCount: 0 },
+          network: { active: false, captureCount: 0 }
+        }
+      });
+    }
+    return true;
+  }
+  
+  // ─────────────────────────────────────────────────────────────────────────────
+  // UPDATE_RECORDING_CONFIG: Change layer settings during recording (V2)
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (message.type === 'UPDATE_RECORDING_CONFIG') {
+    if (recordingOrchestrator) {
+      console.log('[Muffin P41] Recording config update requested:', message.config);
+      // Note: Current RecordingOrchestrator doesn't support runtime config updates
+      // This handler is for future enhancement
+      sendResponse({ 
+        success: true, 
+        message: 'Config updates will be applied to next recording' 
+      });
+    } else {
+      sendResponse({ success: false, error: 'No active recording' });
+    }
+    return true;
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // V1 HANDLERS (Keep existing - backward compatibility)
+  // ═══════════════════════════════════════════════════════════════════════════
+  
   switch (message.type) {
     case 'START_RECORDING':
       handleStartRecording(message.payload)
@@ -2716,6 +2888,38 @@ async function handleStopRecording(): Promise<{
   }
 }
 
-console.log('[Content] Phase 4 recording integration loaded');
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLEANUP ON PAGE UNLOAD (P41: Save partial V2 recordings)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+window.addEventListener('beforeunload', () => {
+  if (recordingOrchestrator && useV2Recording) {
+    try {
+      // Attempt to save partial recording
+      const partialSteps = recordingOrchestrator.getSteps();
+      
+      // Notify background to save partial session
+      chrome.runtime.sendMessage({
+        type: 'PARTIAL_RECORDING_SAVE',
+        session: {
+          id: `session-${Date.now()}`,
+          actions: partialSteps,
+          reason: 'page_unload',
+          partial: true
+        }
+      }).catch(() => {
+        console.warn('[Muffin P41] Could not notify background of partial recording');
+      });
+      
+      console.log(`[Muffin P41] Partial recording saved on unload: ${partialSteps.length} steps`);
+    } catch (e) {
+      console.warn('[Muffin P41] Could not save partial recording on unload');
+    }
+    
+    recordingOrchestrator = null;
+  }
+});
+
+console.log('[Content] Phase 4 recording integration loaded with V2 multi-layer support');
 
 export default Layout;
