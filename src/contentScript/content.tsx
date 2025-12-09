@@ -6,14 +6,9 @@ import React, { useEffect } from 'react';
 // NEW MODULAR ENGINE IMPORTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Recording Engine (replaces inline recording handlers)
-import { recordingEngine } from '../recording';
-
+// NOTE: recordingEngine and evidenceAggregator removed - RecordingOrchestrator handles all recording
 // Playback Engine (with context validation)
 import { playbackEngine } from '../playback';
-
-// Evidence Aggregator (Batch 10-11: Evidence scoring)
-import { evidenceAggregator } from '../playback/evidence';
 
 // Automation Orchestrator (tiered fallback system)
 import { automationOrchestrator, cdpClient } from '../automation';
@@ -1177,37 +1172,19 @@ const Layout: React.FC = () => {
   ): Promise<boolean> => {
     console.log('[CONTENT] Message received:', (message as any).action || message.type);
     // ═══════════════════════════════════════════════════════════════════════
-    // RECORDING CONTROLS
     // ═══════════════════════════════════════════════════════════════════════
-    
-    if (message.type === 'START_RECORDING' || (message as any).action === 'startRecording') {
-      console.log('[TestFlow] ▶️ Starting modular recording engine');
-      recordingEngine.start();
-      evidenceAggregator.startRecordingTracking(); // Batch 10-11: Start evidence tracking
-      console.log('[CONTENT] Recording STARTED, isRecording now:', recordingEngine.isRecording());
-      sendResponse({ success: true, message: 'Recording started' });
-      return true;
-    }
-
-    if (message.type === 'STOP_RECORDING' || (message as any).action === 'stopRecording') {
-      console.log('[TestFlow] ⏹️ Stopping modular recording engine');
-      recordingEngine.stop();
-      evidenceAggregator.stopRecordingTracking(); // Batch 10-11: Stop evidence tracking
-      sendResponse({ 
-        success: true, 
-        message: 'Recording stopped',
-        stepCount: recordingEngine.getStepCount()
-      });
-      return true;
-    }
-    
-    if (message.type === 'GET_RECORDING_STATE' || (message as any).action === 'getRecordingState') {
-      sendResponse({
-        isRecording: recordingEngine.isRecording(),
-        stepCount: recordingEngine.getStepCount(),
-      });
-      return true;
-    }
+    // RECORDING CONTROLS (DEPRECATED - Use RecordingOrchestrator below)
+    // ═══════════════════════════════════════════════════════════════════════
+    // 
+    // REMOVED: Duplicate handlers that conflicted with RecordingOrchestrator
+    // The RecordingOrchestrator (Phase 4, Prompt 41) handles all recording.
+    // These old recordingEngine handlers caused race conditions and event loss.
+    // See RECORDING_BUG_FIX.md for details.
+    //
+    // Old handlers removed:
+    // - START_RECORDING → Now handled by handleStartRecording() at line 2796
+    // - STOP_RECORDING → Now handled by handleStopRecording() at line 2827
+    // - GET_RECORDING_STATE → Now handled at line 2833
     
     // ═══════════════════════════════════════════════════════════════════════
     // PLAYBACK CONTROLS (NEW - Automation Orchestrator)
