@@ -13,6 +13,21 @@ import { createPageUrl } from "../utils/index";
 import { TableHead, TableHeader, TableRow } from "../components/Ui/table"
 import { Alert, AlertDescription } from "../components/Ui/alert";
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 4: MULTI-LAYER RECORDING IMPORTS (Prompt 43)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import { LayerIndicator, type CaptureLayer } from '../components/LayerIndicator';
+
+// Multi-layer recording types
+type LayerType = 'dom' | 'vision' | 'mouse' | 'network';
+
+interface LayerStatus {
+  active: boolean;
+  captureCount: number;
+  lastError?: string;
+}
+
 // ============================================
 // FIX 3 & 4: Post-Recording Cleanup
 // Normalizes labels and detects patterns
@@ -281,6 +296,29 @@ export default function Recorder() {
   // FIX 7C: Conditional Click modal state
   const [conditionalModalOpen, setConditionalModalOpen] = useState(false);
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // PROMPT 43: MULTI-LAYER RECORDING STATE
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // V2 mode toggle
+  const [isV2Mode, setIsV2Mode] = useState<boolean>(false);
+
+  // Layer configuration (before recording starts)
+  const [layerConfig, setLayerConfig] = useState<Record<LayerType, boolean>>({
+    dom: true,      // Always enabled
+    vision: false,  // Optional - requires more resources
+    mouse: true,    // Enabled by default
+    network: false  // Optional
+  });
+
+  // Live layer status (during recording)
+  const [layerStatus, setLayerStatus] = useState<Record<LayerType, LayerStatus>>({
+    dom: { active: false, captureCount: 0 },
+    vision: { active: false, captureCount: 0 },
+    mouse: { active: false, captureCount: 0 },
+    network: { active: false, captureCount: 0 }
+  });
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.hash.split("?")[1]);
     const projectId = urlParams.get("project");
@@ -355,28 +393,52 @@ export default function Recorder() {
           payload: { id: parseInt(projectId, 10) },
         });
         
-        // MVS v8.0 GAP-2 FIX: Send START_RECORDING to content script
+        // PROMPT 43: Send V2 or V1 recording start message
         setTimeout(() => {
           chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0]?.id) {
-              chrome.tabs.sendMessage(tabs[0].id, { type: 'START_RECORDING', payload: {} }, (_response) => {
+              const messageType = isV2Mode ? 'START_RECORDING_V2' : 'START_RECORDING';
+              const payload = isV2Mode ? {
+                type: messageType,
+                config: {
+                  enableDOM: layerConfig.dom,
+                  enableVision: layerConfig.vision,
+                  enableMouse: layerConfig.mouse,
+                  enableNetwork: layerConfig.network
+                }
+              } : { type: messageType, payload: {} };
+              
+              chrome.tabs.sendMessage(tabs[0].id, payload, (response) => {
                 if (chrome.runtime.lastError) {
-                  console.warn('[Muffin MVS] Could not notify content script:', chrome.runtime.lastError.message);
+                  console.warn('[Muffin] Could not notify content script:', chrome.runtime.lastError.message);
                 } else {
-                  console.log('[Muffin MVS] Content script notified of recording start');
+                  console.log(`[Muffin] ${isV2Mode ? 'V2 multi-layer' : 'V1'} recording started`);
+                  if (isV2Mode && response?.layers) {
+                    setLayerStatus(response.layers);
+                  }
                 }
               });
             }
           });
         }, 500); // Wait for tab to be ready
       } else {
-        // MVS v8.0 GAP-2 FIX: Send STOP_RECORDING to content script
+        // PROMPT 43: Send V2 or V1 recording stop message
+        const messageType = isV2Mode ? 'STOP_RECORDING_V2' : 'STOP_RECORDING';
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           if (tabs[0]?.id) {
-            chrome.tabs.sendMessage(tabs[0].id, { type: 'STOP_RECORDING' }, (_response) => {
+            chrome.tabs.sendMessage(tabs[0].id, { type: messageType }, (response) => {
               if (chrome.runtime.lastError) {
-                console.warn('[Muffin MVS] Could not notify content script (stop):', chrome.runtime.lastError.message);
+                console.warn('[Muffin] Could not notify content script (stop):', chrome.runtime.lastError.message);
+              } else if (isV2Mode && response?.session) {
+                console.log(`[Muffin] V2 session: ${response.session.actions.length} actions captured`);
               }
+              // Reset layer status
+              setLayerStatus({
+                dom: { active: false, captureCount: 0 },
+                vision: { active: false, captureCount: 0 },
+                mouse: { active: false, captureCount: 0 },
+                network: { active: false, captureCount: 0 }
+              });
             });
           }
         });
@@ -666,6 +728,22 @@ export default function Recorder() {
     };
   }, [isRecording, currentProject, recordedSteps]);
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // PROMPT 43: LAYER STATUS LISTENER
+  // ═══════════════════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    const handleLayerUpdate = (message: any) => {
+      if (message.type === 'LAYER_UPDATE' && message.status) {
+        setLayerStatus(message.status);
+      }
+    };
+    
+    chrome.runtime.onMessage.addListener(handleLayerUpdate);
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleLayerUpdate);
+    };
+  }, []);
+
   const updateProjectSteps = (
     projectId: number,
     steps: Step[],
@@ -830,6 +908,81 @@ export default function Recorder() {
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════════ */}
+        {/* PROMPT 43: MULTI-LAYER RECORDING CONTROLS */}
+        {/* ═══════════════════════════════════════════════════════════════════════ */}
+        {!isRecording && (
+          <Card className="mb-4 bg-slate-800 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <span>Recording Mode</span>
+                {isV2Mode && <span className="text-xs bg-purple-600 px-2 py-1 rounded">Multi-Layer</span>}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* V1/V2 Mode Toggle */}
+              <div className="flex items-center gap-3">
+                <span className={`text-sm ${!isV2Mode ? 'text-blue-400 font-semibold' : 'text-slate-400'}`}>
+                  Basic
+                </span>
+                <button
+                  onClick={() => setIsV2Mode(!isV2Mode)}
+                  disabled={isRecording}
+                  className={`w-12 h-6 rounded-full transition-colors ${
+                    isV2Mode ? 'bg-purple-600' : 'bg-slate-600'
+                  } ${isRecording ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                    isV2Mode ? 'translate-x-6' : 'translate-x-0.5'
+                  }`} />
+                </button>
+                <span className={`text-sm ${isV2Mode ? 'text-purple-400 font-semibold' : 'text-slate-400'}`}>
+                  Multi-Layer
+                </span>
+              </div>
+
+              {/* Layer Configuration (V2 only) */}
+              {isV2Mode && (
+                <div className="bg-slate-900 p-3 rounded-lg space-y-2">
+                  <p className="text-xs text-slate-400 mb-2">Capture Layers:</p>
+                  {(['dom', 'vision', 'mouse', 'network'] as LayerType[]).map(layer => (
+                    <label key={layer} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={layerConfig[layer]}
+                        onChange={(e) => setLayerConfig(prev => ({ ...prev, [layer]: e.target.checked }))}
+                        disabled={layer === 'dom' || isRecording}
+                        className="w-4 h-4 accent-purple-600"
+                      />
+                      <span className="text-sm capitalize flex-1">
+                        {layer === 'dom' && '🏗️ DOM (required)'}
+                        {layer === 'vision' && '👁️ Vision'}
+                        {layer === 'mouse' && '🖱️ Mouse'}
+                        {layer === 'network' && '🌐 Network'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Layer Status Bar (During Recording) */}
+        {isRecording && isV2Mode && (
+          <div className="mb-4 bg-slate-800 p-3 rounded-lg border border-slate-700">
+            <p className="text-xs text-slate-400 mb-2">Active Layers:</p>
+            <LayerIndicator
+              layers={Object.entries(layerStatus).map(([key, status]) => ({
+                layer: key as CaptureLayer,
+                active: status.active,
+                capturing: status.active && status.captureCount > 0,
+                lastCapture: Date.now()
+              }))}
+            />
+          </div>
+        )}
 
         {/* VISION: Added loopStartIndex, steps, and handlers to toolbar */}
         <RecorderToolbar
