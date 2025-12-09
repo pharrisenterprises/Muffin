@@ -349,14 +349,27 @@ export default function TestRunner() {
               let inputValue: string | undefined;
 
               if (csv_data && csv_data.length > 0) {
+                // MVS v8.0 GAP-4 FIX: Whitespace-tolerant CSV matching
+                const trimmedLabel = step.label?.trim().toLowerCase();
+                
                 // B-57: Use position-based column mapping
                 const columnName = stepToColumn[stepIndex];
                 if (columnName && row[columnName] !== undefined) {
                   inputValue = row[columnName];
 
                 } else if (row[step.label] !== undefined) {
-                  // Fallback to direct label match
+                  // Fallback to direct label match (exact)
                   inputValue = row[step.label];
+                  
+                } else if (trimmedLabel) {
+                  // MVS v8.0: Try trimmed case-insensitive match
+                  const matchingKey = Object.keys(row).find(key => 
+                    key.trim().toLowerCase() === trimmedLabel
+                  );
+                  if (matchingKey) {
+                    inputValue = row[matchingKey];
+                    console.log(`[Muffin MVS] CSV matched "${matchingKey}" to step "${step.label}"`);
+                  }
 
                 } else {
                   // Try legacy mapping lookup as final fallback

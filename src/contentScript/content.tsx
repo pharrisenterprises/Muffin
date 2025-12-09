@@ -159,8 +159,50 @@ const Layout: React.FC = () => {
   // ============================================
   let labelCounts = new Map<string, number>();
   
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // MVS v8.0 GAP-1 FIX: LABEL SEQUENCE COUNTER SYSTEM
+  // ═══════════════════════════════════════════════════════════════════════════════
+  
+  // Module-level counter for generating sequential step labels
+  let labelSequence = 0;
+  
+  // Constants for label generation
+  const MAX_LABEL_LENGTH = 50;
+  
+  /**
+   * Reset the label sequence counter.
+   * Called on: page load (initContentScript) and new recording (START_RECORDING)
+   */
+  function resetLabelSequence(): void {
+    labelSequence = 0;
+    console.log('[Muffin MVS] Label sequence reset to 0');
+  }
+  
+  /**
+   * Get the next label sequence number (pre-increment)
+   */
+  function getNextLabelSequence(): number {
+    labelSequence++;
+    return labelSequence;
+  }
+  
+  /**
+   * Validate if a label is suitable for use
+   */
+  function isValidLabel(label: string | null | undefined): boolean {
+    if (!label) return false;
+    const trimmed = label.trim();
+    if (trimmed.length === 0) return false;
+    if (trimmed.length > MAX_LABEL_LENGTH) return false;
+    // Reject labels that are just numbers or single characters
+    if (/^\d+$/.test(trimmed)) return false;
+    if (trimmed.length === 1) return false;
+    return true;
+  }
+  
   const resetLabelCounters = (): void => {
     labelCounts = new Map<string, number>();
+    resetLabelSequence(); // MVS v8.0: Also reset sequence counter
     console.log('[TestFlow] Label counters reset for new recording');
   };
   
@@ -1390,6 +1432,9 @@ const Layout: React.FC = () => {
     // FIX 2: Reset label counters for fresh sequential numbering
     resetLabelCounters();
     
+    // MVS v8.0 GAP-3 FIX: Reset label sequence on page load
+    resetLabelSequence();
+    
     // B-40: Reset Vision recording state
     lastVisionRecordedText = '';
     keyboardBuffer = '';
@@ -2612,6 +2657,11 @@ async function handleStartRecording(
     if (recordingOrchestrator?.getState() !== 'idle') {
       return { success: false, error: 'Already recording' };
     }
+
+    // MVS v8.0 GAP-3 FIX: Reset label sequence for new recording
+    resetLabelSequence();
+    resetLabelCounters();
+    console.log('[Muffin MVS] Recording started, counters reset');
 
     recordingOrchestrator = getRecordingOrchestrator({
       enableVision: payload.enableVision ?? true,

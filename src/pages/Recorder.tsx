@@ -354,7 +354,33 @@ export default function Recorder() {
           action: "open_project_url_and_inject",
           payload: { id: parseInt(projectId, 10) },
         });
+        
+        // MVS v8.0 GAP-2 FIX: Send START_RECORDING to content script
+        setTimeout(() => {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]?.id) {
+              chrome.tabs.sendMessage(tabs[0].id, { type: 'START_RECORDING', payload: {} }, (response) => {
+                if (chrome.runtime.lastError) {
+                  console.warn('[Muffin MVS] Could not notify content script:', chrome.runtime.lastError.message);
+                } else {
+                  console.log('[Muffin MVS] Content script notified of recording start');
+                }
+              });
+            }
+          });
+        }, 500); // Wait for tab to be ready
       } else {
+        // MVS v8.0 GAP-2 FIX: Send STOP_RECORDING to content script
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs[0]?.id) {
+            chrome.tabs.sendMessage(tabs[0].id, { type: 'STOP_RECORDING' }, (response) => {
+              if (chrome.runtime.lastError) {
+                console.warn('[Muffin MVS] Could not notify content script (stop):', chrome.runtime.lastError.message);
+              }
+            });
+          }
+        });
+        
         // Stop recording → close opened tab
         chrome.runtime.sendMessage({ action: "close_opened_tab" });
         
@@ -628,9 +654,15 @@ export default function Recorder() {
       }
     };
 
-    chrome.runtime.onMessage.addListener(listener);
+    // MVS v8.0 GAP-5 FIX: Wrap listener to ensure return true for async
+    const asyncListener = (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
+      listener(message, sender, sendResponse);
+      return true; // Keep message channel open for async responses
+    };
+
+    chrome.runtime.onMessage.addListener(asyncListener);
     return () => {
-      chrome.runtime.onMessage.removeListener(listener);
+      chrome.runtime.onMessage.removeListener(asyncListener);
     };
   }, [isRecording, currentProject, recordedSteps]);
 
