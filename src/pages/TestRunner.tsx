@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/Ui/card"
 import { Badge } from "../components/Ui/badge";
 import { Progress } from "../components/Ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/Ui/tabs";
+import { StrategyBadge, type StrategyType } from '../components/StrategyBadge';
 import {
   Play,
   Square,
@@ -44,6 +45,23 @@ interface TestStep {
   error_message: string | null;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 4: STRATEGY EXECUTION TYPES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface StepExecutionResult {
+  success: boolean;
+  strategyUsed: StrategyType | string | null;
+  fallbacksAttempted: number;
+  duration: number;
+  error?: string;
+}
+
+interface EnhancedStepState {
+  status: 'pending' | 'running' | 'passed' | 'failed' | 'skipped';
+  result?: StepExecutionResult;
+}
+
 type Project = {
   id: string;
   name: string;
@@ -81,6 +99,25 @@ export default function TestRunner() {
   const [testSteps, setTestSteps] = useState<TestStep[]>([]);
   const [activeTab, setActiveTab] = useState<string>("console");
   const isRunningRef = useRef(false);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // PHASE 4: STRATEGY TRACKING STATE
+  // ═══════════════════════════════════════════════════════════════════════════════
+  
+  const [stepStates, setStepStates] = useState<Record<number, EnhancedStepState>>({});
+  const [runStats, setRunStats] = useState<{
+    totalSteps: number;
+    passedSteps: number;
+    failedSteps: number;
+    totalDuration: number;
+    strategyUsage: Record<string, number>;
+  }>({
+    totalSteps: 0,
+    passedSteps: 0,
+    failedSteps: 0,
+    totalDuration: 0,
+    strategyUsage: {}
+  });
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.hash.split("?")[1]);
@@ -148,6 +185,16 @@ export default function TestRunner() {
     setProgress(0);
     setLogs([]);
     setActiveTab("console");
+    
+    // Phase 4: Reset strategy tracking
+    setStepStates({});
+    setRunStats({
+      totalSteps: 0,
+      passedSteps: 0,
+      failedSteps: 0,
+      totalDuration: 0,
+      strategyUsage: {}
+    });
 
     try {
       const { csv_data, recorded_steps, parsed_fields, target_url } = currentProject;
@@ -269,7 +316,6 @@ export default function TestRunner() {
 
         // Clone steps
         const testSteps = JSON.parse(JSON.stringify(recorded_steps));
-        let prev_step = {};
         
         // B-42: Determine starting step based on loop mode
         const startStepIndex = (rowIndex > 0 && loopStartIndex >= 0) ? loopStartIndex : 0;
@@ -339,7 +385,6 @@ export default function TestRunner() {
               }
               
               setProgress(((stepIndex + 1) / testSteps.length) * 100);
-              prev_step = { ...step, bundle: step.bundle || {} } as any;
               
               // Continue to next step after conditional completes
               continue;
@@ -435,21 +480,71 @@ export default function TestRunner() {
               }
             });
 
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // PHASE 4: EXECUTE STEP VIA DECISION ENGINE
+            // ═══════════════════════════════════════════════════════════════════════════════
+            
+            setStepStates(prev => ({
+              ...prev,
+              [stepIndex]: { status: 'running' }
+            }));
+            
+            const startTime = Date.now();
             let stepSuccess = false;
             let executionError: any = "";
-            const startTime = Date.now();
+            let stepResult: StepExecutionResult | null = null;
 
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+            
             if (stepData.event !== "open") {
               try {
-                await chrome.tabs.sendMessage(tabId, {
-                  type: "runStep",
-                  data: stepData,
-                  prevStep : prev_step
+                // Phase 4: Use EXECUTE_STEP (calls DecisionEngine in background)
+                const response = await new Promise<any>((resolve) => {
+                  chrome.runtime.sendMessage(
+                    { type: 'EXECUTE_STEP', tabId, step: stepData, runId: currentProject?.id || 'test' },
+                    (resp) => {
+                      if (chrome.runtime.lastError) {
+                        resolve({ success: false, error: chrome.runtime.lastError.message });
+                      } else {
+                        resolve(resp || { success: false });
+                      }
+                    }
+                  );
                 });
-                stepSuccess = true;
+                
+                stepSuccess = response.success;
+                executionError = response.error || "";
+                
+                // Phase 4: Capture strategy metadata
+                stepResult = {
+                  success: response.success,
+                  strategyUsed: response.strategyUsed || null,
+                  fallbacksAttempted: response.fallbacksAttempted || 0,
+                  duration: Date.now() - startTime,
+                  error: response.error
+                };
+                
+                // Phase 4: Update strategy stats
+                if (stepResult.strategyUsed) {
+                  setRunStats(prev => ({
+                    ...prev,
+                    totalSteps: prev.totalSteps + 1,
+                    passedSteps: prev.passedSteps + (stepResult!.success ? 1 : 0),
+                    failedSteps: prev.failedSteps + (stepResult!.success ? 0 : 1),
+                    totalDuration: prev.totalDuration + stepResult!.duration,
+                    strategyUsage: {
+                      ...prev.strategyUsage,
+                      [stepResult!.strategyUsed!]: (prev.strategyUsage[stepResult!.strategyUsed!] || 0) + 1
+                    }
+                  }));
+                }
+                
+                if (!stepSuccess) {
+                  addLog("error", `Step ${stepIndex + 1} execution failed: ${executionError}`);
+                }
               } catch (error: any) {
                 executionError = error.message;
+                stepSuccess = false;
                 addLog("error", `Step ${stepIndex + 1} execution failed: ${executionError}`);
               }
             } else {
@@ -458,17 +553,25 @@ export default function TestRunner() {
 
             const duration = Date.now() - startTime;
 
+            // Phase 4: Update step state with result
             if (stepSuccess) {
               step.status = "passed";
               updateStepStatus(stepIndex, "passed", duration);
-              addLog("success", `✓ Step ${stepIndex + 1} completed`);
+              setStepStates(prev => ({
+                ...prev,
+                [stepIndex]: { status: 'passed', result: stepResult || undefined }
+              }));
+              addLog("success", `✓ Step ${stepIndex + 1} completed${stepResult?.strategyUsed ? ` (${stepResult.strategyUsed})` : ''}`);
             } else {
               step.status = "failed";
               updateStepStatus(stepIndex, "failed", duration, executionError);
+              setStepStates(prev => ({
+                ...prev,
+                [stepIndex]: { status: 'failed', result: stepResult || undefined }
+              }));
             }
 
             setProgress(((stepIndex + 1) / testSteps.length) * 100);
-            prev_step = stepData;
             
             // B-43: Apply delay based on mode
             if (stepIndex < testSteps.length - 1) {
@@ -534,6 +637,17 @@ export default function TestRunner() {
     setProgress(0);
     setLogs([]);
     setTestSteps([]);
+    
+    // Phase 4: Reset strategy tracking
+    setStepStates({});
+    setRunStats({
+      totalSteps: 0,
+      passedSteps: 0,
+      failedSteps: 0,
+      totalDuration: 0,
+      strategyUsage: {}
+    });
+    
     addLog('warning', 'Test execution reset by user');
   };
 
@@ -685,6 +799,129 @@ export default function TestRunner() {
             </CardContent>
           </Card>
         </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════════════════
+            PHASE 4: STRATEGY USAGE SUMMARY
+            ═══════════════════════════════════════════════════════════════════════════════ */}
+        {!isRunning && runStats.totalSteps > 0 && (
+          <Card className="glass-effect bg-slate-800/30 border-slate-700/50">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Activity className="w-5 h-5 text-green-400" />
+                Run Summary (Phase 4 Strategy System)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Summary Stats */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="p-3 rounded-lg bg-slate-700/30">
+                    <div className="text-2xl font-bold text-green-400">
+                      {runStats.passedSteps}
+                    </div>
+                    <div className="text-xs text-slate-400">Passed</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-700/30">
+                    <div className="text-2xl font-bold text-red-400">
+                      {runStats.failedSteps}
+                    </div>
+                    <div className="text-xs text-slate-400">Failed</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-700/30">
+                    <div className="text-2xl font-bold text-blue-400">
+                      {runStats.totalSteps}
+                    </div>
+                    <div className="text-xs text-slate-400">Total Steps</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-700/30">
+                    <div className="text-2xl font-bold text-purple-400">
+                      {runStats.totalDuration}ms
+                    </div>
+                    <div className="text-xs text-slate-400">Duration</div>
+                  </div>
+                </div>
+
+                {/* Strategy Usage Breakdown */}
+                {Object.keys(runStats.strategyUsage).length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-300 mb-3">
+                      Strategies Used (7-Tier Fallback System)
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(runStats.strategyUsage)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([strategy, count]) => (
+                          <div 
+                            key={strategy}
+                            className="flex items-center gap-2 p-2 rounded-lg bg-slate-700/50"
+                          >
+                            <StrategyBadge strategyType={strategy as StrategyType} size="sm" />
+                            <span className="text-sm text-slate-300">
+                              ×{count}
+                            </span>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </div>
+                )}
+
+                {/* Step-by-Step Strategy Results */}
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-300 mb-3">
+                    Step Details
+                  </h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {testSteps.map((step, index) => {
+                      const stepState = stepStates[index];
+                      if (!stepState?.result) return null;
+                      
+                      return (
+                        <div 
+                          key={index}
+                          className="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 border border-slate-600/50"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-mono text-slate-400 w-8">
+                              #{index + 1}
+                            </span>
+                            {stepState.status === 'passed' ? (
+                              <CheckCircle className="w-4 h-4 text-green-400" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-red-400" />
+                            )}
+                            <span className="text-sm text-slate-300">
+                              {step.name}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            {stepState.result.strategyUsed && (
+                              <StrategyBadge 
+                                strategyType={stepState.result.strategyUsed as StrategyType} 
+                                size="sm" 
+                              />
+                            )}
+                            
+                            {stepState.result.fallbacksAttempted > 0 && (
+                              <span className="text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
+                                {stepState.result.fallbacksAttempted} fallback{stepState.result.fallbacksAttempted > 1 ? 's' : ''}
+                              </span>
+                            )}
+                            
+                            <span className="text-xs text-slate-400 font-mono">
+                              {stepState.result.duration}ms
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Main Content */}
         <div className="grid lg:grid-cols-3 gap-6">
