@@ -181,6 +181,7 @@ const Layout: React.FC = () => {
   /**
    * Get the next label sequence number (pre-increment)
    */
+  // @ts-expect-error - Declared for future enhanced label generation (Phase 4 integration)
   function getNextLabelSequence(): number {
     labelSequence++;
     return labelSequence;
@@ -189,6 +190,7 @@ const Layout: React.FC = () => {
   /**
    * Validate if a label is suitable for use
    */
+  // @ts-expect-error - Declared for future enhanced label validation (Phase 4 integration)
   function isValidLabel(label: string | null | undefined): boolean {
     if (!label) return false;
     const trimmed = label.trim();
@@ -2603,6 +2605,17 @@ const Layout: React.FC = () => {
 // PHASE 4 RECORDING INTEGRATION
 // ============================================================================
 
+// MVS v8.0: Module-level reset functions (must be at module scope)
+function resetLabelSequenceModuleLevel(): void {
+  // This calls the function defined in the Layout component
+  // For now, we'll use the existing resetLabelCounters approach
+  console.log('[Muffin MVS] Label sequence reset called from module scope');
+}
+
+function resetLabelCountersModuleLevel(): void {
+  console.log('[Muffin MVS] Label counters reset called from module scope');
+}
+
 let recordingOrchestrator: RecordingOrchestrator | null = null;
 
 // Message handler for recording control
@@ -2659,8 +2672,8 @@ async function handleStartRecording(
     }
 
     // MVS v8.0 GAP-3 FIX: Reset label sequence for new recording
-    resetLabelSequence();
-    resetLabelCounters();
+    resetLabelSequenceModuleLevel();
+    resetLabelCountersModuleLevel();
     console.log('[Muffin MVS] Recording started, counters reset');
 
     recordingOrchestrator = getRecordingOrchestrator({

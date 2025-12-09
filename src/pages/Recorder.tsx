@@ -359,7 +359,7 @@ export default function Recorder() {
         setTimeout(() => {
           chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0]?.id) {
-              chrome.tabs.sendMessage(tabs[0].id, { type: 'START_RECORDING', payload: {} }, (response) => {
+              chrome.tabs.sendMessage(tabs[0].id, { type: 'START_RECORDING', payload: {} }, (_response) => {
                 if (chrome.runtime.lastError) {
                   console.warn('[Muffin MVS] Could not notify content script:', chrome.runtime.lastError.message);
                 } else {
@@ -373,7 +373,7 @@ export default function Recorder() {
         // MVS v8.0 GAP-2 FIX: Send STOP_RECORDING to content script
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           if (tabs[0]?.id) {
-            chrome.tabs.sendMessage(tabs[0].id, { type: 'STOP_RECORDING' }, (response) => {
+            chrome.tabs.sendMessage(tabs[0].id, { type: 'STOP_RECORDING' }, (_response) => {
               if (chrome.runtime.lastError) {
                 console.warn('[Muffin MVS] Could not notify content script (stop):', chrome.runtime.lastError.message);
               }
