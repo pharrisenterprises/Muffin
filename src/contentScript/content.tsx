@@ -22,6 +22,13 @@ import {
   getRecordingOrchestrator 
 } from './RecordingOrchestrator';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// RECORDING STATE (FIX: Was missing entirely, causing recording to fail)
+// ═══════════════════════════════════════════════════════════════════════════
+let isRecording = false;
+let recordingOrchestrator: RecordingOrchestrator | null = null;
+let useV2Recording = false;
+
 // B-46: Safe querySelector that handles special characters in selectors
 function safeQuerySelector(doc: Document | ShadowRoot, selector: string): Element | null {
   if (!selector) return null;
@@ -1171,20 +1178,93 @@ const Layout: React.FC = () => {
     sendResponse: (response?: any) => void
   ): Promise<boolean> => {
     console.log('[CONTENT] Message received:', (message as any).action || message.type);
-    // ═══════════════════════════════════════════════════════════════════════
-    // ═══════════════════════════════════════════════════════════════════════
-    // RECORDING CONTROLS (DEPRECATED - Use RecordingOrchestrator below)
-    // ═══════════════════════════════════════════════════════════════════════
-    // 
-    // REMOVED: Duplicate handlers that conflicted with RecordingOrchestrator
-    // The RecordingOrchestrator (Phase 4, Prompt 41) handles all recording.
-    // These old recordingEngine handlers caused race conditions and event loss.
-    // See RECORDING_BUG_FIX.md for details.
-    //
-    // Old handlers removed:
-    // - START_RECORDING → Now handled by handleStartRecording() at line 2796
-    // - STOP_RECORDING → Now handled by handleStopRecording() at line 2827
-    // - GET_RECORDING_STATE → Now handled at line 2833
+  
+  // ═══════════════════════════════════════════════════════════════════════
+  // RECORDING CONTROLS (FIX: These handlers were removed but never replaced)
+  // ═══════════════════════════════════════════════════════════════════════
+  
+  // V1 Recording Start
+  if (message.type === 'START_RECORDING' || (message as any).action === 'startRecording') {
+    console.log('[Muffin] ▶️ START_RECORDING received');
+    isRecording = true;
+    useV2Recording = false;
+    
+    // Reset label counters for fresh recording
+    resetLabelSequenceModuleLevel();
+    resetLabelCountersModuleLevel();
+    
+    // Attach V1 event listeners
+    attachRecordingListeners(document);
+    
+    sendResponse({ success: true, mode: 'v1' });
+    return true;
+  }
+  
+  // V2 Multi-Layer Recording Start
+  if (message.type === 'START_RECORDING_V2') {
+    console.log('[Muffin] ▶️ START_RECORDING_V2 received (multi-layer)');
+    isRecording = true;
+    useV2Recording = true;
+    
+    // Reset label counters
+    resetLabelSequenceModuleLevel();
+    resetLabelCountersModuleLevel();
+    
+    // Create and start RecordingOrchestrator
+    const config = (message as any).config || {};
+    recordingOrchestrator = new RecordingOrchestrator({
+      enableVision: config.enableVision ?? false,
+      enableMouse: config.enableMouse ?? true,
+      enableNetwork: config.enableNetwork ?? false,
+      tabId: 0
+    });
+    
+    await recordingOrchestrator.start();
+    
+    console.log('[Muffin] RecordingOrchestrator started with config:', config);
+    sendResponse({ success: true, mode: 'v2' });
+    return true;
+  }
+  
+  // V1 Recording Stop
+  if (message.type === 'STOP_RECORDING' || (message as any).action === 'stopRecording') {
+    console.log('[Muffin] ⏹️ STOP_RECORDING received');
+    isRecording = false;
+    
+    // Remove V1 listeners
+    removeRecordingListeners(document);
+    
+    sendResponse({ success: true });
+    return true;
+  }
+  
+  // V2 Recording Stop
+  if (message.type === 'STOP_RECORDING_V2') {
+    console.log('[Muffin] ⏹️ STOP_RECORDING_V2 received');
+    isRecording = false;
+    useV2Recording = false;
+    
+    let session = null;
+    if (recordingOrchestrator) {
+      const steps = await recordingOrchestrator.stop();
+      session = { actions: steps };
+      recordingOrchestrator = null;
+      console.log('[Muffin] RecordingOrchestrator stopped, captured', steps.length, 'steps');
+    }
+    
+    sendResponse({ success: true, session });
+    return true;
+  }
+  
+  // Recording Status Query
+  if (message.type === 'GET_RECORDING_STATUS') {
+    sendResponse({ 
+      isRecording, 
+      mode: useV2Recording ? 'v2' : 'v1',
+      stepCount: recordingOrchestrator?.getSteps().length || 0
+    });
+    return true;
+  }
     
     // ═══════════════════════════════════════════════════════════════════════
     // PLAYBACK CONTROLS (NEW - Automation Orchestrator)
@@ -1443,36 +1523,192 @@ const Layout: React.FC = () => {
   });
 
 
-  // Attach listeners into a document (main or iframe)
-  // ---------------------- Attach listeners to a document (main or iframe) ----------------------
+  // ═══════════════════════════════════════════════════════════════════════════
+  // V1 RECORDING EVENT HANDLERS (FIX: Re-enabled for V1 mode)
+  // ═══════════════════════════════════════════════════════════════════════════
+
   function attachListeners(_doc: Document) {
-    // ⚠️ OLD RECORDING HANDLERS - DISABLED
-    // The modular RecordingEngine now handles all event capture
-    // These are kept for legacy playback support only
+    // This is called on page init - do NOT attach recording listeners here
+    // Recording listeners are attached by START_RECORDING handler
+    console.log('[content.tsx] Page initialized (recording listeners will attach on START_RECORDING)');
+  }
+
+  function attachRecordingListeners(doc: Document) {
+    console.log('[Muffin] 🎤 Attaching recording event listeners');
+    doc.addEventListener('mousedown', handleClick_Recording, true);
+    doc.addEventListener('input', handleInput_Recording, true);
+    doc.addEventListener('change', handleChange_Recording, true);
+    doc.addEventListener('keydown', handleKeyDown_Recording, true);
+  }
+
+  function removeRecordingListeners(doc: Document) {
+    console.log('[Muffin] 🔇 Removing recording event listeners');
+    doc.removeEventListener('mousedown', handleClick_Recording, true);
+    doc.removeEventListener('input', handleInput_Recording, true);
+    doc.removeEventListener('change', handleChange_Recording, true);
+    doc.removeEventListener('keydown', handleKeyDown_Recording, true);
+  }
+
+  function handleClick_Recording(event: Event) {
+    if (!isRecording) {
+      return;
+    }
     
-    // DISABLED: Old recording event listeners (replaced by RecordingEngine)
-    // ["mousedown"].forEach(eventType => {
-    //   doc.addEventListener(eventType, handleClick, true);
-    // });
-    // doc.addEventListener("input", handleInput, true);
-    // doc.addEventListener("keydown", handleKeyDown, true);
-    // doc.addEventListener("keydown", handleKeydownForComplexEditor, true);
+    const mouseEvent = event as MouseEvent;
+    if (!mouseEvent.isTrusted) return; // Skip synthetic clicks
     
-    console.log('[content.tsx] attachListeners called (old handlers disabled, using RecordingEngine)');
+    const path = event.composedPath() as EventTarget[];
+    const target = path.find(el => el instanceof HTMLElement) as HTMLElement;
+    if (!target) return;
+    
+    const style = getComputedStyle(target);
+    const isClickable =
+      target instanceof HTMLButtonElement ||
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLAnchorElement ||
+      target.hasAttribute('role') ||
+      style.cursor === 'pointer' ||
+      target.onclick !== null;
+
+    if (!isClickable) return;
+
+    setTimeout(() => {
+      const rect = target.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const xpath = getXPath(target);
+      const label = generateUniqueLabel(getLabelForTarget(target));
+      const value = target.textContent?.trim() || '';
+      
+      const focusedEl = getFocusedElement(target);
+      let bundle;
+      if (focusedEl) {
+        bundle = recordElement(focusedEl);
+      }
+      
+      logEvent({
+        eventType: 'click',
+        xpath: xpath,
+        bundle: bundle,
+        label: label,
+        value,
+        page: window.location.href,
+        x,
+        y,
+      });
+      
+      console.log('[Muffin] 📍 Click recorded:', label);
+    }, 30);
+  }
+
+  function handleInput_Recording(event: Event) {
+    if (!isRecording) return;
+    
+    const target = event.target as HTMLElement;
+    if (!target) return;
+    
+    let value = '';
+    let xpathTarget: HTMLElement = target;
+    
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+      xpathTarget = target;
+      if (target instanceof HTMLInputElement && (target.type === 'checkbox' || target.type === 'radio')) {
+        value = target.checked.toString();
+      } else {
+        value = target.value;
+      }
+    } else if (target instanceof HTMLSelectElement) {
+      xpathTarget = target;
+      value = target.selectedOptions[0]?.textContent?.trim() || target.value;
+    } else {
+      return; // Skip non-input elements
+    }
+    
+    if (!value) return;
+    
+    const focusedEl = getFocusedElement(target);
+    let bundle;
+    if (focusedEl) bundle = recordElement(focusedEl);
+    
+    logEvent({
+      eventType: 'input',
+      xpath: getXPath(xpathTarget),
+      bundle,
+      value,
+      label: generateUniqueLabel(getLabelForTarget(target)),
+      page: window.location.href,
+    });
+    
+    console.log('[Muffin] ⌨️ Input recorded:', value.substring(0, 30));
+  }
+
+  function handleChange_Recording(event: Event) {
+    if (!isRecording) return;
+    
+    const target = event.target as HTMLSelectElement;
+    if (!target || !(target instanceof HTMLSelectElement)) return;
+    
+    const value = target.selectedOptions[0]?.textContent?.trim() || target.value;
+    
+    const focusedEl = getFocusedElement(target);
+    let bundle;
+    if (focusedEl) bundle = recordElement(focusedEl);
+    
+    logEvent({
+      eventType: 'input',
+      xpath: getXPath(target),
+      bundle,
+      value,
+      label: generateUniqueLabel(getLabelForTarget(target)),
+      page: window.location.href,
+    });
+    
+    console.log('[Muffin] 📋 Select change recorded:', value);
+  }
+
+  function handleKeyDown_Recording(event: KeyboardEvent) {
+    if (!isRecording) return;
+    
+    const target = event.target as HTMLElement;
+    if (!target) return;
+    
+    if (event.key === 'Enter') {
+      const focusedEl = getFocusedElement(target);
+      let bundle;
+      if (focusedEl) bundle = recordElement(focusedEl);
+      
+      let value = '';
+      let xpathTarget: HTMLElement = target;
+      
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+        xpathTarget = target;
+        value = target.value;
+      }
+      
+      const rect = target.getBoundingClientRect();
+      
+      logEvent({
+        eventType: 'Enter',
+        xpath: getXPath(xpathTarget),
+        bundle,
+        value,
+        label: generateSequentialLabel('submit'),
+        page: window.location.href,
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      });
+      
+      console.log('[Muffin] ⏎ Enter key recorded');
+    }
   }
 
   // ---------------------- Remove listeners ----------------------
   function removeListeners(_doc: Document) {
-    // ⚠️ OLD RECORDING HANDLERS - DISABLED
-    // No longer needed since RecordingEngine handles cleanup via AbortController
-    
-    // DISABLED: Old recording event removal (replaced by RecordingEngine)
-    // doc.removeEventListener("mousedown", handleClick, true);
-    // doc.removeEventListener("input", handleInput, true);
-    // doc.removeEventListener("keydown", handleKeyDown, true);
-    // doc.removeEventListener("keydown", handleKeydownForComplexEditor, true);
-    
-    console.log('[content.tsx] removeListeners called (old handlers disabled)');
+    // Remove recording listeners if active
+    if (isRecording) {
+      removeRecordingListeners(_doc);
+    }
+    console.log('[content.tsx] Listeners cleanup complete');
   }
 
   function injectScript(fileName: string) {
@@ -2597,8 +2833,8 @@ function resetLabelCountersModuleLevel(): void {
   console.log('[Muffin MVS] Label counters reset called from module scope');
 }
 
-let recordingOrchestrator: RecordingOrchestrator | null = null;
-let useV2Recording = false;
+// NOTE: recordingOrchestrator and useV2Recording are now declared at top of file (line 28-30)
+// Removed duplicate declarations here to prevent TS2451 error
 
 // Message handler for recording control
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
