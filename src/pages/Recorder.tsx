@@ -373,6 +373,17 @@ export default function Recorder() {
     );
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // SP-B4-CRITICAL: Verification Hook
+  // ═══════════════════════════════════════════════════════════════════════════════
+  const {
+    session: verificationSession,
+    isVerifying,
+    isComplete: isVerificationComplete,
+    startVerification,
+    error: verificationError
+  } = useVerificationState();
+
   const addLog = (level: string, message: string) => {
     const newLog: Log = {
       timestamp: format(new Date(), 'HH:mm:ss'),
@@ -469,6 +480,27 @@ export default function Recorder() {
               }
             );
           }
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // SP-B4-CRITICAL: Start Post-Stop Verification
+        // ═══════════════════════════════════════════════════════════════════════════════
+        if (cleanedSteps.length > 0 && projectId) {
+          console.log('[Muffin] Starting post-stop verification...', {
+            steps: cleanedSteps.length,
+            projectId
+          });
+          addLog('info', `Starting verification of ${cleanedSteps.length} steps...`);
+          
+          // Get current tab to run verification
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]?.id) {
+              startVerification(projectId, cleanedSteps, tabs[0].id);
+            } else {
+              console.warn('[Muffin] No active tab for verification');
+              addLog('warning', 'Could not start verification - no active tab');
+            }
+          });
         }
         
         setError("Recorded steps have been saved successfully !");
@@ -1018,6 +1050,24 @@ export default function Recorder() {
             )}
             <AlertDescription>{error}</AlertDescription>
           </Alert>
+        )}
+
+        {/* SP-B4-CRITICAL: Verification Panel UI */}
+        {(isVerifying || verificationSession) && (
+          <div className="mb-4">
+            <VerificationPanel
+              onRepairStep={(stepIndex) => {
+                console.log('[Muffin] Repair needed for step:', stepIndex);
+                addLog('info', `Step ${stepIndex + 1} needs repair`);
+              }}
+              onComplete={() => {
+                console.log('[Muffin] Verification complete, ready to save');
+                addLog('info', 'Verification complete! All steps verified.');
+                setError('Verification complete! Ready to proceed.');
+              }}
+              className="glass-effect"
+            />
+          </div>
         )}
 
         <div className="flex-grow flex flex-col pb-[20px]">

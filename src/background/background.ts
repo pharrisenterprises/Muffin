@@ -18,6 +18,7 @@ import {
   initializeServices,
   type ServiceInstances 
 } from './services';
+import { getRepairOrchestrator } from '../services/RepairOrchestrator';
 
 async function ensurePersistentStorage() {
   if ('storage' in navigator && navigator.storage && navigator.storage.persist) {
@@ -193,6 +194,138 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       
       return true; // Keep channel open for async response
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // SP-A0: TEST_STRATEGY - Test a single strategy for StepVerifier
+    // Called by StepVerifier.testStrategy() during post-recording verification
+    // ═══════════════════════════════════════════════════════════════════════
+    case 'TEST_STRATEGY': {
+      const { tabId: targetTabId, strategy } = message as {
+        tabId: number;
+        strategy: any; // LocatorStrategy from StepVerifier
+      };
+
+      if (!serviceInstances) {
+        console.warn('[Muffin P40] Cannot test strategy - services not initialized');
+        sendResponse({
+          found: false,
+          confidence: 0,
+          error: 'Services not initialized. Try reloading the extension.'
+        });
+        return true;
+      }
+
+      // Use DecisionEngine to evaluate single strategy
+      const decisionEngine = getDecisionEngine();
+      
+      decisionEngine.evaluateStrategy(targetTabId, strategy)
+        .then((result) => {
+          console.log(`[Muffin P40] Strategy ${strategy.type} test: ${result.found ? 'FOUND' : 'NOT FOUND'} (${result.confidence})`);
+          sendResponse({
+            found: result.found,
+            confidence: result.confidence,
+            duration: result.duration,
+            error: result.error
+          });
+        })
+        .catch((error: Error) => {
+          console.error('[Muffin P40] Strategy test failed:', error);
+          sendResponse({
+            found: false,
+            confidence: 0,
+            error: error.message
+          });
+        });
+
+      return true; // Keep channel open for async response
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // SP-A4: START_VERIFICATION - Begin post-stop verification
+    // Called by TestRunner after [Stop] is clicked
+    // ═══════════════════════════════════════════════════════════════════════
+    case 'START_VERIFICATION': {
+      const { projectId, steps, tabId: targetTabId } = message as {
+        projectId: string;
+        steps: any[];
+        tabId: number;
+      };
+
+      if (!serviceInstances) {
+        console.warn('[Muffin P40] Cannot start verification - services not initialized');
+        sendResponse({
+          success: false,
+          error: 'Services not initialized. Try reloading the extension.'
+        });
+        return true;
+      }
+
+      const orchestrator = getRepairOrchestrator();
+      
+      orchestrator.startVerification(projectId, steps, targetTabId)
+        .then((session) => {
+          console.log('[Muffin P40] Verification complete:', session.summary);
+          sendResponse({ success: true, session });
+        })
+        .catch((error: Error) => {
+          console.error('[Muffin P40] Verification failed:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+
+      return true; // Keep channel open for async
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SP-A4: GET_VERIFICATION_STATE - Get current verification session
+    // Called by UI to check verification progress
+    // ═══════════════════════════════════════════════════════════════════════
+    case 'GET_VERIFICATION_STATE': {
+      const orchestrator = getRepairOrchestrator();
+      const session = orchestrator.getSession();
+      sendResponse({ success: true, session });
+      return true;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SP-A4: APPLY_REPAIR - Apply human repair to a flagged step
+    // Called by RepairModal when user provides a fix
+    // ═══════════════════════════════════════════════════════════════════════
+    case 'APPLY_REPAIR': {
+      const { stepIndex, repair, tabId: targetTabId } = message as {
+        stepIndex: number;
+        repair: any;
+        tabId: number;
+      };
+
+      try {
+        const orchestrator = getRepairOrchestrator();
+        orchestrator.repairStep(stepIndex, repair, targetTabId)
+          .then((success) => {
+            if (success) {
+              sendResponse({ success: true, session: orchestrator.getSession() });
+            } else {
+              sendResponse({ success: false, error: 'Repair strategy did not work' });
+            }
+          })
+          .catch((error: Error) => {
+            sendResponse({ success: false, error: error.message });
+          });
+      } catch (error) {
+        sendResponse({ success: false, error: (error as Error).message });
+      }
+      return true; // Keep channel open for async
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SP-A4: RESET_VERIFICATION - Reset for new recording session
+    // Called when starting a new recording
+    // ═══════════════════════════════════════════════════════════════════════
+    case 'RESET_VERIFICATION': {
+      const orchestrator = getRepairOrchestrator();
+      orchestrator.stop();
+      sendResponse({ success: true });
+      return true;
     }
     
     // ═══════════════════════════════════════════════════════════════════════

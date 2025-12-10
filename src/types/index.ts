@@ -376,3 +376,43 @@ export function hasProperty<K extends string>(
 ): value is Record<K, unknown> {
   return isObject(value) && key in value;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// START FIX SP-A2 (Part B)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ============================================================================
+// VERIFICATION TYPES
+// Re-export everything from verification.ts
+// ============================================================================
+
+export {
+  // Status types
+  type VerificationStatus,
+  type SessionStatus,
+  
+  // Step types
+  type StepVerificationState,
+  type StrategyTestSummary,
+  
+  // Repair types
+  type StepRepair,
+  type RepairType,
+  
+  // Session types
+  type VerificationSession,
+  type VerificationSummary,
+  
+  // Event types
+  type VerificationProgressEvent,
+  type VerificationProgressCallback,
+  
+  // Helper functions
+  needsRepair,
+  isActionableStep,
+  canSaveSession
+} from './verification';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// END FIX SP-A2 (Part B)
+// ═══════════════════════════════════════════════════════════════════════════════

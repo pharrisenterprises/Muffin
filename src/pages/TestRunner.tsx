@@ -27,6 +27,117 @@ import {
   type StepToColumnMapping
 } from '../lib/csvPositionMapping';
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 4 STRATEGY TYPES
+// Added by SP-A2 to fix defect H2a
+// These types enable DecisionEngine integration and strategy visibility
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Response from EXECUTE_STEP message to background script
+ * Contains strategy selection results and execution metrics
+ */
+interface ExecuteStepResponse {
+  /** Whether the step executed successfully */
+  success: boolean;
+  
+  /** Which strategy was used to find/interact with the element */
+  usedStrategy?: StrategyType;
+  
+  /** Confidence score of the strategy used (0-1) */
+  confidence?: number;
+  
+  /** Total execution time in milliseconds */
+  duration: number;
+  
+  /** Error message if step failed */
+  error?: string;
+  
+  /** Number of strategies that failed before success (0 = first strategy worked) */
+  fallbacksAttempted?: number;
+  
+  /** Detailed results from all strategy evaluations (for details panel) */
+  evaluationResults?: Array<{
+    strategy: StrategyType;
+    confidence: number;
+    found: boolean;
+    duration: number;
+    error?: string;
+  }>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STEP EXECUTION STATE
+// Added by SP-A3 to fix defect H2b
+// Tracks per-step execution results for UI display
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Execution state for a single step
+ * Used to track status, strategy, and metrics during playback
+ */
+export interface StepExecutionState {
+  /** Step index in the steps array */
+  index: number;
+  
+  /** Current execution status */
+  status: 'pending' | 'running' | 'success' | 'failed' | 'skipped';
+  
+  /** Strategy that successfully executed this step */
+  usedStrategy?: StrategyType;
+  
+  /** Confidence score of the strategy used (0-1) */
+  confidence?: number;
+  
+  /** All strategy evaluation results (for details panel) */
+  strategyResults?: ExecuteStepResponse['evaluationResults'];
+  
+  /** Execution duration in milliseconds */
+  duration?: number;
+  
+  /** Error message if step failed */
+  error?: string;
+  
+  /** Number of fallback strategies attempted before success */
+  fallbacksAttempted?: number;
+  
+  /** Number of retry attempts for this step */
+  retryCount: number;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RUN STATISTICS
+// Added by SP-A3 to fix defect H2b
+// Aggregated statistics for the entire test run
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Aggregated statistics for a complete test run
+ * Displayed in the run summary panel after execution
+ */
+export interface RunStats {
+  /** Total number of steps in the test */
+  totalSteps: number;
+  
+  /** Number of steps that passed */
+  passedSteps: number;
+  
+  /** Number of steps that failed */
+  failedSteps: number;
+  
+  /** Number of steps that were skipped */
+  skippedSteps: number;
+  
+  /** Total execution time in milliseconds */
+  totalDuration: number;
+  
+  /** Count of how many times each strategy was used */
+  strategyUsage: Partial<Record<StrategyType, number>>;
+  
+  /** Total number of fallbacks used across all steps */
+  fallbacksUsed: number;
+}
+
 interface LogEntry {
   timestamp: string;
   level: 'info' | 'success' | 'error' | 'warning';
